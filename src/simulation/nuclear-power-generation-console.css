@@ -96,13 +96,13 @@
 .generation-sidebar .component-disturbances label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
 .generation-sidebar .component-disturbances input { flex: 1; min-width: 80px; accent-color: var(--cool); }
 .generation-sidebar .component-disturbances output { color: var(--warm); font: 11px Consolas, monospace; }
-:host([data-theme="light"]) .generation-console { --generation-metal: #bdcfd6; --generation-edge: #e1eaf0; --generation-surface: #f8fbfc; --generation-ink: #244455; --generation-alarm: #b23830; }
+:host([data-theme="light"]) .generation-console { --generation-metal: #aabfc9; --generation-edge: #cddce4; --generation-surface: #dde6eb; --generation-ink: #1c3645; --generation-alarm: #b23830; }
 :host([data-theme="light"]) .generation-flow { stroke: #254b5b; }
 :host([data-theme="light"]) .generation-steam { fill: #497d83; }
 :host([data-theme="light"]) .generation-drops { fill: #216f90; }
 :host([data-theme="light"]) .generation-electric-flow { stroke: #ad671c; }
 :host([data-theme="light"]) .generation-coils { stroke: #b77934; }
-:host([data-theme="light"]) :is([data-component-dialog="turbine"], [data-component-dialog="condenser"]) .small-button { color: #244455; background: #f1f7fa; border-color: #9cb5c1; }
+:host([data-theme="light"]) :is([data-component-dialog="turbine"], [data-component-dialog="condenser"]) .small-button { color: #1c3645; background: #d8e2e8; border-color: #9cb5c1; }
 :host([data-theme="light"]) .generation-part-tabs [aria-pressed="true"] { color: var(--cool); border-color: var(--cool); background: #e0f1ee; }
 :host([data-theme="light"]) .generation-actions .generation-trip { color: var(--generation-alarm); border-color: var(--generation-alarm); background: #fff1ef; }
 @media (max-width: 850px) { .generation-workspace { grid-template-columns: minmax(0, 1fr); } }

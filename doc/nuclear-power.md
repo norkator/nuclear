@@ -399,8 +399,10 @@ panels, controls, diagrams, chart and logs, including the React page background.
 The browser preference uses `porssiohjain.nuclear-power.theme` in local storage;
 unavailable storage falls back to dark and never prevents switching themes. Theme
 changes do not reset simulation state or alter control settings.
-Light mode uses darker secondary labels and full-opacity disabled controls, so
-Auto-owned actuator settings remain readable while disabled.
+Light mode uses muted gray-blue surfaces, darker secondary labels and full-opacity
+disabled controls, so Auto-owned actuator settings remain readable while disabled.
+Its 3D cutaway has a darker backdrop/platform and softer lighting to reduce glare.
+Dark mode retains its original palette and lighting when switching back.
 
 ## 3D reactor overview
 

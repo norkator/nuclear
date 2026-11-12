@@ -181,13 +181,14 @@ export class PlantOverviewScene {
         this.coolMarker = this.material('#b5ffec', { emissive: '#58b9ad', emissiveIntensity: .35 });
         this.jointGeometry = new THREE.IcosahedronGeometry(1, 1);
         this.dotGeometry = new THREE.OctahedronGeometry(.18);
-        this.scene.add(new THREE.HemisphereLight('#d4edf4', '#304450', 2.4));
-        const sun = new THREE.DirectionalLight('#ffe4c3', 3.2);
-        sun.position.set(-8, 16, 12);
-        this.scene.add(sun);
-        const rim = new THREE.DirectionalLight('#70bfcf', 1.5);
-        rim.position.set(10, 8, -8);
-        this.scene.add(rim);
+        this.hemisphereLight = new THREE.HemisphereLight('#d4edf4', '#304450', 2.4);
+        this.scene.add(this.hemisphereLight);
+        this.sunLight = new THREE.DirectionalLight('#ffe4c3', 3.2);
+        this.sunLight.position.set(-8, 16, 12);
+        this.scene.add(this.sunLight);
+        this.rimLight = new THREE.DirectionalLight('#70bfcf', 1.5);
+        this.rimLight.position.set(10, 8, -8);
+        this.scene.add(this.rimLight);
         this.floorMaterial = this.material('#1a2b37');
         this.box(this.scene, [24, .35, 18], this.floorMaterial, [0, -.35, -.5]);
         const grid = new THREE.GridHelper(24, 24, '#54717e', '#334d5c');
@@ -584,8 +585,14 @@ export class PlantOverviewScene {
         }
         if (theme !== this.theme) {
             this.theme = theme;
-            this.floorMaterial.color.set(theme === 'light' ? '#d2e0e3' : '#1a2b37');
-            this.grid.material.color.set(theme === 'light' ? '#9cb5bd' : '#405a69');
+            const light = theme === 'light';
+            this.floorMaterial.color.set(light ? '#8b9fa8' : '#1a2b37');
+            this.grid.material.color.set(light ? '#718b96' : '#405a69');
+            // Softer light-mode illumination reduces glare from the platform and
+            // metalwork; returning to dark restores its original lighting.
+            this.hemisphereLight.intensity = light ? 1.65 : 2.4;
+            this.sunLight.intensity = light ? 2.3 : 3.2;
+            this.rimLight.intensity = light ? .95 : 1.5;
         }
         for (const [index, rod] of this.rods.entries()) rod.position.y = ROD_INSERTED_Y + (1 - sim.controlRods[index].position / 100) * ROD_TRAVEL;
         for (const { rodIndex, x, marker } of this.refuelling.rodIndicators) {

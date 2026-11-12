@@ -27,12 +27,12 @@ body {
 :root:has(nuclear-power-console[data-theme="light"]),
 .nuclear-power-view:has(nuclear-power-console[data-theme="light"]) {
   color-scheme: light;
-  background: #edf2f5;
-  color: #233944;
-  --site-muted: #49616f;
+  background: #c5d0d7;
+  color: #1a2d36;
+  --site-muted: #2d4352;
   --site-accent: #09695e;
-  --site-border: #bdccd5;
-  --site-surface: #e1eaef;
+  --site-border: #a3b5c0;
+  --site-surface: #d3dfe5;
 }
 
 .site-content {

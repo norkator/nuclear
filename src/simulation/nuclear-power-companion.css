@@ -50,8 +50,8 @@
 :host([data-remote-ready="false"]) .companion-status { color: var(--warm); }
 :host([data-remote-ready="false"]) :is(.companion-operator, .companion-pane) { opacity: .55; }
 :host([data-screen="companion"]) .console-footer { margin-top: 16px; }
-:host([data-theme="light"]) .pairing-dialog { background: #edf2f5; }
-:host([data-theme="light"]) .companion-pairing-dialog { background: #f8fbfc; border-color: #94adbc; box-shadow: 0 18px 65px #29415255; }
+:host([data-theme="light"]) .pairing-dialog { background: #dde6eb; }
+:host([data-theme="light"]) .companion-pairing-dialog { background: #e3e9ed; border-color: #94adbc; box-shadow: 0 18px 65px #29415255; }
 @container nuclear-console (max-width: 700px) {
     .companion-workspace { grid-template-columns: minmax(0, 1fr); }
     .companion-operator { grid-row: 1; }

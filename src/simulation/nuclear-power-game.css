@@ -19,8 +19,8 @@
 .game-welcome { display: grid; gap: 14px; }
 .company-message { border: 1px solid var(--border); border-left: 3px solid var(--border); padding: 12px; border-radius: 5px; display: grid; gap: 9px; }
 .company-message.unread { border-left-color: var(--cool); }
-:host([data-theme="light"]) .game-status { background: #edf7f4; border-color: #478c7b; }
-:host([data-theme="light"]) .game-dialog { background: #f7fafc; }
+:host([data-theme="light"]) .game-status { background: #d4e6e0; border-color: #478c7b; }
+:host([data-theme="light"]) .game-dialog { background: #e3e9ed; }
 :host([data-theme="light"]) .game-tabs [aria-pressed="true"] { color: #086c5f; border-color: #086c5f; }
 @media (max-width: 620px) { .game-status { align-items: start; } .game-status .game-progress { flex-basis: 100%; } .game-content { padding: 12px; } }
 

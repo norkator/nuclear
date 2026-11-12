@@ -4,60 +4,60 @@
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
 /* Component-local light palette, independent of the default dark palette. */
-:host([data-theme="light"]) .hx-console { --hx-metal: #d2e1e6; --hx-metal-edge: #e6eef2; --hx-surface: #f8fbfc; --hx-ink: #244455; }
+:host([data-theme="light"]) .hx-console { --hx-metal: #b9ccd5; --hx-metal-edge: #cedce3; --hx-surface: #dde6eb; --hx-ink: #1c3645; }
 :host([data-theme="light"]) .hx-flow { stroke: #254b5b; }
 :host([data-theme="light"]) .hx-heat { stroke: #ab610e; }
 :host([data-theme="light"]) .hx-steam { fill: #497d83; }
 :host([data-theme="light"]) {
     color-scheme: light;
-    color: #263e50;
-    background: #edf2f5;
+    color: #1c303e;
+    background: #c5d0d7;
     --warm: #a55218;
     --cool: #08776a;
-    --muted: #536c7e;
-    --border: #c4d1da;
+    --muted: #2d4352;
+    --border: #a3b5c0;
 }
-:host([data-theme="light"]) :is(.panel, .metric) { background: #fff; }
-:host([data-theme="light"]) .metric { background: linear-gradient(120deg, #fff, #f3f7f9); }
-:host([data-theme="light"]) :is(.automation-strip, .individual-rod) { background: #e3edf1; border-color: #bfced7; }
+:host([data-theme="light"]) :is(.panel, .metric) { background: #e3e9ed; }
+:host([data-theme="light"]) .metric { background: linear-gradient(120deg, #e5ebef, #d5dfe5); }
+:host([data-theme="light"]) :is(.automation-strip, .individual-rod) { background: #cddae1; border-color: #a6bac5; }
 :host([data-theme="light"]) .brand-mark { color: #96621b; background: #fff2d8; border-color: #c8a15f; }
 :host([data-theme="light"]) .simulation-badge { color: #825215; background: #fff4df; border-color: #d9bc87; }
 :host([data-theme="light"]) .simulation-badge i { background: #986624; }
-:host([data-theme="light"]) :is(.metric-label, .metric-foot, .unit, .control-note, .range-labels, .operation-state > span, .control-label, .setpoint label, .individual-rod > label, .core-map-note, .core-map-legend, .diagram-legend, .diagram-note, .trend-note, .trend-legend, .event-count, .local-tag, .section-index, .event-time, .event-category, dt, .console-footer, .footer-signature, .footer-signature span) { color: #536b7b; }
-:host([data-theme="light"]) :is(.equipment-content p, .individual-rod p, .regulation-status > span, .pump-readback, .pump-control > label, .automation-strip > label) { color: #4f6878; }
-:host([data-theme="light"]) :is(dd, .trend-legend strong, .control-label > span, .pump-readback strong, .automation-strip > label > span) { color: #25465a; }
+:host([data-theme="light"]) :is(.metric-label, .metric-foot, .unit, .control-note, .range-labels, .operation-state > span, .control-label, .setpoint label, .individual-rod > label, .core-map-note, .core-map-legend, .diagram-legend, .diagram-note, .trend-note, .trend-legend, .event-count, .local-tag, .section-index, .event-time, .event-category, dt, .console-footer, .footer-signature, .footer-signature span) { color: #2d4352; }
+:host([data-theme="light"]) :is(.equipment-content p, .individual-rod p, .regulation-status > span, .pump-readback, .pump-control > label, .automation-strip > label) { color: #2d4352; }
+:host([data-theme="light"]) :is(dd, .trend-legend strong, .control-label > span, .pump-readback strong, .automation-strip > label > span) { color: #1d394a; }
 :host([data-theme="light"]) .metric-track { background: #d7e2e8; }
 :host([data-theme="light"]) .flow-metric[data-pressure-level="warning"] { --flow-alert: #805416; background: #fff3d8; border-color: #ae7a24; }
 :host([data-theme="light"]) .flow-metric[data-pressure-level="danger"] { --flow-alert: #ac2e27; background: #fff0ed; border-color: #bf4037; }
 :host([data-theme="light"]) .flow-metric:is([data-pressure-level="warning"], [data-pressure-level="danger"]) :is(.metric-label, .metric-reading, .metric-icon, .metric-foot, .metric-flow-limit) { color: var(--flow-alert); }
 :host([data-theme="light"]) .regulation-status { border-color: #bdced6; }
 :host([data-theme="light"]) .regulation-status strong { color: #086c60; }
-:host([data-theme="light"]) :is(select, .automation-strip input[type="number"]) { color: #264557; background: #fff; border-color: #a6bbc8; }
-:host([data-theme="light"]) .mode-switch { background: #e7eef2; border-color: #a6bec7; }
-:host([data-theme="light"]) .mode-switch button { color: #486474; }
+:host([data-theme="light"]) :is(select, .automation-strip input[type="number"]) { color: #1d394a; background: #e3ebef; border-color: #92aab8; }
+:host([data-theme="light"]) .mode-switch { background: #cedbe2; border-color: #94adb8; }
+:host([data-theme="light"]) .mode-switch button { color: #2d4352; }
 :host([data-theme="light"]) .mode-switch button[aria-pressed="true"] { background: #c7e5db; color: #145d50; border-color: #7eafa1; }
-:host([data-theme="light"]) :is(.small-button, .control-button, .footer-button) { color: #324f60; background: #f1f6f8; border-color: #adc0cc; }
-:host([data-theme="light"]) :is(.small-button, .control-button, .footer-button):not(:disabled):hover { background: #dce9ed; border-color: #759e9b; }
+:host([data-theme="light"]) :is(.small-button, .control-button, .footer-button) { color: #233d4c; background: #d8e2e8; border-color: #98aeba; }
+:host([data-theme="light"]) :is(.small-button, .control-button, .footer-button):not(:disabled):hover { background: #c5d7de; border-color: #759e9b; }
 :host([data-theme="light"]) .start-button { color: #15624d; background: #daeee5; border-color: #86b5a1; }
 :host([data-theme="light"]) .theme-toggle input { background: #c8d7de; border-color: #7897a6; }
 :host([data-theme="light"]) .theme-toggle input:checked { background: #087a70; border-color: #087a70; }
 :host([data-theme="light"]) .theme-toggle input::before { background: #fff; }
 :host([data-theme="light"]) .annunciator { color: #0f6959; background: #e2f3ed; border-color: #aad2c6; }
 :host([data-theme="light"]) .annunciator.has-alarm { color: #964619; background: #fff0df; border-color: #d8a97d; }
-:host([data-theme="light"]) .diagram-viewport { background: #f7fafb; }
-:host([data-theme="light"]) .plant-scene { background: radial-gradient(ellipse at 45% 35%, #f4f9f8 0%, #dce8ed 85%); }
-:host([data-theme="light"]) .plant-scene-label { color: #25485b; background: #f5fbfaf2; border-color: #9bb7bd; box-shadow: 0 3px 10px #29455518; }
-:host([data-theme="light"]) .plant-scene-label strong { color: #476c7d; }
+:host([data-theme="light"]) .diagram-viewport { background: #d2dfe5; }
+:host([data-theme="light"]) .plant-scene { background: radial-gradient(ellipse at 45% 35%, #b8c8cf 0%, #8fa5b1 85%); }
+:host([data-theme="light"]) .plant-scene-label { color: #1d394a; background: #dce7ebf2; border-color: #8ba6b0; box-shadow: 0 3px 10px #29455525; }
+:host([data-theme="light"]) .plant-scene-label strong { color: #2d4352; }
 :host([data-theme="light"]) .plant-scene-label small { color: #236b5d; }
-:host([data-theme="light"]) .plant-scene-label:hover, :host([data-theme="light"]) .plant-scene-label.selected { border-color: #2a8b76; background: #ddf2eaf5; }
+:host([data-theme="light"]) .plant-scene-label:hover, :host([data-theme="light"]) .plant-scene-label.selected { border-color: #2a8b76; background: #c9e5dcf5; }
 :host([data-theme="light"]) .plant-scene-label:focus-visible { outline-color: #156b58; }
-:host([data-theme="light"]) :is(.spent-fuel-summary > span, .spent-fuel-batch, .spent-fuel-dispatch select) { background: #e6f0f1; color: #25485b; }
+:host([data-theme="light"]) :is(.spent-fuel-summary > span, .spent-fuel-batch, .spent-fuel-dispatch select) { background: #d2dfe4; color: #1d394a; }
 :host([data-theme="light"]) .plant-scene-label.hot { background: #ffe5e2; border-color: #c83e37; }
 :host([data-theme="light"]) .plant-scene-label.hot small { color: #ac2823; }
-:host([data-theme="light"]) :is(.plant-scene-caption, .plant-scene-hint) { color: #476477; }
-:host([data-theme="light"]) #grid path { stroke: #d4e1e9; }
-:host([data-theme="light"]) :is(.panel-heading, .diagram-legend, .core-map-note, .setpoint, dl > div, .log-toolbar) { border-color: #ccd9e2; }
-:host([data-theme="light"]) .pump-control { color: #284c5d; background: #edf5f6; border-color: #b5cad3; }
+:host([data-theme="light"]) :is(.plant-scene-caption, .plant-scene-hint) { color: #243d4b; }
+:host([data-theme="light"]) #grid path { stroke: #b6c9d3; }
+:host([data-theme="light"]) :is(.panel-heading, .diagram-legend, .core-map-note, .setpoint, dl > div, .log-toolbar) { border-color: #b5c5d0; }
+:host([data-theme="light"]) .pump-control { color: #1d394a; background: #d5e2e7; border-color: #a0b8c4; }
 :host([data-theme="light"]) .pump-control[data-condition="strained"] { border-color: #a97631; box-shadow: inset 3px 0 #a97631; }
 :host([data-theme="light"]) .pump-control[data-condition="damaged"] { border-color: #b94c3b; box-shadow: inset 3px 0 #b94c3b; }
 :host([data-theme="light"]) .pump-control[data-lamp="fault"] .pump-badge { color: #a1342c; }
@@ -73,17 +73,17 @@
 :host([data-theme="light"]) .alarm-item { color: #934319; background: #fff0df; border-color: #d4a783; }
 :host([data-theme="light"]) .ack-button { color: #805623; background: #f7ecd9; border-color: #c7aa7d; }
 :host([data-theme="light"]) .ack-button:not(:disabled):hover { background: #eedcbc; }
-:host([data-theme="light"]) :is(.drawing-label, .equipment-tag, .component-subtitle, .chart-labels) { fill: #526c7e; }
-:host([data-theme="light"]) .diagram-value { fill: #254b5d; }
+:host([data-theme="light"]) :is(.drawing-label, .equipment-tag, .component-subtitle, .chart-labels) { fill: #2d4352; }
+:host([data-theme="light"]) .diagram-value { fill: #1d394a; }
 :host([data-theme="light"]) .pipe-shell { stroke: #cfdae2; }
-:host([data-theme="light"]) .instrument rect { fill: #fff; stroke: #a4bac8; }
-:host([data-theme="light"]) .instrument-label { fill: #526c7e; }
+:host([data-theme="light"]) .instrument rect { fill: #e3e9ed; stroke: #91aaba; }
+:host([data-theme="light"]) .instrument-label { fill: #2d4352; }
 :host([data-theme="light"]) .instrument path { stroke: #7c9aa9; }
 :host([data-theme="light"]) .signal-line { stroke: #557f73; }
 :host([data-theme="light"]) .equipment.selected .selection-ring { stroke: #1b8276; }
 :host([data-theme="light"]) .equipment:hover .selection-ring { stroke: #3c8e84; }
 :host([data-theme="light"]) .core-vessel-outer { fill: #dae6ec; stroke: #7894a2; }
-:host([data-theme="light"]) .core-vessel-inner { fill: #f9fcfd; stroke: #a4b9c4; }
+:host([data-theme="light"]) .core-vessel-inner { fill: #dde7ec; stroke: #a4b9c4; }
 :host([data-theme="light"]) .core-crosshair { stroke: #597a8b; }
 :host([data-theme="light"]) .core-channel > rect { fill: #e8eef2; stroke: #a5bac6; }
 :host([data-theme="light"]) .control-channel > rect { fill: #d9eee7; stroke: #5f9b8d; }
@@ -95,10 +95,10 @@
 :host([data-theme="light"]) .fuel-pin { fill: #844611; }
 :host([data-theme="light"]) .rod-depth-track { background: #d5e6e8; border-color: #81a9ac; }
 :host([data-theme="light"]) .chart-grid { stroke: #c2d2de; }
-:host([data-theme="light"]) :is(.event-list, .diagram-viewport) { scrollbar-color: #a3b8c5 #edf3f5; }
-:host([data-theme="light"]) .floating-dialog { color: #263e50; background: #fff; border-color: #94adbc; box-shadow: 0 18px 65px #29415255; }
-:host([data-theme="light"]) .core-dialog-titlebar { background: #e3edf2; border-color: #b0c4d0; }
-:host([data-theme="light"]) .core-damage-panel { background: #e9f2f4; }
+:host([data-theme="light"]) :is(.event-list, .diagram-viewport) { scrollbar-color: #8fa6b5 #d2dfe5; }
+:host([data-theme="light"]) .floating-dialog { color: #1c303e; background: #e3e9ed; border-color: #819cad; box-shadow: 0 18px 65px #29415255; }
+:host([data-theme="light"]) .core-dialog-titlebar { background: #cddbe3; border-color: #9bb2c0; }
+:host([data-theme="light"]) .core-damage-panel { background: #d4e1e7; }
 :host([data-theme="light"]) .core-damage-panel[data-damaged="true"] { background: #fff0e8; border-color: #b97963; }
 :host([data-theme="light"]) .core-damage-panel[data-damaged="true"] h3 { color: #8d3b25; }
 :host([data-theme="light"]) .core-damage-list button { background: #fff8f0; border-color: #c1957e; color: #793e24; }
@@ -111,8 +111,8 @@
 :host([data-theme="light"][data-overheated="true"]) .core-temperature-instrument rect { fill: #fff0ed; stroke: #bf4037; }
 :host([data-theme="light"][data-overheated="true"]) .core-temperature-instrument .instrument-value { fill: #ac2e27; }
 :host([data-theme="light"][data-overheated="true"]) .annunciator { color: #9c2c24; background: #ffe8e3; border-color: #d4776c; }
-:host([data-theme="light"]) .fault-console { color: #425f70; background: #eef5f7; }
-:host([data-theme="light"]) .condition-strip { color: #536b7b; }
+:host([data-theme="light"]) .fault-console { color: #2d4352; background: #d5e1e7; }
+:host([data-theme="light"]) .condition-strip { color: #2d4352; }
 :host([data-theme="light"]) .condition-strip b { color: #294a5a; }
 :host([data-theme="light"][data-condition="strained"]) .condition-strip > strong { color: #965115; }
 :host([data-theme="light"]:is([data-condition="overheating"], [data-condition="core-damage"], [data-condition="component-damage"], [data-condition="meltdown"])) .condition-strip > strong { color: #ae3026; }
@@ -121,15 +121,15 @@
 :host([data-theme="light"]) .core-channel[data-condition="damaged"] > rect { fill: #f3c2b8; stroke: #b1372e; }
 
 /* Disabled controls remain readable while Auto owns the actuators. */
-:host([data-theme="light"]) button:disabled { opacity: 1; color: #526775; background: #e5edf1; border-color: #b2c1cb; }
-:host([data-theme="light"]) .operator-panel { --metal-top: #e6eded; --metal-bottom: #c5d0d2; --metal-edge: #85989b; --panel-legend: #2d464b; }
+:host([data-theme="light"]) button:disabled { opacity: 1; color: #354c5b; background: #e5edf1; border-color: #b2c1cb; }
+:host([data-theme="light"]) .operator-panel { --metal-top: #d3dddf; --metal-bottom: #b6c5c9; --metal-edge: #85989b; --panel-legend: #243b40; }
 :host([data-theme="light"]) .operator-panel .operation-state strong { color: #73501c; background: #f0e9d7; border-color: #a9ac9f; box-shadow: inset 0 1px 3px #556b7130; }
 :host([data-theme="light"][data-state="running"]) .operator-panel .operation-state strong { color: #176748; background: #e4f0df; }
 :host([data-theme="light"][data-state="tripped"]) .operator-panel .operation-state strong { color: #963c29; background: #ffe7d8; }
 :host([data-theme="light"]) .operator-panel .hardware-button { color: var(--panel-legend); background-color: #e5edf1; background-image: linear-gradient(var(--metal-top), var(--metal-bottom)); border-color: var(--metal-edge); box-shadow: inset 0 1px #fff, inset 0 -2px #7f92964d, 0 3px 0 #859598; }
 :host([data-theme="light"]) .operator-panel .hardware-button:not(:disabled):hover { background-image: linear-gradient(#f3f6f4, #d4dfde); border-color: #667e7c; }
 :host([data-theme="light"]) .hardware-label > strong { text-shadow: 0 1px #ffffffb0; }
-:host([data-theme="light"]) .setpoint { background: linear-gradient(#e5eded, #d4dfe0); border-color: #9aadae; box-shadow: inset 0 1px #fff, 0 2px 0 #91a3a4; }
+:host([data-theme="light"]) .setpoint { background: linear-gradient(#d1dddf, #bdcdd1); border-color: #8da3a7; box-shadow: inset 0 1px #e5edef, 0 2px 0 #91a3a4; }
 :host([data-theme="light"]) .operator-panel .regulator-display { color: #f5ce82; background: #24312c; border-color: #7b8e82; }
 :host([data-theme="light"]) .regulator-rail { background: linear-gradient(#b8c6c6, #d9e1dc); border-color: #839c98; }
 :host([data-theme="light"]) .regulator-scale { color: #405d58; background-image: repeating-linear-gradient(90deg, #607a70 0 1px, transparent 1px 10%); }
@@ -149,16 +149,16 @@
 :host([data-theme="light"]) .emergency-station[data-latched="true"] { background: linear-gradient(#f2d9c8, #dfc5b7); border-color: #af614b; }
 :host([data-theme="light"]) .emergency-station[data-latched="true"] :is(.trip-latch-indicator, .emergency-label > b) { color: #8e3627; }
 :host([data-theme="light"]) input:disabled { opacity: 1; accent-color: #718b96; }
-:host([data-theme="light"]) :is(.metric-label, .metric-foot, .control-label, .local-tag, .section-index, .range-labels, .event-time, .event-category, .log-toolbar, .diagram-scroll-hint, .control-note, .trend-note, .core-map-note, .console-footer, .footer-signature, .footer-signature span) { color: #40596a; }
-:host([data-theme="light"]) :is(.drawing-label, .equipment-tag, .component-subtitle, .instrument-label, .chart-labels) { fill: #3e596a; }
-:host([data-theme="light"]) .auxiliary-dialog { background: #f5f8fa; color: #203e50; }
+:host([data-theme="light"]) :is(.metric-label, .metric-foot, .control-label, .local-tag, .section-index, .range-labels, .event-time, .event-category, .log-toolbar, .diagram-scroll-hint, .control-note, .trend-note, .core-map-note, .console-footer, .footer-signature, .footer-signature span) { color: #2d4352; }
+:host([data-theme="light"]) :is(.drawing-label, .equipment-tag, .component-subtitle, .instrument-label, .chart-labels) { fill: #2d4352; }
+:host([data-theme="light"]) .auxiliary-dialog { background: #dde6eb; color: #203e50; }
 :host([data-theme="light"]) .auxiliary-content p,
 :host([data-theme="light"]) .power-supply-button small,
-:host([data-theme="light"]) .diesel-title strong { color: #40596a; }
+:host([data-theme="light"]) .diesel-title strong { color: #2d4352; }
 :host([data-theme="light"]) .supply-overview,
-:host([data-theme="light"]) .diesel-card { background: #e9f1f4; border-color: #97adb9; }
+:host([data-theme="light"]) .diesel-card { background: #d0dfe6; border-color: #97adb9; }
 :host([data-theme="light"]) .supply-overview > strong { color: #126750; }
-:host([data-theme="light"]) .supply-path span { color: #40596a; border-color: #97adb9; }
+:host([data-theme="light"]) .supply-path span { color: #2d4352; border-color: #97adb9; }
 :host([data-theme="light"]) .supply-path .energized { color: #145d43; background: #cee9dd; border-color: #508b73; }
 :host([data-theme="light"]) .diesel-card[data-state="running"] .diesel-symbol { color: #126750; }
 :host([data-theme="light"]) .power-supply-button[data-supply="backup"] { color: #775018; border-color: #ad782b; }
@@ -166,10 +166,10 @@
 :host([data-theme="light"]) .fuel-channel.selected > rect,
 :host([data-theme="light"]) .fuel-channel:hover > rect { stroke: #805317; }
 :host([data-theme="light"]) .diesel-schematic { border-color: #a5bbc6; --diesel-steel-dark: #8ba5b2; --diesel-steel-light: #d7e2e6; }
-:host([data-theme="light"]) .diesel-drawing-background { fill: #f1f6f8; }
+:host([data-theme="light"]) .diesel-drawing-background { fill: #d8e3e9; }
 :host([data-theme="light"]) .diesel-grid-line { stroke: #b6cbd4; }
 :host([data-theme="light"]) .diesel-drawing-label,
-:host([data-theme="light"]) .diesel-visual-status { fill: #405b6d; color: #405b6d; }
+:host([data-theme="light"]) .diesel-visual-status { fill: #2d4352; color: #2d4352; }
 :host([data-theme="light"]) .diesel-housing { stroke: #526d7e; }
 :host([data-theme="light"]) .diesel-base { fill: #a6bcc8; stroke: #526d7e; }
 :host([data-theme="light"]) .diesel-cylinder { fill: #cfdee6; stroke: #637f90; }
@@ -208,7 +208,7 @@
 :host([data-theme="light"]) .fuel-channel[data-reserve="spent"][data-condition="damaged"] > rect { stroke: #b1372e; }
 :host([data-theme="light"]) .fuel-channel[data-reserve="spent"]:is(.selected, :hover, :focus-visible) > rect { stroke: #08634f; stroke-width: 3px; }
 
-:host([data-theme="light"]) .equipment-dialog input[type="number"] { background: #fff; color: #244c5b; border-color: #93aebc; }
+:host([data-theme="light"]) .equipment-dialog input[type="number"] { background: #e3ebef; color: #1d394a; border-color: #93aebc; }
 :host([data-theme="light"]) .component-flow-shell { stroke: #92b1ba; }
 :host([data-theme="light"]) .component-flow { stroke: #186b58; }
 :host([data-theme="light"]) .component-flow-diagram circle { fill: #e3f1ee; stroke: #38776d; }
@@ -219,28 +219,28 @@
 
 :host([data-theme="light"]) .equipment-valve circle { fill: #edf7f4; stroke: #39756c; }
 :host([data-theme="light"]) .equipment-valve > path { fill: #c8e3db; stroke: #39756c; }
-:host([data-theme="light"]) .header-control-card { background: #e3edf1; }
-:host([data-theme="light"]) .plant-tabs { background: #e9f0f3; }
-:host([data-theme="light"]) .loop-temperature-value { fill: #254b5d; }
+:host([data-theme="light"]) .header-control-card { background: #cddae1; }
+:host([data-theme="light"]) .plant-tabs { background: #d0dce3; }
+:host([data-theme="light"]) .loop-temperature-value { fill: #1d394a; }
 :host([data-theme="light"]) .exchanger-steam-puff { fill: #568d93; }
 :host([data-theme="light"]) .plant-tabs [aria-selected="true"] { color: #175e50; background: #d6eee5; border-color: #a5c9bc; border-bottom-color: #2a8b70; }
 :host([data-theme="light"]) .maintenance-count { color: #385e6c; background: #d3e3e9; }
 :host([data-theme="light"]) .plant-tabs [data-attention="true"] .maintenance-count { color: #784111; background: #ffe0af; }
 :host([data-theme="light"]) .maintenance-list > li { color: #344a55; background: #fff5e7; border-color: #d1a16d; }
 :host([data-theme="light"]) .maintenance-issue, :host([data-theme="light"]) .maintenance-readiness li:not(.ready) { color: #865019; }
-:host([data-theme="light"]) .maintenance-readiness { background: #e9f2f4; }
+:host([data-theme="light"]) .maintenance-readiness { background: #d4e1e7; }
 :host([data-theme="light"]) .valve-handle path { stroke: #8e5215; }
 :host([data-theme="light"]) .exchanger-bypass { stroke: #ad651f; }
-:host([data-theme="light"]) .exercises-dialog select { color: #244c5b; background: #fff; }
-:host([data-theme="light"]) .backup-pump-row.pump-control { background: #dcebed; }
+:host([data-theme="light"]) .exercises-dialog select { color: #1d394a; background: #e3ebef; }
+:host([data-theme="light"]) .backup-pump-row.pump-control { background: #c5d8e0; }
 :host([data-theme="light"]) .pump-open, :host([data-theme="light"]) .circuit-pressure { color: #24614f; }
 :host([data-theme="light"]) .circuit-pressure[data-high="true"] { color: #a13b21; }
 :host([data-theme="light"]) .water-leak-drop { fill: #1480b7; stroke: #a9e4ff; }
 :host([data-theme="light"]) .pipe-crack { stroke: #a44329; }
 :host([data-theme="light"]) .pipe-inspection rect { fill: #e7f3f4; stroke: #6d939d; }
 :host([data-theme="light"]) .pump-cutaway-shell { fill: #dcebef; stroke: #617f8d; }
-:host([data-theme="light"]) .scene-labels-control select { color: #264557; background: #fff; border-color: #a6bbc8; }
-:host([data-theme="light"]) .pump-console { --pump-metal: #d6e4e8; --pump-surface: #f6fafb; --pump-ink: #264454; }
+:host([data-theme="light"]) .scene-labels-control select { color: #1d394a; background: #e3ebef; border-color: #92aab8; }
+:host([data-theme="light"]) .pump-console { --pump-metal: #bccfd8; --pump-surface: #dde6eb; --pump-ink: #1c3645; }
 :host([data-theme="light"]) .pump-console-flow { stroke: #275d70; }
 :host([data-theme="light"]) .pump-fitting-spray { fill: #1480b7; stroke: #a9e4ff; }
 :host([data-theme="light"]) .pump-console[data-overpressure="true"] [data-pump-value="pressure"] { color: #a13b21; }
