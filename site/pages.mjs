@@ -66,7 +66,7 @@ export const pages = [
             <h3>Can I play on a phone or without WebGL?</h3>
             <p>The controls adapt to small screens. The 3D cutaway uses WebGL 2; an interactive SVG schematic is available when WebGL is unavailable or when you select Schematic.</p>
             <h3>Does the simulator save my reactor?</h3>
-            <p>The plant belongs to the current page session. Reloading or closing the page discards it; Reset demo returns to a cold plant. You can export the event journal and an incident report before resetting. Only the theme preference is saved locally.</p>
+            <p>Free operation belongs to the current page session and is discarded on reload. Start game creates a separate commissioning career with a company inbox, assignments and achieved goals saved on this browser. Continue game restores that career paused. Use Save to export a career backup; export free-operation logs before resetting.</p>
           </section>
         `,
     },
@@ -97,7 +97,7 @@ export const pages = [
           <p>In the 3D view, drag to orbit, use the mouse wheel to zoom, and use middle-button drag or Shift+drag to pan. With the canvas focused, arrow keys orbit, Shift+arrow keys pan, and Home resets the camera. Select <strong>Schematic</strong> for the SVG process view.</p>
           <h2>Stop, pause and finish</h2>
           <p><strong>Stop</strong> inserts the rods while cooling continues if powered pumps remain enabled. Retained heat does not disappear immediately. <strong>Pause</strong> freezes plant time. Hiding the browser tab also suspends the simulation without fast-forwarding when you return.</p>
-          <p>Enable plant sounds only if you want operating audio and alarms. Export logs before Reset demo, reload or closing the page: the reactor session is not saved. Continue with the <a href="/guides/reactor-controls/">control rods, cooling and output guide</a> to explore manual operation.</p>
+          <p>Enable plant sounds only if you want operating audio and alarms. Export free-operation logs before Reset demo, reload or closing the page. In a company career, use Save or Save &amp; return to free operation; Continue game restores the local career paused after reload. Continue with the <a href="/guides/reactor-controls/">control rods, cooling and output guide</a> to explore manual operation.</p>
         `,
     },
     {
@@ -128,7 +128,7 @@ export const pages = [
           <p>The pumps use an auxiliary AC bus supplied in priority order by the turbine feed, external grid or available backup diesels. Gross electrical generation and auxiliary pump demand are separate readings. Losing AC causes pumps to coast down even if their ON rockers remain selected.</p>
           <h2>Read trends before changing another setting</h2>
           <p>The expandable trend window shows recent temperature and output history. Component windows retain local trends and operator change markers. Make one adjustment and observe the response before changing another variable; this helps separate a requested change from a fault or capacity limit.</p>
-          <p>For a repeatable first run, return to the <a href="/guides/startup/">startup guide</a>. Reloading creates a new cold session, so export any journal or incident report you want to keep first.</p>
+          <p>For a repeatable first run, return to the <a href="/guides/startup/">startup guide</a>. Reloading opens a new cold free-operation session, so export its journal or incident report first. A saved company career can be restored through Continue game.</p>
         `,
     },
     {
@@ -158,9 +158,9 @@ export const pages = [
           <p>A successful <strong>Reset trip</strong> releases the latch while leaving the reactor stopped. Then complete startup readiness and press Start yourself. The turbine has separate readiness and trip handling; restoring the reactor latch alone does not restore generation.</p>
           <h2>Alarms, acknowledgement and meltdown</h2>
           <p>Acknowledging an alarm records that you have seen it. It does not fix its cause, clear damage or remove the red high-temperature indication while the core remains above 335 °C.</p>
-          <p>A sustained severe incident can lead to a latched simulated meltdown. That session remains available for inspection, but repair and trip reset cannot restore it. Export the incident report, then use <strong>Reset demo</strong> for a new cold session.</p>
+          <p>A sustained severe incident can lead to a latched simulated meltdown. That session remains available for inspection, but repair and trip reset cannot restore it. Export the incident report. In free operation, use <strong>Reset demo</strong> for a new cold session. In Career, use Save &amp; return, then Start game to explicitly replace the saved career if desired; no bankruptcy or financial closeout is implemented yet.</p>
           <h2>Keep a record of the incident</h2>
-          <p>The event journal contains operator, automation, process, alarm and system events. Export CSV for the retained journal, or export the incident JSON for its initiating cause and timeline. Both exports are marked simulated. Reset demo, reload or closing the page discards the session.</p>
+          <p>The event journal contains operator, automation, process, alarm and system events. Export CSV for the retained journal, or export the incident JSON for its initiating cause and timeline. Both exports are marked simulated. Free-operation data is discarded by Reset demo, reload or closing the page. Career saves retain the bounded current journal and incident, plus separate achieved goals and assignment reports.</p>
           <p>Continue with the <a href="/guides/reactor-controls/">control and cooling guide</a> to understand the relationships, or use the <a href="/guides/startup/">startup guide</a> for the next run.</p>
         `,
     },

@@ -9,6 +9,25 @@ Requested 2026-11-10. Read `AGENTS.md` and `doc/nuclear-power.md` before
 continuing. This is a fictional browser-local two-loop plant; the RBMK reference
 is for the appearance of the channel deck, not a change to reactor physics.
 
+## Current scope and relationship to the company game
+
+The representative crane, retained batches, 35-rack UI capacity check, 60-second
+demo cooling and manual free dispatch are implemented. Companion selected/all
+replacement runs through the desktop; pool dispatch remains desktop-only.
+Career saves preserve current transfer/batch state, but there are no paid fuel
+tasks or authoritative purchase/service receipts yet.
+
+[GAMEPLAY-PLAN.md](GAMEPLAY-PLAN.md) is the company-game product plan and
+[doc/game-development.md](doc/game-development.md) is its current continuation
+handoff. Their representative business-batch approach supersedes any earlier
+suggestion here that full physical inventory must precede all fuel gameplay.
+Before charging, decouple batch/receipt success from cosmetic frame/deposition
+callbacks. Full per-assembly identities, empty channels, crane-held ownership
+and fresh insertion remain the separate optional expansion in steps 2–3.
+
+The work-step narratives, test counts and temporary artifacts below record
+earlier feature iterations; they do not redefine the current company-game scope.
+
 ## User's idea
 
 - Add a spent nuclear fuel cooling/storage pool behind the reactor vessel in the
@@ -42,7 +61,7 @@ References supplied by the user (local files, not portable assets):
 
 ## Work steps
 
-### Unified electrical cutaway and controls (latest user additions)
+### Unified electrical cutaway and controls (completed feature iteration)
 
 - Remove Auxiliary power view and its separate renderer. Both diesels are small
   cutaways behind the main turbine/generator, alongside external grid, AC bus and
@@ -57,8 +76,8 @@ References supplied by the user (local files, not portable assets):
   grid-available and turbine-feed checkboxes now have the same rocker styling,
   retaining keyboard activation and the existing change handlers. Remove the
   former top-right EXTERNAL GRID/header button entirely.
-- All scene info cards are 55% opaque by default, fully opaque on hover, keyboard
-  focus or while their dialog is open. Passive crane labels also accept hover.
+- Full scene info cards use 55% opacity, while compact tags use 85%; hover, keyboard
+  focus and selected/open cards use full opacity. Passive crane labels also accept hover.
 - Plant audio now mixes actual reactor and diesel machinery in Reactor overview;
   Maintenance stops both. Reactor command cues must never interrupt diesel voices.
   Pause/mute/hide/detach and returning without replaying past starts/stops remain.
@@ -128,15 +147,16 @@ is implemented; the complete inventory/job system in step 2 remains future work.
   real fuel inventory. The refreshed core mesh/cap returns once extraction clears
   the deck. Fresh insertion is not animated in this pass.
 - Pool samples are representative batches, one per completed replacement action,
-  with 35 retained rack slots (see the later dispatch update above). They are not a full spent-fuel inventory; never
-  build gameplay capacity/ownership rules on them without implementing step 2.
+  with 35 retained rack slots (see the dispatch update above). They are not a full
+  spent-fuel inventory. Physical ownership rules require step 2; the company-game
+  plan instead allows a separate authoritative representative business-batch ledger.
 - Repeated actions restart one illustration rather than queueing 49 lifts. Start/
   meltdown cancels an unfinished illustration without changing fuel. Pause/hide/
   tab or overview switching/detach freeze it; returning resumes. Closing the core
   map does not cancel the crane. Reduced motion/fallback uses immediate placement.
   Reset demo clears active motion and all displayed samples, including at T+0.
 
-### 1. Visual foundation — current implementation pass
+### 1. Visual foundation — historical completed pass
 
 - [x] Replace the conical reactor lid with the channel deck, keeping the open-front
   cutaway and actual moving control rods.
@@ -146,9 +166,9 @@ is implemented; the complete inventory/job system in step 2 remains future work.
   cutaway enclosure, a connecting service deck and rails.
 - [x] Add overhead runway rails, a separate bridge, trolley, hoist and grabber;
   park the crane over the pool, clear of the reactor top.
-- [x] Keep the new pool/crane as clearly labeled scenery for this pass. No fake
-  telemetry, automatically replaced fuel, simulated pool cooling or transfer
-  controls until the underlying state exists.
+- [x] The initial scenery-only pass was completed, then superseded by the
+  representative transfer/cooling/dispatch implementation described above.
+  Physical crane-owned fuel inventory has not been added.
 - [x] Verify production build, existing unit/browser checks and visual appearance
   in dark/light themes, mobile framing, camera extremes and lifecycle cleanup.
 
@@ -191,14 +211,15 @@ is implemented; the complete inventory/job system in step 2 remains future work.
 - Expose equivalent state/action access when WebGL is unavailable. Record explicit
   operator operations in the existing categorized journal and snapshot/export.
 
-### 4. Gameplay (future, agree details before broadening scope)
+### 4. Gameplay (company plan takes precedence)
 
 - Candidate tasks: replace depleted assemblies, choose/reserve storage slots and
   complete a shutdown/refuelling/restart objective.
 - Candidate scoring: correct sequence, fuel usage and successful placement; avoid
   rewarding bypassing interlocks or treating toy limits as real procedures.
-- Pool capacity, cooling/retained heat, crane faults, time penalties, fresh-fuel
-  supply and persistent campaigns are proposals, not implemented requirements.
+- Representative pool capacity/cooling and the saved commissioning career now
+  exist. Paid fuel tasks follow the company plan. Physical pool heat, crane
+  faults, fresh-fuel supply and a complete inventory remain separate proposals.
 - Keep the current normal plant operation available; never let a game objective
   silently start/reset the reactor, repair equipment or replenish fuel.
 
@@ -232,9 +253,10 @@ is implemented; the complete inventory/job system in step 2 remains future work.
 
 ## Handoff checkpoint
 
-Step 1 and the smaller representative transfer requested afterward are complete.
-Steps 2–5 remain the plan for full inventory/handling/gameplay, with the scope
-update above superseding any old statements that the crane is static scenery.
+The visual foundation, representative transfer, retained batch cooling and manual
+dispatch are complete. Steps 2–3 and their associated verification still describe
+the optional full physical handling expansion. The current company-game handoff
+and product plan govern staged missions/economy, without requiring that expansion.
 
 Implementation notes:
 
@@ -255,7 +277,7 @@ Implementation notes:
   requested positions.
 - The platform extends rearward; the default camera frames the taller crane.
   User orbit/zoom, semantic equipment controls and the SVG fallback remain.
-- Current continuation verification passes: all 92 unit checks (`npm test`),
+- Historical feature verification passed at that iteration: all 92 unit checks (`npm test`),
   production build (`npm run build`) and expanded Chrome/WebGL regression
   (`npm run test:browser`). Dependencies were installed with `npm ci`.
   The browser checks include shared fuel/channel identities, deck alignment,

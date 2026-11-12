@@ -39,20 +39,23 @@ They require playtesting against this fictional plant model before release.
 
 Read alongside [the feature handoff](doc/nuclear-power.md),
 [the app README](README.md) and [the fuel-handling plan](FUEL-HANDLING-PLAN.md).
-These describe implemented behavior; this document describes proposed behavior.
+For the exact implementation, read [the game-development handoff](doc/game-development.md).
+The table below is current; later sections specify the intended complete game.
+Present-tense descriptions of money, extra mission types, economic restrictions
+and company summaries on companions are requirements, not shipped features.
 
 | Area | Already available | Game work needed |
 | --- | --- | --- |
-| Startup | Cold plant, explicit pump starts, actual circulation and startup checks | Assigned startup mission and recorded evidence |
-| Objectives | Three exercises with 20-second holds | Mission lifecycle, dependencies, outcomes and rewards |
+| Startup | Cold plant, explicit pumps, startup checks and assigned startup hold | Further commissioning/operating assignments |
+| Objectives | Existing exercises plus two company missions with saved holds, capability prerequisites, reports and achievements | New objective kinds, failure/deadline states and monetary rewards |
 | Grid controller | Capacity-aware gross MW requests, Auto following and status | Contracts, response scoring, electricity settlement and company messages |
 | Equipment | Four independent pumps, cutaways, overrides, readings and trends | Assigned inspections and tests with pass criteria |
 | Failures | Symptom-first scenarios, progressive faults, wear and retained damage | Scheduled incidents, diagnosis tasks and repair costs |
 | Fuel | Assembly reserves, explicit replacement and interlocks | Assigned outages, paid replacement and durable service receipts |
 | Pool | Representative batches, 35 racks, cooling and dispatch | Authoritative business records and paid dispatch |
-| Journal | Bounded plant events and retained incident cause | Durable mission evidence, inbox and achievement archive |
+| Journal | Bounded events/incident cause plus a saved company inbox, reports and achievement archive | Financial receipts and fuller shift/debrief reports |
 | Companion | Desktop host, mirrored state, validated commands and host-routed fuel replacement | Read-only mission/finance summaries and host-owned game actions |
-| Persistence | Theme preference; plant lost on reload | Versioned local career save and resume |
+| Persistence | Theme preference, schema-1 IndexedDB career saves, JSON backups and one writer tab | Save migrations, recovery UI and economic state |
 
 Keep fuel assemblies separate from control rods. An assignment to change fuel
 means replacing fuel assemblies, not replacing or removing control rods.
@@ -194,8 +197,9 @@ Opening Maintenance or an offscreen process viewport does not stop plant time.
 
 ## 6. Initial mission catalogue
 
-Plan for **20 authored assignments across five chapters**, with the first six
-forming the initial playable slice. Some assignments span several operations;
+Plan for **20 authored assignments across five chapters**. The first two are
+implemented as commissioning; the first six together form the planned initial
+company/economy slice. Some assignments span several operations;
 these are not twenty copies of the same stable-output timer.
 
 Chapter order describes the intended learning path, not numeric prerequisites.
@@ -724,6 +728,9 @@ a second incompatible damage model. Do not build a parallel React simulation.
 
 ### Phase 0 — model and economy feasibility
 
+Status: startup at 200 MW was measured. Contract response envelopes and economy
+balancing remain the next prerequisite before paid contracts.
+
 Measure cold-start, target-step, cooldown, backup transfer and recovery times.
 Prototype scoring calculations outside the UI, using deterministic plant runs.
 Balance a successful shift, a recoverable mistake and a deliberately destructive
@@ -734,6 +741,9 @@ Gate: agree measured mission tolerances, request-response envelopes, starting
 budget and catastrophic-loss treatment before shipping monetary contracts.
 
 ### Phase 1 — optional game shell, inbox and durable progression
+
+Status: commissioning foundation implemented. See the continuation handoff for
+what is present and the migration/recovery/UI gaps still to address.
 
 Add explicit game entry/return, separate career ownership, saved mission graph,
 company inbox, live objectives, archive, achievements and IndexedDB persistence.
@@ -803,8 +813,9 @@ completion.
 
 Run focused unit checks and `npm run build` during implementation. Use
 `npm run test:browser:equipment` and `npm run test:browser:companion` where those
-areas change. The eventual game browser suite should have its own focused entry;
-reserve the full browser regression for the broad integration/release gates.
+areas change. `npm run test:browser:game` is the existing focused company-game
+entry and is also reused by the full browser suite. Reserve the full browser
+regression for broad integration/release gates.
 
 ## 18. Decisions to validate before coding the economy
 
@@ -826,7 +837,7 @@ The checkpoint below distinguishes implemented behavior from the remaining plan.
 
 ## Implementation checkpoint: commissioning foundation
 
-+The first two assignments, inbox, live holds, reports, achieved goals and archive
+The first two assignments, inbox, live holds, reports, achieved goals and archive
 are implemented. Career saves use IndexedDB with atomic current/previous revisions,
 full explicit plant/pool serialization, JSON backup and a single-tab Web Lock.
 Restore retains trips, heat, damage and sampled rotor strength. Reconnection

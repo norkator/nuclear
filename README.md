@@ -27,7 +27,9 @@ contains **First shift** and **Prove reliable operation**. Accept assignments in
 the company inbox, verify the actual plant criteria, and send reports to record
 achievements and the assignment archive. These two commissioning assignments do
 not charge money; electricity trading, expenses, bankruptcy and further missions
-remain the next stages in [GAMEPLAY-PLAN.md](GAMEPLAY-PLAN.md).
+remain the next stages in [GAMEPLAY-PLAN.md](GAMEPLAY-PLAN.md). For continuation,
+read [the game-development handoff](doc/game-development.md) for the exact current
+code, save format, known gaps and next slice.
 
 For the fixed-output tests, disable Follow requests and use Auto → Electrical
 output at 200 MW, then establish circulation and explicitly Start. The first task
@@ -42,6 +44,10 @@ plant on this page. Reload starts free operation; **Continue game** restores the
 career paused, without offline progress. Export/import JSON backups from Save.
 Reset demo remains available only in free operation. Game management is desktop
 owned; companion plant commands continue through the same authoritative host.
+Company inbox/mission summaries are not yet shown on companions. Descriptions of
+Reset demo below refer to free operation. A melted career can be inspected/exported
+and left with Save & return, then replaced through Start game; a dedicated terminal
+company/debrief flow is still planned.
 
 Mission IDs and saved objective terms support inserting new assignments in later
 updates without deleting completed goals or changing an issued assignment.
@@ -51,8 +57,10 @@ Focused verification: `npm run test:browser:game`.
 
 This project lives independently at <https://github.com/norkator/nuclear>. Work
 on `main`; merge approved releases to `production`. The container workflow tests
-both branches and pull requests, and publishes images only from `production`
-(including manual runs on that branch). No Java/Spring checkout is required.
+both named branches, publishing images only from `production`. Pushes/manual
+runs on `main` run checks only; `production` runs checks followed by both image
+pushes. Pull requests do not trigger this workflow, and manual runs on other
+branches skip its jobs. No Java/Spring checkout is required.
 
 ## Landing and console pages
 
@@ -189,7 +197,8 @@ and never advance their own plant clock. No command is queued or retried offline
 A stale or lost connection locks companion controls and stops their motion/audio;
 short transport interruptions reconnect to the same room using in-memory device
 credentials. Reloaded companions need pairing again. A disconnected desktop can
-resume its room within 30 seconds; closing/reloading the desktop ends the run.
+resume its room within 30 seconds. Closing/reloading ends pairing and discards
+free operation; a saved career can still be resumed through Continue game.
 Restarting the relay loses all rooms and requires pairing again.
 
 A visible paired companion keeps the desktop plant clock active even when the
@@ -529,8 +538,9 @@ pause, visibility and reduced-motion behavior of the main scene.
 
 Use Node 22.12+ (or Node 24) and npm, independently of the Java/Gradle application:
 
+From this repository root:
+
 ```sh
-cd nuclear
 npm ci
 npm run dev
 ```
@@ -550,7 +560,10 @@ condenser, controls, wear/damage, themes and motion without replaying the comple
 control-room, audio, fuel, SEO and export scenarios. Reserve `npm run test:browser`
 for broad regressions and CI.
 
-`npm test` runs the model, motion, failure, fuel, supply, component and audio tests.
+`npm test` runs model, motion, failure, fuel, supply, component, audio, game and
+session tests. Game changes normally use `node --test test/nuclear-power-game.test.mjs`,
+`npm run build`, then `npm run test:browser:game`. Use the companion check when
+shared controls change.
 The browser regression serves `dist/` on a temporary loopback port and tests the
 actual React production build, including responsive layouts, themes, dialogs,
 controls, exports, animations and cleanup, including 3D picking, zoom, view switching,
@@ -577,9 +590,10 @@ UI Audio under `public/audio/nuclear-power/kenney-ui/` with its license/source r
 It needs no environment variables, API proxy, database, or Java runtime.
 
 `.github/workflows/nuclear-container.yml` runs the unit tests, production build,
-Chrome regression and companion pairing checks for pull requests. Relevant pushes
-to `production` and manual runs on that branch publish both `linux/amd64` and
-`linux/arm64` images:
+Chrome regression and companion pairing checks on `main` and `production` pushes.
+Only `production` publishes both `linux/amd64` and `linux/arm64` images after
+those checks succeed. Manual runs follow the same branch policy; pull requests
+do not trigger runs:
 
 ```text
 ghcr.io/norkator/nuclear:latest

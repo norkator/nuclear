@@ -24,10 +24,13 @@ the selected URL; Back returns to the landing page. Free operation does not pers
 through the local company-game save described below. Legacy `/?screen=companion` links redirect to `/companion/`
 while retaining pairing-code fragments. The independent npm project,
 tests, public audio and Nginx container live together in the repository root.
-`.github/workflows/nuclear-container.yml` verifies it on pull requests and publishes
+`.github/workflows/nuclear-container.yml` verifies `main` without publishing; it
+verifies `production` and then publishes
 `ghcr.io/norkator/nuclear:latest` and
 `ghcr.io/norkator/nuclear-backend:latest` for amd64/arm64 on relevant
-production pushes and manual runs on that branch. The test gate includes companion
+production pushes and manual runs on that branch. There is no pull-request
+trigger; manual main runs verify only, and other branches skip the jobs.
+The test gate includes companion
 pairing checks, and QEMU supports the backend’s ARM64 dependency installation.
 The workflow does not configure DNS/TLS or deploy the images.
 See [local development and deployment](../README.md).
@@ -55,6 +58,10 @@ the career and restores the free plant retained on this page. Session changes
 end pairing and stop old audio/motion; companion plant commands remain host owned.
 Reset demo is unavailable in Career. Money, bankruptcy and later assignments are
 planned in [GAMEPLAY-PLAN.md](../GAMEPLAY-PLAN.md), not implemented yet.
+
+For the exact implementation, save schema/limitations, source map and next work,
+read [the game-development handoff](game-development.md). The 20-mission product
+plan is not a list of implemented assignments.
 
 Run `npm run test:browser:game` for game entry, company messages, reports,
 achievements, mobile/light rendering, two-tab ownership, reload and reconnect.
@@ -906,11 +913,13 @@ reports **Fuel capability** if the remaining fuel cannot satisfy the target. Per
 affected assemblies are replaced. **Automation never replaces fuel.** The map's **Replace all fuel** action manually
 renews every assembly together, using exactly the same readiness checks as selected
 replacement. The operation is atomic; it does not start the reactor or clear heat,
-damage or a trip. A staggered removal/insertion animation illustrates each changed
-assembly, and a status message confirms completion. Single replacement uses the
-same animation. Inventory is updated immediately; animation is cosmetic, pauses
-with the simulation and clears when the map closes/hides; reduced motion uses an
-immediate static update.
+damage or a trip. Each selected or bulk action starts one 10.5-second
+representative crane transfer and reports the actual replaced assembly count.
+Inventory renews immediately; crane motion is cosmetic and follows visibility,
+pause and reduced motion. Closing the core map clears its local exchange highlight
+but does not cancel the shared crane. Start/meltdown cancels an unfinished crane
+illustration. See the pool section for deposition/cooling and the game plan before
+attaching payments or mission receipts to this current visual mechanism.
 
 **Replace selected fuel** changes only the selected assembly to 100% reserve, zero
 exposure and an incremented replacement count. It requires a stopped reactor, all rods
@@ -1011,16 +1020,20 @@ Automation, Process, Alarms, and System. Automatic corrections and process snaps
 are recorded every ten simulated seconds; mode changes, commands, faults, clears,
 acknowledgements and recovery are recorded as they happen. Filtering changes only
 what is displayed. **Export CSV** exports all retained records in chronological
-order, explicitly marked `SIMULATED`. Logs are not persisted and are discarded by
-Reset demo or closing/replacing the view.
+order, explicitly marked `SIMULATED`. Free-operation logs are not saved across
+reload/reset. Career snapshots preserve their bounded current journal and trends;
+they do not turn the 200-entry journal into an unlimited mission archive.
+Company reports/achievements are saved separately from that rolling journal.
 
 The condition model keeps a separate incident report so the initiating fault is
 not lost when the ordinary journal rolls over. It records the cause, up to six
 preceding events, and a bounded 160-entry timeline with instrument snapshots;
 the first incident event is preserved. **Export incident report** downloads JSON
 explicitly marked `SIMULATED`. Early successful recovery marks an incident resolved;
-meltdown leaves it open for inspection. Reports are browser-session data and are
-cleared by Reset demo. Export before resetting if the report is needed later.
+meltdown leaves it open for inspection. Free-operation reports are session data
+and are cleared by Reset demo. Career snapshots retain the current incident along
+with heat/damage/trips. Export before resetting or replacing a career if the report
+needs to be kept independently.
 
 Each desktop custom-element instance owns its state. Reloading or closing the
 desktop discards free operation and ends its shared session. Careers can be
@@ -1085,6 +1098,12 @@ See the Nuclear README for deployment details and limitations.
 
 ## Implementation and future measurements
 
+- `src/simulation/nuclear-power-missions.js` defines/evaluates company assignments
+  and records inbox messages, reports, capabilities and achievements.
+- `src/simulation/nuclear-power-game.js` and its CSS provide game entry, company UI,
+  session switching, save orchestration and one-tab ownership.
+- `src/simulation/nuclear-power-game-save.js` defines schema-1 full-state saves and
+  IndexedDB revisions; do not replace this with a companion transport snapshot.
 - `src/App.tsx` mounts the console through React, independently of Vaadin.
 - `src/simulation/nuclear-power.js` renders the native custom element, SVG
   schematic, controls, recent two-minute trends, and bounded event journal.
@@ -1144,8 +1163,11 @@ See the Nuclear README for deployment details and limitations.
   angles and flow dash offsets without phase jumps. Animation frames are separate
   from the 250 ms plant/instrument update and obey visibility and reduced motion.
 
-A later measurement adapter should reuse `DeviceMeasurementService` with effective
-account ownership checks. Bind sources per instrument, preserve their actual units
+A later optional integration with Pörssiohjain measurements could reuse that
+external backend's `DeviceMeasurementService` through a separately designed API
+with ownership checks. That Spring service is not part of this repository, and
+company-game development does not require the parent project.
+Bind sources per instrument, preserve their actual units
 and measured/observed timestamps, and explicitly display measured, calculated,
 simulated, stale, and missing states. Do not replace missing live signals with demo
 values or write simulated values into the measurement tables. The existing measurement
@@ -1173,6 +1195,8 @@ npm ci
 npm test
 npm run build
 npm run test:browser
+# Focused company-game flow:
+npm run test:browser:game
 # Focused two-window pairing/controls/lifecycle coverage:
 npm run test:browser:companion
 # Optionally test an already running preview/container:
@@ -1199,6 +1223,16 @@ handles launchers that suppress the announcement. An early exit fails immediatel
 startup failures include the command, profile, exit status (when available), and
 both output streams. CI uses `/opt/google/chrome/chrome` directly to avoid the
 distribution's shell launcher. Focused startup regressions run with `npm test`.
+
+The standalone commissioning baseline (2026-11-12) passed 141 unit/model/session
+tests, the production build, full browser regression, focused game and companion
+checks, both Docker builds and container smoke checks. See the current game
+handoff for precise scope and the next slice.
+
+### Historical verification checkpoints
+
+The older counts and parent Java checks below record previous iterations, not
+requirements for building this standalone repository.
 
 Migration checkpoint (2026-11-07): all 59 model/motion/failure/resource/component/audio
 checks and 23 focused Java desktop tests pass, as do the React production build,

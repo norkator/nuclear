@@ -5,6 +5,10 @@ Licensed under the Pörssiohjain Personal Use License v1.0.
 -->
 # Cooling tower addition
 
+Status: presentation feature implemented. The counts and screenshots below are
+historical tower-task evidence. The later standalone/game baseline is recorded in
+[doc/game-development.md](doc/game-development.md); this is not a pending game task.
+
 ## User request
 
 Add a cooling tower to the background of the 3D cutaway, scaled against the
@@ -69,7 +73,8 @@ and mobile. Heat-dependent plume density, actual-versus-requested cooling, retai
 hot circulation after Stop, pause, reduced motion, Reset, canvas picking and the
 CT-01 button were checked. The wider equipment run was interrupted when the user
 requested vertical vapor; the focused cooling browser run subsequently passed.
-The full browser suite was not run.
+The full browser suite was not run during that tower-only iteration; it passed
+later during the standalone/company-game baseline.
 
 Focused commands:
 
@@ -82,7 +87,8 @@ npm run test:browser:equipment
 ```
 
 Worktree was clean before this task. Avoid replaying the full browser suite for
-this focused addition. The parent feature documentation is `doc/nuclear-power.md`.
+this focused addition or documentation edits. The current plant specification is
+[doc/nuclear-power.md](doc/nuclear-power.md).
 
 Reference for the water arrangement:
 https://www.eia.gov/todayinenergy/detail.php?id=14971

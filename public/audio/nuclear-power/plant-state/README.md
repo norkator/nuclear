@@ -1,3 +1,8 @@
+<!--
+Pörssiohjain - Energy usage optimization platform
+Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
+Licensed under the Pörssiohjain Personal Use License v1.0.
+-->
 # Plant operating-state sounds
 
 Original procedurally synthesized sound effects for this fictional plant, created
@@ -27,5 +32,5 @@ UI clicks, command cues and alarms remain separate. Audio supports the visible
 status rather than replacing it. To audition separately, open either WAV in a
 player and enable repeat.
 
-Regenerate with `python3 scripts/generate-plant-state-audio.py` from `nuclear/`
+Regenerate with `python3 scripts/generate-plant-state-audio.py` from the repository root
 (Python with NumPy required only for asset generation).

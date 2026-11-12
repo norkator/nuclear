@@ -11,7 +11,10 @@ A visible introduction, feature overview, startup steps, guide links and questio
 follow the cards. The reactor (`/reactor/`) and companion (`/companion/`) have
 independent HTML entries with no landing content or guide footer. The text describes
 the existing fictional browser simulation; it does not advertise future gameplay,
-real reactor fidelity or hardware connectivity.
+real reactor fidelity or hardware connectivity. The save FAQ and guides distinguish
+free-operation sessions from the implemented local commissioning career. When
+adding game copy, describe only shipped assignments; the economy and remaining
+mission catalogue are still planned.
 
 ## Content and build
 
@@ -84,8 +87,10 @@ NUCLEAR_POWER_APP_URL=http://127.0.0.1:8080 npm run test:browser
 
 ## After deployment
 
-The existing container workflow builds and publishes the image; hosting must run
-that new image before these changes reach the public site. No Search Console
+The container workflow runs checks only on `main`; `production` runs the checks
+and then publishes both frontend and relay images. There is no pull-request
+trigger. Manual runs obey the same main/production policy. Hosting must run the
+new frontend image before content changes reach the public site. No Search Console
 verification or sitemap submission is performed by the app.
 
 1. Check that the four canonical pages, `/robots.txt`, `/sitemap.xml` and the

@@ -23,6 +23,10 @@ and source/attribution records; do not replace those with the project license.
 
 ## Company game handoff
 
+Read [doc/game-development.md](doc/game-development.md) for the current code map,
+save contract, known gaps and next implementation slice. It distinguishes current
+behavior from the larger product plan.
+
 Free operation remains the default. Start game creates a separate cold career;
 Continue restores its IndexedDB save paused. Company inbox assignments currently
 cover startup and five reliable minutes, with reports, archived achieved goals
@@ -39,6 +43,10 @@ Preserve atomic save revisions, one writer tab, saved heat/damage/trips, sampled
 rotor tolerances, pool records, and no offline advancement. Switching sessions
 ends pairing and clears local motion/audio; companions never tick a career.
 Keep accepting/reporting/import/export and new-career actions desktop owned.
+Company inbox/mission/finance summaries on companions are still planned.
+Save schema version 1 is validated but has no migration runner, previous-revision
+recovery UI or career restart checkpoint yet; add tested migrations before
+changing required saved fields or introducing new objective kinds.
 
 Run focused model tests and `npm run build`. Use `npm run test:browser:game` for
 company behavior and `npm run test:browser:companion` for session changes. Keep
@@ -47,7 +55,9 @@ the full browser suite for broad changes or release gates.
 ## Branches and deployment
 
 `main` is the development branch; `production` publishes release images. The
-GitHub Action tests pushes to both and pull requests, publishing only production.
+GitHub Action runs tests/build/browser checks only on `main`, and the same checks
+followed by both image pushes on `production`. It has no pull-request trigger.
+Manual runs obey the selected main/production branch; other branches skip the jobs.
 Frontend Docker and Compose contexts are this repository root. Images are
 `ghcr.io/norkator/nuclear:latest` and `ghcr.io/norkator/nuclear-backend:latest`.
 Keep amd64/arm64, QEMU for the backend, the non-root relay, and proxy upgrades.
