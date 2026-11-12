@@ -1,0 +1,15 @@
+# Pörssiohjain - Energy usage optimization platform
+# Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
+# Licensed under the Pörssiohjain Personal Use License v1.0.
+FROM public.ecr.aws/docker/library/node:22-alpine
+WORKDIR /app
+ENV NODE_ENV=production PORT=8081
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+COPY server ./server
+COPY src/simulation/nuclear-power-session-protocol.js ./src/simulation/
+COPY LICENSE ./LICENSE
+USER node
+EXPOSE 8081
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s CMD node -e "fetch('http://127.0.0.1:8081/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+CMD ["node", "server/session-server.mjs"]

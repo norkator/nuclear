@@ -1,0 +1,60 @@
+/*
+ * Pörssiohjain - Energy usage optimization platform
+ * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
+ * Licensed under the Pörssiohjain Personal Use License v1.0.
+ */
+.companion-link { text-decoration: none; }
+.header-screens { grid-column: 1; grid-row: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.pairing-dialog { width: min(450px, calc(100vw - 24px)); padding: 0; margin: 0; border: 1px solid var(--border); border-radius: 8px; color: inherit; background: #15212d; box-shadow: 0 15px 50px #0008; }
+.pairing-content { display: grid; gap: 16px; padding: 20px; }
+.pairing-content p { font-size: 12px; color: var(--muted); }
+.pairing-code { font: 36px Consolas, monospace; letter-spacing: 4px; color: var(--cool); text-align: center; padding: 12px; border: 1px dashed var(--border); border-radius: 5px; }
+.pairing-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.pairing-open { text-align: center; text-decoration: none; }
+.companion-connection { padding: 8px 12px; margin-bottom: 12px; }
+.companion-pairing-dialog { position: fixed; margin: auto; width: min(420px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 24px; overflow-y: auto; color: inherit; background: #15212d; border: 1px solid #637e8d; border-radius: 10px; box-shadow: 0 18px 65px #0009; }
+.companion-pairing-dialog::backdrop { background: #050b12b3; backdrop-filter: blur(2px); }
+.companion-pairing-dialog h2 { margin: 0 0 12px; font-size: 20px; }
+.companion-pairing-dialog p { margin: 0 0 20px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.companion-pairing-dialog .companion-pairing-status { margin: 16px 0 0; color: var(--warm); font-size: 12px; }
+.companion-join { display: grid; gap: 12px; }
+.companion-join label { font-size: 13px; }
+.companion-code { width: 100%; min-width: 0; padding: 12px; color: inherit; background: transparent; border: 1px solid var(--border); border-radius: 5px; font: 26px Consolas, monospace; letter-spacing: 3px; }
+.companion-connection-state { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.companion-status { color: var(--cool); font-size: 12px; font-weight: 500; }
+.companion-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); gap: 16px; align-items: start; }
+.companion-information, .companion-operator { min-width: 0; }
+.companion-information :is(.event-list, .core-damage-list) { max-height: none; overflow: visible; }
+.companion-views { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.companion-views [aria-pressed="true"] { border-color: var(--cool); color: var(--cool); }
+.companion-pane { display: grid; gap: 14px; min-width: 0; }
+:host([data-screen="companion"]) .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+:host([data-screen="companion"]) .grid-dispatch-message { font-size: 14px; }
+:host([data-screen="companion"]) .grid-dispatch-content > :is(span, small) { font-size: 12px; }
+:host([data-screen="companion"]) .grid-dispatch-content > strong { font-size: 13px; }
+:host([data-screen="companion"]) .grid-dispatch-controls label { font-size: 12px; }
+:host([data-screen="companion"]) .core-map { margin: 0; padding: 12px; border: 1px solid var(--border); border-radius: 8px; }
+:host([data-screen="companion"]) .core-map-layout { grid-template-columns: minmax(0, 1fr); }
+:host([data-screen="companion"]) .individual-rod { border-left: 0; border-top: 1px solid var(--border); }
+:host([data-screen="companion"]) .core-map-svg { min-width: 0; width: 100%; }
+:host([data-screen="companion"]) .masthead { flex-wrap: wrap; }
+:host([data-screen="companion"]) .header-control-card { flex-basis: 100%; }
+:host([data-screen="companion"]) .header-settings { justify-content: flex-end; }
+:host([data-screen="companion"]) .small-button { min-height: 40px; padding: 8px 12px; font-size: 12px; }
+:host([data-screen="companion"]) input[type="range"] { min-height: 44px; touch-action: pan-y; }
+:host([data-screen="companion"]) .pump-rocker { min-height: 68px; }
+:host([data-screen="companion"]) .regulator-rail { padding-top: 5px; }
+:host([data-screen="companion"]) .companion-operator .operator-content { padding: 16px; }
+:host([data-screen="companion"]) .operation-state { font-size: 11px; }
+:host([data-screen="companion"]) .control-note { font-size: 10px; }
+:host([data-remote-ready="false"]) .companion-status { color: var(--warm); }
+:host([data-remote-ready="false"]) :is(.companion-operator, .companion-pane) { opacity: .55; }
+:host([data-screen="companion"]) .console-footer { margin-top: 16px; }
+:host([data-theme="light"]) .pairing-dialog { background: #edf2f5; }
+:host([data-theme="light"]) .companion-pairing-dialog { background: #f8fbfc; border-color: #94adbc; box-shadow: 0 18px 65px #29415255; }
+@container nuclear-console (max-width: 700px) {
+    .companion-workspace { grid-template-columns: minmax(0, 1fr); }
+    .companion-operator { grid-row: 1; }
+    .companion-connection-state { flex-wrap: wrap; }
+    :host([data-screen="companion"]) .console { padding: 10px; }
+}

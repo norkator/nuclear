@@ -1,0 +1,32 @@
+{
+  "name": "nuclear-power",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "start:sessions": "node server/session-server.mjs",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "node --test test/*.test.mjs",
+    "test:browser": "node --test test/browser.mjs",
+    "test:browser:cooling": "node --test test/cooling-tower-browser.mjs",
+    "test:browser:equipment": "node --test test/equipment-browser.mjs",
+    "test:browser:companion": "node --test test/companion-browser.mjs",
+    "test:browser:game": "node --test test/game-browser.mjs"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "three": "^0.187.0",
+    "ws": "^8.22.2"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.2.1",
+    "typescript": "7.0.2",
+    "vite": "8.3.6"
+  },
+  "license": "SEE LICENSE IN LICENSE"
+}

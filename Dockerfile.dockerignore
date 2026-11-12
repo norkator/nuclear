@@ -1,0 +1,13 @@
+# Pörssiohjain - Energy usage optimization platform
+# Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
+# Licensed under the Pörssiohjain Personal Use License v1.0.
+.git
+.agents
+.aws
+.codex
+node_modules
+dist
+.env
+.env.*
+*.tsbuildinfo
+npm-debug.log*

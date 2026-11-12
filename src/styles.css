@@ -1,0 +1,102 @@
+/*
+ * Pörssiohjain - Energy usage optimization platform
+ * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
+ * Licensed under the Pörssiohjain Personal Use License v1.0.
+ */
+:root {
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: #101923;
+  color: #e3e9ee;
+  color-scheme: dark;
+  --site-muted: #a9bccb;
+  --site-accent: #8de5d3;
+  --site-border: #344755;
+  --site-surface: #172632;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+#root, .nuclear-power-view {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+:root:has(nuclear-power-console[data-theme="light"]),
+.nuclear-power-view:has(nuclear-power-console[data-theme="light"]) {
+  color-scheme: light;
+  background: #edf2f5;
+  color: #233944;
+  --site-muted: #49616f;
+  --site-accent: #09695e;
+  --site-border: #bdccd5;
+  --site-surface: #e1eaef;
+}
+
+.site-content {
+  box-sizing: border-box;
+  max-width: 1120px;
+  margin: 36px auto 0;
+  padding: 32px 28px;
+  border-top: 1px solid var(--site-border);
+  font-size: 16px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+
+.site-launcher { box-sizing: border-box; max-width: 1120px; margin: 0 auto; padding: 40px 28px 0; }
+.launcher-brand { margin: 0; color: var(--site-muted); font-size: 11px; font-weight: 600; letter-spacing: 2px; }
+.launcher-title { margin: 10px 0 24px; font-size: clamp(26px, 4vw, 40px); font-weight: 600; letter-spacing: -1px; }
+.launcher-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.launcher-card { display: flex; flex-direction: column; gap: 18px; padding: 28px; border: 1px solid var(--site-border); border-radius: 12px; background: linear-gradient(135deg, #1b303a, #14212d); color: inherit; text-decoration: none; transition: border-color .15s, transform .15s; }
+.launcher-card:hover { border-color: var(--site-accent); transform: translateY(-2px); }
+.launcher-card:focus-visible { outline: 2px solid var(--site-accent); outline-offset: 5px; }
+.launcher-card-top { display: flex; align-items: center; gap: 14px; color: var(--site-accent); font-size: 10px; letter-spacing: 1.6px; }
+.launcher-icon { display: inline-grid; place-items: center; width: 40px; height: 40px; font-size: 38px; line-height: 1; }
+.launcher-companion .launcher-card-top { color: #efbf7c; }
+.launcher-card h2 { margin: 0; font-size: 25px; font-weight: 600; }
+.launcher-card p { margin: 0; color: var(--site-muted); font-size: 15px; line-height: 1.7; }
+.launcher-card-action { display: flex; justify-content: space-between; gap: 18px; margin-top: auto; padding-top: 12px; color: var(--site-accent); font-size: 14px; font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .launcher-card { transition: none; } .launcher-card:hover { transform: none; } }
+
+.site-content h1, .site-content h2, .site-content h3 {
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.site-content h1 { margin: 12px 0 22px; font-size: clamp(30px, 4vw, 46px); }
+.site-content h2 { margin: 38px 0 16px; font-size: 25px; }
+.site-content h3 { margin: 22px 0 10px; font-size: 19px; }
+.site-content p { margin: 14px 0; }
+.site-content li { margin: 10px 0; padding-left: 4px; }
+.site-content ol { padding-left: 26px; }
+.site-content a, .site-skip { color: var(--site-accent); text-underline-offset: 4px; }
+.site-content a:hover { text-decoration-thickness: 2px; }
+.site-content a:focus-visible, .site-skip:focus-visible { outline: 2px solid var(--site-accent); outline-offset: 5px; }
+.site-content .site-eyebrow { color: var(--site-muted); font-size: 12px; font-weight: 600; letter-spacing: 1.8px; }
+.site-content .site-lead { font-size: 20px; line-height: 1.65; }
+.site-note, .site-footer { color: var(--site-muted); font-size: 14px; }
+.site-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 16px 24px; margin: 24px 0; }
+.site-button { display: inline-block; border: 1px solid var(--site-accent); border-radius: 6px; padding: 9px 16px; font-weight: 600; text-decoration: none; }
+.site-button:hover { background: var(--site-surface); }
+.site-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 32px; }
+.site-guide-links { display: grid; gap: 12px; margin: 24px 0; }
+.site-guide-links a { display: block; padding: 16px; border: 1px solid var(--site-border); border-radius: 6px; text-decoration: none; }
+.site-guide-links a:hover { background: var(--site-surface); }
+.site-guide-links span { display: block; margin-top: 8px; color: var(--site-muted); font-size: 15px; }
+.site-footer { margin-top: 36px; border-top: 1px solid var(--site-border); padding-top: 16px; }
+.site-guide { max-width: 900px; border-top: none; margin-top: 0; }
+.site-breadcrumb { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 12px; font-size: 14px; margin-bottom: 36px; color: var(--site-muted); }
+.site-skip { position: absolute; left: 16px; top: 8px; z-index: 10; padding: 10px 16px; background: var(--site-surface); transform: translateY(-200%); }
+.site-skip:focus { transform: translateY(0); }
+
+@media (max-width: 620px) {
+  .site-launcher { padding: 28px 18px 0; }
+  .launcher-cards { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .launcher-card { padding: 22px; }
+  .site-content { padding: 24px 18px; }
+  .site-grid { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .site-content .site-lead { font-size: 18px; }
+}

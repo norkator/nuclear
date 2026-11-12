@@ -1,0 +1,74 @@
+Pörssiohjain Personal Use License v1.0
+
+Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
+All rights reserved except as expressly permitted below.
+
+1. Definitions
+
+"Software" means the Pörssiohjain source code, documentation, configuration,
+assets, and related materials in this repository.
+
+"Personal Use" means use by a private individual for that individual's own
+private household purposes, without offering the Software or a hosted instance
+to customers, clients, tenants, users outside the household, or any other third
+party.
+
+"Commercial Use" means any use connected to a business, trade, profession,
+commercial service, paid service, resale, SaaS offering, managed hosting,
+consulting delivery, customer installation, or any activity intended to produce
+direct or indirect commercial benefit.
+
+2. Permission for Personal Use
+
+You may view, copy, modify, and run the Software solely for Personal Use.
+
+You may run a private self-hosted instance for your own household use, provided
+that you do not offer that instance to third parties and do not use it for
+Commercial Use.
+
+You may submit changes back to the original upstream project as contributions.
+By submitting a contribution, you grant the copyright holder a perpetual,
+worldwide, royalty-free license to use, modify, sublicense, and distribute that
+contribution as part of the Software and related commercial products or
+services.
+
+3. Prohibited Uses
+
+You may not, without prior written permission from the copyright holder:
+
+- use the Software for Commercial Use;
+- sell, resell, sublicense, rent, lease, or otherwise commercialize the
+  Software;
+- offer the Software or any modified version as a hosted service, SaaS product,
+  managed service, or service for third parties;
+- provide the Software as part of a paid customer installation, integration,
+  support package, consulting engagement, or similar commercial offering;
+- remove or obscure copyright, license, or attribution notices;
+- use the project name, trademarks, logos, or branding in a way that suggests
+  endorsement, affiliation, or an official service without permission.
+
+4. Commercial Licensing
+
+Commercial licenses and permissions may be available separately from
+Nitramite Tmi. Contact the copyright holder if you want to use the Software for
+business purposes, customer hosting, resale, or any other Commercial Use.
+
+5. No Warranty
+
+The Software is provided "as is", without warranty of any kind, express or
+implied, including but not limited to the warranties of merchantability, fitness
+for a particular purpose, and noninfringement. In no event shall the copyright
+holder be liable for any claim, damages, or other liability arising from, out
+of, or in connection with the Software or the use of the Software.
+
+6. Termination
+
+Any permission granted by this license terminates automatically if you violate
+its terms. Upon termination, you must stop using the Software and delete any
+copies in your possession or control, unless you have received separate written
+permission from the copyright holder.
+
+7. Reservation of Rights
+
+No rights are granted except those expressly stated in this license. All other
+rights are reserved by the copyright holder.

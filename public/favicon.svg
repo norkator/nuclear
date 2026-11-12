@@ -1,0 +1,14 @@
+<!--
+Pörssiohjain - Energy usage optimization platform
+Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
+Licensed under the Pörssiohjain Personal Use License v1.0.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" shape-rendering="crispEdges">
+  <path fill="#242e39" d="M6 5h20v3h2v20H4V8h2z"/>
+  <path fill="#f4cc53" d="M7 8h18v17H7z"/>
+  <path fill="#fff1a8" d="M7 8h18v2H9v15H7z"/>
+  <path fill="#252d38" d="M14 15h4v4h-4zm-5-4h5v2h-2v3H8v-3h1zm9 0h5v2h1v3h-4v-3h-2zm-5 9h6v2h2v2H11v-2h2z"/>
+  <path fill="#9caeb6" d="M8 2h3v4H8zm7 0h3v4h-3zm7 0h3v4h-3zM2 13h3v5H2zm25 0h3v5h-3zM7 28h18v3H7z"/>
+  <path fill="#63e4c0" d="M6 26h5v2H6z"/>
+  <path fill="#ff8d52" d="M21 26h5v2h-5z"/>
+</svg>

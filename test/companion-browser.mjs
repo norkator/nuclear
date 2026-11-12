@@ -1,0 +1,271 @@
+/*
+ * Pörssiohjain - Energy usage optimization platform
+ * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
+ * Licensed under the Pörssiohjain Personal Use License v1.0.
+ */
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import { readFileSync, writeFileSync, mkdtempSync, existsSync, statSync } from 'node:fs';
+import { createServer } from 'node:http';
+import { fileURLToPath } from 'node:url';
+import { join, extname, resolve, sep } from 'node:path';
+import { tmpdir } from 'node:os';
+import { createSessionServer } from '../server/session-server.mjs';
+import { waitForChrome } from './chrome-startup.mjs';
+
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+test('desktop and companion share controls, grid/core readings and lifecycle across browser windows', { timeout: 120_000 }, async () => {
+    const artifacts = mkdtempSync(join(tmpdir(), 'nuclear-companion-check-'));
+    console.log(`Companion browser artifacts: ${artifacts}`);
+    const dist = fileURLToPath(new URL('../dist/', import.meta.url));
+    assert.ok(existsSync(join(dist, 'index.html')), 'Build first');
+    const contentTypes = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.wav': 'audio/wav' };
+    const httpServer = createServer((request, response) => {
+        const path = new URL(request.url, 'http://localhost').pathname;
+        let file = resolve(dist, path.endsWith('/') ? `.${path}index.html` : `.${path}`);
+        if (!file.startsWith(dist.endsWith(sep) ? dist : dist + sep) || !existsSync(file)) { response.writeHead(404); response.end(); return; }
+        if (statSync(file).isDirectory()) file = join(file, 'index.html');
+        response.setHeader('Content-Type', contentTypes[extname(file)] || 'application/octet-stream');
+        response.end(readFileSync(file));
+    });
+    const service = createSessionServer({ httpServer });
+    await new Promise(resolve => httpServer.listen(0, '127.0.0.1', resolve));
+    const url = `http://127.0.0.1:${httpServer.address().port}`;
+    const profileDir = join(artifacts, 'profile');
+    const browser = spawn(process.env.CHROME_BIN || '/opt/google/chrome/chrome', ['--headless', '--no-sandbox', '--disable-dev-shm-usage', '--no-first-run', '--no-default-browser-check', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--remote-debugging-port=0', `--user-data-dir=${profileDir}`, 'about:blank']);
+    let socket;
+    try {
+        socket = new WebSocket(await waitForChrome(browser, profileDir));
+        await new Promise(resolve => socket.addEventListener('open', resolve, { once: true }));
+        const pending = new Map(), exceptions = [];
+        let nextId = 0;
+        socket.addEventListener('message', event => {
+            const message = JSON.parse(event.data);
+            if (message.method === 'Runtime.exceptionThrown') exceptions.push(message.params.exceptionDetails);
+            if (!pending.has(message.id)) return;
+            const callback = pending.get(message.id); pending.delete(message.id);
+            message.error ? callback.reject(message.error) : callback.resolve(message.result);
+        });
+        const send = (method, params = {}, sessionId) => new Promise((resolve, reject) => {
+            const id = ++nextId; pending.set(id, { resolve, reject }); socket.send(JSON.stringify({ id, method, params, ...(sessionId ? { sessionId } : {}) }));
+        });
+        async function page(path, width, height, expectsConsole = true) {
+            const { targetId } = await send('Target.createTarget', { url: 'about:blank' });
+            const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true });
+            const call = (method, params = {}) => send(method, params, sessionId);
+            await call('Runtime.enable'); await call('Page.enable');
+            await call('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+            const evaluate = async expression => {
+                const result = await call('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
+                if (result.exceptionDetails) throw new Error(JSON.stringify(result.exceptionDetails));
+                return result.result.value;
+            };
+            const code = body => evaluate(`(()=>{const c=document.querySelector('nuclear-power-console');const s=c?.shadowRoot;${body}})()`);
+            const until = async (expression, message) => {
+                for (let attempt = 0; attempt < 150; attempt++) { if (await code(`return ${expression};`)) return; await wait(100); }
+                console.log('Console state:', await code('return {ready:c?.remoteReady,error:c?.sessionError,status:c?.sessionStatus,active:c?.connectedActiveScreens,clock:c?.simulation.elapsed,exceptions:0};'), exceptions);
+                throw new Error(message);
+            };
+            await call('Page.navigate', { url: url + path });
+            await until(expectsConsole ? 'c?.initialized' : 'document.readyState === "complete"', expectsConsole ? 'Console initialized' : 'Landing loaded');
+            return { call, code, until, action: action => code(`s.querySelector('[data-action="${action}"]').click();`), input: (selector, value) => code(`const input=s.querySelector(${JSON.stringify(selector)});input.value=${JSON.stringify(String(value))};input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));`), screenshot: async name => {
+                await call('Page.bringToFront');
+                await wait(200); // Let theme/hover transitions reach their final colors.
+                const result = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+                writeFileSync(join(artifacts, `${name}.png`), Buffer.from(result.data, 'base64'));
+            } };
+        }
+        const host = await page('/', 1920, 1080, false);
+        assert.equal(await host.code('return c;'), null, 'Landing never mounts a simulation');
+        const cards = await host.code('const left=document.querySelector(".launcher-reactor").getBoundingClientRect(),right=document.querySelector(".launcher-companion").getBoundingClientRect(),about=document.querySelector("#about").getBoundingClientRect();return {left:left.right,right:right.left,bottom:Math.max(left.bottom,right.bottom),about:about.top};');
+        assert.ok(cards.left < cards.right && cards.bottom < cards.about, 'Reactor left and companion right above landing content');
+        await host.screenshot('landing-screen-selection');
+        await host.code('document.querySelector(".launcher-reactor").click();');
+        await host.until('c?.initialized && location.pathname === "/reactor/"', 'Reactor card opens its own page');
+        const firstDocument = await host.code('return performance.timeOrigin;');
+        await host.call('Page.reload');
+        await host.until(`performance.timeOrigin !== ${firstDocument} && c?.initialized && location.pathname === "/reactor/"`, 'Reload stays on selected reactor page');
+        assert.equal(await host.code('return document.querySelector(".site-content, .launcher-card");'), null, 'Reactor contains no landing/SEO content');
+        await host.code('history.back();');
+        await host.until('location.pathname === "/" && !!document.querySelector(".launcher-reactor") && !c', 'Back returns to landing selection');
+        await host.code('document.querySelector(".launcher-reactor").click();');
+        await host.until('c?.initialized && location.pathname === "/reactor/"', 'Reactor can be selected again');
+        for (const [width,height] of [[1920,1080],[2560,1440]]) {
+            await host.call('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+            assert.ok(await host.code('return s.querySelector(".console-footer").getBoundingClientRect().bottom<=innerHeight;'), 'Reactor keeps its wide-screen fit');
+        }
+        await host.call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+        await host.until('c.overviewScene.width === s.querySelector(".plant-scene").clientWidth', 'Main overview resizes while outside the phone viewport');
+        assert.ok(await host.code('const v=s.querySelector(".plant-scene").getBoundingClientRect();return [...s.querySelectorAll(".plant-scene-label")].every(label=>{const r=label.getBoundingClientRect();return r.left>=v.left&&r.right<=v.right;});'), 'Main equipment labels stay inside the mobile overview');
+        await host.call('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
+        assert.equal(await host.code('return c.companion;'), false);
+        await host.action('connect-screen');
+        await host.until('c.pairingInfo?.code', 'Desktop has pairing code');
+        const code = await host.code('return c.pairingInfo.code;');
+        const tablet = await page('/companion/', 1180, 820);
+        assert.equal(await tablet.code('return document.querySelector(".site-content, .launcher-card");'), null, 'Companion contains no landing/SEO content');
+        await tablet.code('Object.defineProperty(crypto,"randomUUID",{value:undefined,configurable:true});');
+        assert.equal(await tablet.code('return c.timer;'), null, 'Companion has no simulation timer');
+        assert.equal(await tablet.code('return c.overviewScene == null;'), true, 'Companion creates no WebGL renderer');
+        assert.equal(await tablet.code('return s.querySelector(".companion-operator").inert;'), true);
+        assert.equal(await tablet.code('return s.querySelector(".brand-mark, .heading, h1");'), null, 'Companion omits the logo and visible page title');
+        assert.ok(await tablet.code('return s.querySelector(".companion-pairing-dialog").matches(":modal");'), 'Pairing opens as a blocking modal');
+        assert.equal(await tablet.code('return s.activeElement.id;'), 'companion-code', 'Pairing code receives keyboard focus');
+        assert.ok(await tablet.code('const r=s.querySelector(".companion-workspace").getBoundingClientRect();return r.width>0&&r.height>0;'), 'Console remains visible behind pairing');
+        await tablet.call('Page.bringToFront');
+        await tablet.call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+        await tablet.call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+        assert.ok(await tablet.code('return s.querySelector(".companion-pairing-dialog").open;'), 'Escape cannot dismiss pairing');
+        await tablet.call('Input.dispatchMouseEvent', { type: 'mousePressed', x: 5, y: 5, button: 'left', clickCount: 1 });
+        await tablet.call('Input.dispatchMouseEvent', { type: 'mouseReleased', x: 5, y: 5, button: 'left', clickCount: 1 });
+        assert.ok(await tablet.code('return s.querySelector(".companion-pairing-dialog").open;'), 'Backdrop clicks cannot dismiss pairing');
+        assert.ok(await tablet.code('s.querySelector("#light-theme").focus();return !!s.activeElement.closest(".companion-pairing-dialog");'), 'Background controls cannot take focus before pairing');
+        await tablet.screenshot('companion-pairing-dark');
+        await tablet.call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false });
+        assert.ok(await tablet.code('const d=s.querySelector(".companion-pairing-dialog"),r=d.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight&&d.scrollWidth<=d.clientWidth;'), 'Pairing fits a phone viewport');
+        await tablet.screenshot('companion-pairing-phone');
+        await tablet.call('Emulation.setDeviceMetricsOverride', { width: 1180, height: 820, deviceScaleFactor: 1, mobile: false });
+        await tablet.input('.companion-code', '0000 0000');
+        await tablet.code('s.querySelector(".companion-join").requestSubmit();');
+        await tablet.until('c.sessionError?.includes("invalid")', 'Invalid pairing code shows an error');
+        assert.ok(await tablet.code('return s.querySelector(".companion-pairing-dialog").open && s.querySelector(".companion-operator").inert;'), 'Invalid pairing keeps the modal open and console blocked');
+        await tablet.input('.companion-code', code);
+        await tablet.code('s.querySelector(".companion-join").requestSubmit();');
+        await tablet.until('c.remoteReady && !s.querySelector(".companion-pairing-dialog").open', 'Live desktop state closes pairing');
+        assert.ok(await tablet.code('return s.querySelector(".companion-join").closest("dialog") && !s.querySelector(".companion-connection .companion-join");'), 'Code form takes no inline console space');
+        await host.until('c.connectedActiveScreens === 1', 'Desktop sees active companion');
+        const positions = await tablet.code('const left=s.querySelector(".companion-information").getBoundingClientRect(),right=s.querySelector(".companion-operator").getBoundingClientRect();return {left:left.right,right:right.left,overflow:document.documentElement.scrollWidth>innerWidth};');
+        assert.ok(positions.left < positions.right, 'Information left and operator controls right');
+        assert.equal(positions.overflow, false);
+        await tablet.call('Page.bringToFront');
+        for (const [width, height] of [[1180, 820], [1024, 600], [768, 1024]]) {
+            await tablet.call('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+            await tablet.code('scrollTo(0,0);');
+            const layout = await tablet.code('const panes=[...s.querySelectorAll(".companion-information,.companion-operator")],pane=panes[1],r=pane.getBoundingClientRect(),footer=s.querySelector(".console-footer").getBoundingClientRect();return {panes:panes.map(p=>({client:p.clientHeight,content:p.scrollHeight,overflow:getComputedStyle(p).overflowY})),expected:Math.max(innerHeight,Math.ceil(footer.bottom+scrollY)),height:document.scrollingElement.scrollHeight,x:r.right-30,y:Math.min(innerHeight-30,r.top+100)};');
+            for (const pane of layout.panes) {
+                assert.ok(!['auto','scroll'].includes(pane.overflow) && pane.content <= pane.client + 1, 'Companion panes grow with content without nested scrolling');
+            }
+            assert.ok(Math.abs(layout.height-layout.expected)<=2, 'Document ends at the console footer without an empty tail');
+            await tablet.call('Input.dispatchMouseEvent', { type: 'mouseWheel', x: layout.x, y: layout.y, deltaX: 0, deltaY: 2200 });
+            await tablet.until('scrollY > 0', 'Wheel over operator controls scrolls the page');
+            await tablet.code('scrollTo(0,document.scrollingElement.scrollHeight);');
+            const lower = await tablet.code('const pump=s.querySelector("[data-action=pumpB2]"),r=pump.getBoundingClientRect(),cover=s.querySelector("[data-action=trip-cover]").getBoundingClientRect(),footer=s.querySelector(".console-footer").getBoundingClientRect();return {pump:r.top>=0&&r.bottom<=innerHeight,cover:cover.top>=0&&cover.bottom<=innerHeight,hit:s.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest("[data-action=pumpB2]")===pump,footer:footer.bottom,viewport:innerHeight,inner:[...s.querySelectorAll(".companion-information,.companion-operator")].map(p=>p.scrollTop)};');
+            assert.ok(lower.pump && lower.hit && lower.cover, 'Page scrolling reaches the final pump and emergency cover');
+            assert.ok(Math.abs(lower.footer-lower.viewport)<=2, 'Page bottom shows content rather than blank space');
+            assert.deepEqual(lower.inner,[0,0], 'Content panes never acquire their own scroll position');
+        }
+        await tablet.call('Emulation.setDeviceMetricsOverride', { width: 1180, height: 820, deviceScaleFactor: 1, mobile: false });
+        await tablet.code('scrollTo(0,0);');
+        await tablet.code('s.querySelector("[data-companion-view=core]").click();s.querySelector("[data-fuel-id=\\"FA-17\\"]").dispatchEvent(new MouseEvent("click",{bubbles:true}));');
+        await tablet.until('c.selectedFuel === "FA-17" && !s.querySelector("[data-action=replace-fuel]").disabled', 'Cold companion fuel selection permits replacement');
+        assert.ok(await tablet.code('return !s.querySelector(".fuel-map-actions").hidden && !s.querySelector("[data-action=replace-fuel]").hidden;'), 'Selected and bulk fuel replacement controls are visible');
+        await host.code('c.selectFuel("FA-05");c.closeFloatingDialog(s.querySelector(".pairing-dialog"));');
+        const untouchedFuel = await host.code('return {...c.simulation.fuel.assemblies[4]};');
+        await tablet.action('replace-fuel');
+        await host.until('c.simulation.fuel.assemblies[16].replacements === 1 && c.fuelTransfer.job?.id === "FA-17"', 'Companion selection renews the correct host assembly and starts its crane');
+        assert.equal(await host.code('return c.selectedFuel;'), 'FA-05', 'Remote selection leaves the desktop selection intact');
+        assert.deepEqual(await host.code('return c.simulation.fuel.assemblies[4];'), untouchedFuel, 'Single replacement preserves other fuel');
+        await tablet.until('c.simulation.fuel.assemblies[16].remaining === 100 && s.querySelector("[data-value=fuelServiceStatus]").textContent.includes("FA-17 renewed")', 'Authoritative replacement and confirmation return to the companion');
+        assert.ok(await tablet.code('return !c.fuelTransfer.job && !c.fuelTransfer.samples.some(Boolean);'), 'Companion creates no independent crane or pool batch');
+        await host.call('Page.bringToFront');
+        await host.until('c.fuelTransfer.job?.elapsed > .05', 'The desktop crane animates after remote replacement');
+        await host.code('for(let i=0;i<47;i++)c.fuelTransfer.advance(.1);c.update();');
+        assert.equal(await host.code('return c.fuelTransfer.pose.carrying;'), true);
+        await host.screenshot('companion-triggered-fuel-crane');
+        await host.code('for(let i=0;i<106;i++)c.fuelTransfer.advance(.1);c.update();');
+        assert.deepEqual(await host.code('return c.fuelTransfer.samples.filter(Boolean).map(({id,count})=>({id,count}));'), [{ id: 'FA-17', count: 1 }], 'Remote replacement deposits the spent assembly into the host pool');
+        await tablet.action('replace-all-fuel');
+        await host.until('c.simulation.fuel.assemblies.every(a=>a.replacements === (a.id === "FA-17" ? 2 : 1)) && c.fuelTransfer.job?.count === 49', 'Bulk replacement renews all host fuel with one representative transfer');
+        await tablet.until('s.querySelector("[data-value=fuelServiceStatus]").textContent.includes("All 49")', 'Bulk replacement confirmation returns');
+        await host.code('for(let i=0;i<106;i++)c.fuelTransfer.advance(.1);c.update();');
+        assert.equal(await host.code('return c.fuelTransfer.samples.filter(Boolean).reduce((sum,batch)=>sum+batch.count,0);'), 50);
+        await host.code('while(c.fuelTransfer.hasCapacity)c.fuelTransfer.start("FA-01",1,true);c.update();');
+        await tablet.until('s.querySelector("[data-action=replace-fuel]").disabled && s.querySelector("[data-action=replace-all-fuel]").disabled && s.querySelector("[data-value=fuelReplacementReadiness]").textContent.includes("Pool full")', 'Host pool capacity locks both companion replacement controls');
+        await tablet.code('c.sendSessionCommand({method:"replaceFuel",args:["FA-17"]});');
+        await tablet.until('!c.pendingSessionCommands.size && c.sessionError?.includes("not accepted")', 'Host also rejects a replacement command when its pool is full');
+        assert.equal(await host.code('return c.simulation.fuel.assemblies[16].replacements;'), 2);
+        assert.equal(await host.code('return c.fuelTransfer.job;'), null);
+        await host.code('c.fuelTransfer.reset();c.update();');
+        await tablet.until('!s.querySelector("[data-action=replace-fuel]").disabled', 'Capacity returning on the host unlocks companion replacement');
+        await tablet.action('select-control-rod');
+        await tablet.code('s.querySelector("[data-companion-view=grid]").click();');
+        await tablet.action('pumpA'); await tablet.action('pumpB');
+        await host.until('c.simulation.pumpA && c.simulation.pumpB', 'Remote pump switches reach desktop');
+        await tablet.until('!s.querySelector("[data-action=start]").disabled', 'Circulation permits Start');
+        await tablet.action('start');
+        await host.until('c.simulation.running', 'Remote Start reaches desktop');
+        await tablet.until('c.simulation.running && c.simulation.primaryFlow > 0', 'Actual read-back returns');
+        await tablet.until('s.querySelector("[data-action=replace-all-fuel]").disabled', 'Running state disables companion refuelling');
+        await tablet.code('c.sendSessionCommand({method:"replaceAllFuel",args:[]});');
+        await tablet.until('!c.pendingSessionCommands.size && c.sessionError?.includes("not accepted")', 'Desktop enforces refuelling interlocks even for direct remote commands');
+        assert.equal(await host.code('return c.simulation.fuel.assemblies[16].replacements;'), 2);
+        assert.equal(await host.code('return c.fuelTransfer.job;'), null);
+        await tablet.until('!s.querySelector("[data-action=grid-request]").disabled', 'Grid request controls become ready');
+        await tablet.action('grid-request');
+        await host.until('c.simulation.gridDispatch.lastRequest?.id === "GC-001"', 'Tablet grid request reaches host');
+        await tablet.until('s.querySelector("[data-value=gridMessage]").textContent.includes("GC-001")', 'Grid dispatch message returns to information pane');
+        assert.equal(await tablet.code('return c.simulation.autoElectricalTarget;'), await host.code('return c.simulation.autoElectricalTarget;'));
+        await tablet.action('pause');
+        await host.until('c.simulation.paused', 'Tablet Pause is shared');
+        await tablet.until('c.simulation.paused', 'Paused state returns');
+        const pausedClock = await host.code('return c.simulation.elapsed;');
+        await wait(600);
+        assert.equal(await host.code('return c.simulation.elapsed;'), pausedClock);
+        await tablet.action('pause');
+        await host.until('!c.simulation.paused', 'Tablet can resume shared pause');
+        await tablet.code('s.querySelector("[data-companion-view=core]").click();');
+        await tablet.until('s.querySelector("[data-rod=\\"CR-01\\"]").getAttribute("aria-label").includes("actual")', 'Embedded core map renders actual state');
+        await tablet.code('const box=s.querySelector("#rod-override");box.checked=true;box.dispatchEvent(new Event("change",{bubbles:true}));');
+        await host.until('c.simulation.controlRods[0].manualOverride', 'Remote rod override reaches host');
+        await tablet.input('#individual-rod', 55);
+        await host.until('c.simulation.controlRods[0].target === 55', 'Individual rod target shared');
+        await tablet.screenshot('companion-core-dark');
+        await host.action('manual');
+        await tablet.until('!c.simulation.autoMode', 'Desktop changes reach tablet');
+        await tablet.input('#pump-A-speed', 65);
+        await host.until('c.simulation.pumpASpeed === 65', 'Remote speed target shared');
+        await tablet.code('s.querySelector("[data-companion-view=grid]").click();');
+        await tablet.screenshot('companion-grid-dark');
+        await tablet.code('const box=s.querySelector("#light-theme");box.checked=true;box.dispatchEvent(new Event("change",{bubbles:true}));');
+        await tablet.screenshot('companion-grid-light');
+        const palette = await tablet.code('const style=getComputedStyle(s.querySelector("[data-companion-view=core]"));return {color:style.color,background:style.backgroundColor};');
+        const luminance = color => color.match(/\d+/g).slice(0, 3).map(value => Number(value) / 255)
+            .map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4)
+            .reduce((sum, value, index) => sum + value * [.2126, .7152, .0722][index], 0);
+        assert.ok((luminance(palette.background) + .05) / (luminance(palette.color) + .05) >= 4.5, 'Light controls have readable contrast');
+        await tablet.call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false });
+        await tablet.screenshot('companion-phone-light');
+        assert.equal(await tablet.code('return document.documentElement.scrollWidth > innerWidth;'), false, 'Phone has no page overflow');
+        await tablet.call('Emulation.setDeviceMetricsOverride', { width: 1180, height: 820, deviceScaleFactor: 1, mobile: false });
+        await tablet.action('trip-cover'); await tablet.action('trip');
+        await host.until('c.simulation.tripped && !c.simulation.running', 'Covered remote emergency trip latches on desktop');
+        await tablet.until('c.simulation.tripped', 'Latched trip read-back arrives');
+        await tablet.action('auto'); await host.until('c.simulation.autoMode', 'Mode command reaches host');
+        assert.equal(await host.code('return c.simulation.tripped;'), true);
+        await host.code('c.sessionConnection.disconnect();');
+        await tablet.until('!c.remoteReady && s.querySelector(".companion-operator").inert && s.querySelector(".companion-pairing-dialog").open', 'Lost desktop reopens blocking pairing');
+        const elapsed = await tablet.code('return c.simulation.elapsed;');
+        await tablet.code('c.simulation.setElectricalTarget(444);');
+        await tablet.code('c.replaceFuelSelection(false,"FA-17");');
+        await wait(650);
+        assert.equal(await tablet.code('return c.simulation.elapsed;'), elapsed, 'No independent clock after host loss');
+        await host.code('c.sessionConnection.connect(c.sessionConnection.credentials);');
+        await tablet.until('c.remoteReady && !s.querySelector(".companion-pairing-dialog").open', 'Resumed host closes pairing again');
+        assert.notEqual(await host.code('return c.simulation.autoElectricalTarget;'), 444, 'Offline commands never replay');
+        assert.equal(await host.code('return c.simulation.fuel.assemblies[16].replacements;'), 2, 'Offline replacement never replays');
+        await host.action('reset');
+        await tablet.until('!c.simulation.tripped && !c.tripCoverOpen && !c.simulation.pumpA', 'Reset propagates cold state and closes remote cover');
+        await host.action('disconnect-screens');
+        await tablet.until('!c.remoteReady && s.querySelector(".companion-pairing-dialog").open', 'Revoked screen requires pairing again');
+        await tablet.screenshot('companion-pairing-light');
+        assert.equal(await tablet.code('return c.timer;'), null);
+        await tablet.code('window.detachedCompanion=c;c.remove();');
+        assert.equal(await tablet.code('return window.detachedCompanion.shadowRoot.querySelector(".companion-pairing-dialog").open;'), false, 'Detach closes native pairing modal');
+        await tablet.code('document.querySelector(".nuclear-power-view").append(window.detachedCompanion);delete window.detachedCompanion;');
+        await tablet.until('s.querySelector(".companion-pairing-dialog").matches(":modal")', 'Reconnected element requires pairing');
+        assert.deepEqual(exceptions, []);
+    } finally {
+        socket?.close(); browser.kill('SIGTERM'); await service.close();
+    }
+});

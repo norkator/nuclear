@@ -1,0 +1,12 @@
+# Pörssiohjain - Energy usage optimization platform
+# Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
+# Licensed under the Pörssiohjain Personal Use License v1.0.
+**
+!package.json
+!package-lock.json
+!server/
+!server/**
+!src/
+!src/simulation/
+!src/simulation/nuclear-power-session-protocol.js
+!LICENSE

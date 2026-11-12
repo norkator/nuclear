@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Pörssiohjain - Energy usage optimization platform
+Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
+Licensed under the Pörssiohjain Personal Use License v1.0.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://nuclear.porssiohjain.fi/</loc>
+  </url>
+  <url>
+    <loc>https://nuclear.porssiohjain.fi/guides/startup/</loc>
+  </url>
+  <url>
+    <loc>https://nuclear.porssiohjain.fi/guides/reactor-controls/</loc>
+  </url>
+  <url>
+    <loc>https://nuclear.porssiohjain.fi/guides/faults-and-recovery/</loc>
+  </url>
+</urlset>
