@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "node --test test/*.test.mjs",
     "test:browser": "node --test test/browser.mjs",
+    "test:browser:layout": "node --test test/layout-browser.mjs",
     "test:browser:cooling": "node --test test/cooling-tower-browser.mjs",
     "test:browser:equipment": "node --test test/equipment-browser.mjs",
     "test:browser:companion": "node --test test/companion-browser.mjs",

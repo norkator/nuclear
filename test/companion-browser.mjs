@@ -13,6 +13,7 @@ import { join, extname, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createSessionServer } from '../server/session-server.mjs';
 import { waitForChrome } from './chrome-startup.mjs';
+import { waitForConsoleLayout } from './console-layout.browser.mjs';
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 test('desktop and companion share controls, grid/core readings and lifecycle across browser windows', { timeout: 120_000 }, async () => {
@@ -93,6 +94,7 @@ test('desktop and companion share controls, grid/core readings and lifecycle acr
         await host.until('c?.initialized && location.pathname === "/reactor/"', 'Reactor can be selected again');
         for (const [width,height] of [[1920,1080],[2560,1440]]) {
             await host.call('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+            await waitForConsoleLayout(host.code, 'Companion host layout');
             assert.ok(await host.code('return s.querySelector(".console-footer").getBoundingClientRect().bottom<=innerHeight;'), 'Reactor keeps its wide-screen fit');
             const fit = await host.code('const scene=s.querySelector(".plant-scene").getBoundingClientRect(),footer=s.querySelector(".console-footer").getBoundingClientRect(),legend=s.querySelector(".diagram-legend").getBoundingClientRect();return {height:scene.height,bottom:scene.bottom,legend:legend.top,footer:footer.bottom,overflow:document.documentElement.scrollWidth>innerWidth};');
             assert.ok(fit.height>height*.5 && Math.abs(fit.bottom-fit.legend)<2 && Math.abs(fit.footer-height)<2 && !fit.overflow, `3D uses the available screen height without page overflow: ${JSON.stringify(fit)}`);

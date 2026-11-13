@@ -1237,6 +1237,8 @@ npm ci
 npm test
 npm run build
 npm run test:browser
+# Focused shared desktop layout (same checks as the full suite):
+npm run test:browser:layout
 # Focused company-game flow:
 npm run test:browser:game
 # Focused two-window pairing/controls/lifecycle coverage:
@@ -1250,6 +1252,21 @@ build for small edits; run `npm run test:browser:equipment` for turbine/condense
 controls, wear/damage and equipment motion. Keep the full browser suite for broad
 regressions, explicit requests and CI. Avoid repeatedly replaying unrelated SEO,
 audio, fuel, export and desktop scenarios during small UI iterations.
+
+Shared shell, breakpoints and panel motion affect full-suite assumptions even
+when the diff is small. Iterate with the focused layout command, then run the
+full browser suite once against the final build before handoff. Layout checks
+explicitly open required panels, wait for their actual transitions/stable geometry
+and the WebGL resize, then preserve overlap/fit assertions in both themes at
+1440, 1920, 2560 and 3440 px. They share one implementation with CI; motion tests
+still exercise real in-flight animations separately. Never substitute a longer
+fixed sleep or globally disabled motion for readiness.
+
+Browser assertion failures print the current rectangles, grid columns, panel
+states and active transitions, and save `failure.png` plus `failure-context.json`.
+The container workflow uploads screenshots/JSON as `browser-failure-evidence`
+for one day after a failure, excluding browser profiles. This does not change
+branch selection, test/build gates or production image-publishing conditions.
 
 Browser tests use Chrome at `/opt/google/chrome/chrome` by default; `CHROME_BIN` can
 select another installed Chromium executable. Without `NUCLEAR_POWER_APP_URL`, a

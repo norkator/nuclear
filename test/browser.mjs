@@ -17,6 +17,7 @@ import { checkTurbineOverload } from './turbine-overload.browser.mjs';
 import { checkCoolingTower } from './cooling-tower.browser.mjs';
 import { waitForChrome } from './chrome-startup.mjs';
 import { checkCompanyGame } from './company-game.browser.mjs';
+import { captureConsoleLayout, checkConsoleLayout } from './console-layout.browser.mjs';
 
 const dist = fileURLToPath(new URL('../dist/', import.meta.url));
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -59,6 +60,7 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
     const profileDir = join(artifacts, 'profile');
     const browser = spawn(process.env.CHROME_BIN || '/opt/google/chrome/chrome', ['--headless', '--no-sandbox', '--disable-dev-shm-usage', '--no-first-run', '--no-default-browser-check', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--remote-debugging-port=0', `--user-data-dir=${profileDir}`, 'about:blank']);
     let socket;
+    let captureFailure;
     try {
         const endpoint = await waitForChrome(browser, profileDir);
         socket = new WebSocket(endpoint);
@@ -96,7 +98,14 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
             console.log('Failure context:', await evaluate(`(()=>{const c=document.querySelector('nuclear-power-console');return {path:location.pathname,active:c?.intersecting,paused:c?.simulation.paused,timer:c?.timer,frame:c?.animationFrame,motion:c?.processMotion,shaft:c?.simulation.components.items.turbine.actual.shaftSpeed,text:c?.shadowRoot?.textContent.slice(-1800)}})()`), exceptions);
             throw new Error(message);
         };
-        const consoleCode = code => evaluate(`(()=>{const c=document.querySelector('nuclear-power-console');const s=c.shadowRoot;${code}})()`);
+        const consoleCode = code => evaluate(`(()=>{const c=document.querySelector('nuclear-power-console');const s=c?.shadowRoot;${code}})()`);
+        captureFailure = async () => {
+            const layout = await captureConsoleLayout(consoleCode);
+            console.log('Browser failure layout:', JSON.stringify(layout));
+            writeFileSync(join(artifacts, 'failure-context.json'), JSON.stringify({ layout, exceptions }, null, 2));
+            const result = await page('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+            writeFileSync(join(artifacts, 'failure.png'), Buffer.from(result.data, 'base64'));
+        };
         const action = action => consoleCode(`s.querySelector('[data-action="${action}"]').click();`);
         const tab = name => consoleCode(`s.querySelector('[data-plant-tab="${name}"]').click();`);
         const value = name => consoleCode(`return s.querySelector('[data-value="${name}"]').textContent;`);
@@ -135,7 +144,8 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         const focusedEquipment = process.env.NUCLEAR_BROWSER_FOCUS === 'equipment';
         const focusedCooling = process.env.NUCLEAR_BROWSER_FOCUS === 'cooling';
         const focusedGame = process.env.NUCLEAR_BROWSER_FOCUS === 'game';
-        if (!focusedEquipment && !focusedCooling && !focusedGame) {
+        const focusedLayout = process.env.NUCLEAR_BROWSER_FOCUS === 'layout';
+        if (!focusedEquipment && !focusedCooling && !focusedGame && !focusedLayout) {
             // Check the actual shipped HTML with JavaScript disabled, as a crawler sees it.
             await page('Emulation.setScriptExecutionDisabled', { value: true });
             for (const entry of pages) {
@@ -183,6 +193,13 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         }
         await page('Page.navigate', { url: new URL('/reactor/', baseUrl).href });
         await until(`!!document.querySelector('nuclear-power-console')?.shadowRoot?.querySelector('.console')`, 'Control room did not render');
+        if (focusedLayout) {
+            await checkConsoleLayout({ consoleCode, page, screenshot });
+            assert.deepEqual(exceptions, []);
+            console.log(`Console layout browser checks passed; artifacts: ${artifacts}`);
+            await send('Browser.close');
+            return;
+        }
         if (!focusedEquipment && !focusedCooling) {
             await checkCompanyGame({ consoleCode, action, input, page, evaluate, until, screenshot, send, baseUrl });
             if (focusedGame) {
@@ -765,20 +782,7 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         assert.ok(disabledContrast.ratio >= 4.5, 'Light-theme disabled controls should remain readable');
         assert.equal(await consoleCode(`const other=document.createElement('nuclear-power-console');other.style.display='none';c.parentElement.append(other);const theme=other.dataset.theme;other.remove();return theme;`), 'light');
         await consoleCode(`const toggle=s.querySelector('#light-theme');toggle.checked=false;toggle.dispatchEvent(new Event('change',{bubbles:true}));`);
-        for (const [width, height] of [[1920, 1080], [2560, 1440]]) {
-            await page('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
-            await wait(100);
-            const layout = await consoleCode(`const rect=selector=>{const r=s.querySelector(selector).getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,width:r.width};};return {metrics:rect('.metrics'),controls:rect('.control-column'),analysis:rect('.analysis-column'),trends:rect('.trend-panel'),logs:rect('.events-panel'),footer:rect('.console-footer'),console:rect('.console')};`);
-            assert.ok(layout.metrics.right <= layout.controls.x);
-            assert.ok(layout.controls.right <= layout.analysis.x);
-            assert.ok(layout.trends.bottom <= layout.logs.y);
-            assert.ok(layout.console.width > width - 50, 'Wide layout should use the full feature width');
-            assert.ok(layout.footer.bottom <= height, `Wide screen should fit the overview: ${JSON.stringify(layout)}`);
-            await screenshot(`wide-${width}-dark`);
-            await consoleCode(`const toggle=s.querySelector('#light-theme');toggle.checked=true;toggle.dispatchEvent(new Event('change',{bubbles:true}));`);
-            await screenshot(`wide-${width}-light`);
-            await consoleCode(`const toggle=s.querySelector('#light-theme');toggle.checked=false;toggle.dispatchEvent(new Event('change',{bubbles:true}));`);
-        }
+        await checkConsoleLayout({ consoleCode, page, screenshot });
         await page('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
         await until(`document.querySelector('nuclear-power-console').overviewScene.width === document.querySelector('nuclear-power-console').shadowRoot.querySelector('.diagram-viewport .plant-scene').clientWidth`, '3D overview did not resize for mobile');
         assert.ok(await consoleCode(`const r=s.querySelector('.plant-scene').getBoundingClientRect();return r.width>200 && r.width<=390;`));
@@ -1717,6 +1721,15 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         assert.deepEqual(exceptions, []);
         console.log(`Browser verified standalone React application; artifacts: ${artifacts}`);
         await send('Browser.close');
+    } catch (error) {
+        let captureTimeout;
+        try {
+            await Promise.race([captureFailure?.(), new Promise((_, reject) => {
+                captureTimeout = setTimeout(() => reject(new Error('Failure capture timed out')), 5000);
+            })]);
+        } catch (captureError) { console.log('Could not capture browser failure:', captureError.message); }
+        finally { clearTimeout(captureTimeout); }
+        throw error;
     } finally {
         socket?.close();
         browser.kill('SIGTERM');

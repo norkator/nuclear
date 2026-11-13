@@ -57,6 +57,33 @@ Run focused model tests and `npm run build`. Use `npm run test:browser:game` for
 company behavior and `npm run test:browser:companion` for session changes. Keep
 the full browser suite for broad changes or release gates.
 
+## UI changes and browser verification
+
+Shared console layout, breakpoints, panel motion, visibility, focus or lifecycle
+changes affect the full browser suite, even when their source diff is small.
+Run `npm run build` and `npm run test:browser:layout` during layout iteration;
+before handing off a shared-shell change, run `npm run test:browser` once on the
+final built source, plus the focused companion check when that screen is affected.
+Do not report a focused pass as a full-suite pass. This is the shared-layout
+exception to reserving the full suite for broader work; unrelated small component
+changes still use their focused checks.
+
+Maintain the browser checks alongside intentional UI changes. Keep real overlap,
+viewport-fit, access and focus assertions; change their setup/expectations only
+when the requested behavior changes. Do not disable animations globally, delete
+assertions or add larger fixed sleeps to make CI pass. Use
+`waitForConsoleLayout` in `test/console-layout.browser.mjs` before measuring the
+settled shell: it checks actual transitions, stable geometry and renderer resize.
+Test in-flight animation/interlocks separately without that wait. Set required
+panel/preset state explicitly rather than depending on earlier scenarios or saved
+preferences. Keep focused and full checks shared so they cannot silently diverge.
+
+On a browser failure, inspect the assertion's geometry and active-transition
+diagnostics and its screenshot before deciding whether code or expectations are
+wrong. The container workflow retains browser screenshots/JSON as
+`browser-failure-evidence` for one day. Never upload browser profiles. Keep the
+existing branch, build/test and image-publishing gates intact.
+
 ## Branches and deployment
 
 `main` is the development branch; `production` publishes release images. The

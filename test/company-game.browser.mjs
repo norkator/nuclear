@@ -4,6 +4,7 @@
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
 import assert from 'node:assert/strict';
+import { waitForConsoleLayout } from './console-layout.browser.mjs';
 
 export async function checkCompanyGame({ consoleCode, action, input, page, evaluate, until, screenshot, send, baseUrl }) {
     const gameAction = name => consoleCode(`s.querySelector('[data-game-action="${name}"]').click();`);
@@ -17,6 +18,7 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
     assert.equal(await consoleCode('return s.querySelector(".game-tasks").hidden;'), true, 'Free operation has no assignment checklist');
     for (const [width, height] of [[1920, 1080], [2560, 1440]]) {
         await page('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+        await waitForConsoleLayout(consoleCode, 'Free-operation career layout');
         assert.ok(await consoleCode('return s.querySelector(".console-footer").getBoundingClientRect().bottom <= innerHeight;'), 'Free-operation game entry retains wide-screen fit');
     }
     await page('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1120, deviceScaleFactor: 1, mobile: false });
@@ -46,6 +48,7 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
     assert.notEqual(await consoleCode('return getComputedStyle(s.querySelector(".game-task-list li")).color;'), pendingColor);
     for (const [width, height] of [[1920, 1080], [2560, 1440]]) {
         await page('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+        await waitForConsoleLayout(consoleCode, 'Assignment checklist layout');
         assert.ok(await consoleCode('return s.querySelector(".game-tasks").getBoundingClientRect().bottom <= s.querySelector(".trend-panel").getBoundingClientRect().top;'), 'Checklist and trends do not overlap inside the side panel');
         assert.ok(await consoleCode('const panel=s.querySelector(".analysis-column");panel.scrollTop=panel.scrollHeight;const journal=s.querySelector(".events-panel").getBoundingClientRect();const reachable=journal.bottom<=panel.getBoundingClientRect().bottom+1;panel.scrollTop=0;return reachable;'), 'Side-panel scrolling reaches the journal without moving the operator console');
         await screenshot(`career-steps-verified-${width}-dark`);

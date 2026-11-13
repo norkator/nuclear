@@ -579,6 +579,17 @@ condenser, controls, wear/damage, themes and motion without replaying the comple
 control-room, audio, fuel, SEO and export scenarios. Reserve `npm run test:browser`
 for broad regressions and CI.
 
+For shared console layout, breakpoints or panel animations, run
+`npm run test:browser:layout` while iterating and the full `npm run test:browser`
+once before handoff on the final build. The focused command shares its geometry
+assertions with the full suite. It waits for actual layout transitions, stable
+rectangles and the renderer resize before checking overlap, viewport fit and both
+themes at 1440/1920/2560/3440 px. Animation behavior is checked separately by the
+companion browser suite. Avoid fixed sleeps or disabling motion to hide failures.
+Browser failures print geometry/transition diagnostics and save a screenshot plus
+`failure-context.json`. GitHub Actions retains screenshots and JSON for one
+day in `browser-failure-evidence`, excluding browser profiles.
+
 `npm test` runs model, motion, failure, fuel, supply, component, audio, game and
 session tests. Game changes normally use `node --test test/nuclear-power-game.test.mjs`,
 `npm run build`, then `npm run test:browser:game`. Use the companion check when

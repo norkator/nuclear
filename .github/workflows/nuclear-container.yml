@@ -32,6 +32,17 @@ jobs:
       - run: npm run test:browser:companion
         env:
           CHROME_BIN: /opt/google/chrome/chrome
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-failure-evidence
+          path: |
+            /tmp/nuclear-power-check-*/*.png
+            /tmp/nuclear-power-check-*/*.json
+            /tmp/nuclear-companion-check-*/*.png
+          if-no-files-found: ignore
+          retention-days: 1
 
   build-and-push:
     needs: test

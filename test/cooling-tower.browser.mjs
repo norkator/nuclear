@@ -4,11 +4,13 @@
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
 import assert from 'node:assert/strict';
+import { waitForConsoleLayout } from './console-layout.browser.mjs';
 
 export async function checkCoolingTower({ consoleCode, action, page, until, screenshot, warmOperatingPoint }) {
     const showOverview = async () => {
         // Scrolling and full-page captures can suspend the overview independently
         // of the plant. Wait for its visibility observer before reading particles.
+        await waitForConsoleLayout(consoleCode, 'Cooling tower layout before scrolling');
         await consoleCode(`s.querySelector('.diagram-viewport').scrollIntoView({block:'center'});
             return new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));`);
         await until(`(()=>{const c=document.querySelector('nuclear-power-console');return c.intersecting && c.overviewIntersecting && !document.hidden;})()`, 'Cooling tower overview did not become visible');
