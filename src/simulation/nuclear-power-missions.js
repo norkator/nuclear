@@ -39,6 +39,36 @@ export function validateMissionCatalogue(catalogue) {
     }
 }
 
+function generationHoldConditions(assignment, sim) {
+    const objective = assignment.definition.objective;
+    return {
+        start: !objective.needsStart || sim.startSequence > assignment.baselineStarts,
+        running: sim.running && !sim.tripped && !sim.condition.meltdown,
+        regulation: sim.autoMode && sim.autoObjective === 'power' && sim.autoElectricalTarget === objective.targetMw,
+        following: !sim.gridDispatch.enabled,
+        circulation: sim.primaryFlow >= 20 && sim.secondaryFlow >= 20,
+        equipment: sim.condition.fault === 'none' && !sim.components.hasFaults && !sim.condition.damaged && !sim.components.damaged,
+        cooling: sim.temperature <= 335 && sim.condition.peakTemperature <= 410 && sim.condition.coolingMargin > 0,
+        output: Math.abs(sim.electricalOutput - objective.targetMw) <= objective.toleranceMw,
+    };
+}
+
+// Display-only steps use the issued terms and the same readings as verification.
+// Nothing is added to the saved assignment or advanced by rendering this list.
+export function assignmentSteps(assignment, sim) {
+    if (!assignment || !['active', 'ready', 'completed'].includes(assignment.status)) return [];
+    const objective = assignment.definition.objective;
+    const checks = generationHoldConditions(assignment, sim);
+    const verified = assignment.status === 'ready' || assignment.status === 'completed';
+    return [
+        { id: 'regulation', label: `Auto → Electrical output: ${objective.targetMw} MW; Follow requests off`, done: checks.regulation && checks.following },
+        { id: 'circulation', label: 'Establish flow in both coolant circuits', done: checks.circulation },
+        { id: 'start', label: objective.needsStart ? 'Start the reactor after accepting' : 'Keep the reactor running', done: checks.start && checks.running },
+        { id: 'condition', label: 'Keep cooling and equipment healthy', done: checks.equipment && checks.cooling && checks.circulation },
+        { id: 'hold', label: `Hold ${objective.targetMw} ± ${objective.toleranceMw} MW for ${objective.seconds < 60 ? `${objective.seconds} s` : `${objective.seconds / 60} min`}`, done: false },
+    ].map(step => ({ ...step, done: verified || step.done }));
+}
+
 export class CompanyCareer {
     constructor(state = null, catalogue = MISSIONS) {
         validateMissionCatalogue(catalogue);
@@ -88,15 +118,15 @@ export class CompanyCareer {
         const assignment = this.current;
         if (!assignment || assignment.status !== 'active' || dt === 0) return false;
         const objective = assignment.definition.objective;
+        const checks = generationHoldConditions(assignment, sim);
         let reason = '';
-        if (objective.needsStart && sim.startSequence <= assignment.baselineStarts) reason = 'Explicitly start the reactor after accepting this assignment.';
-        else if (!sim.running || sim.tripped || sim.condition.meltdown) reason = 'Reactor must be running without a trip.';
-        else if (!sim.autoMode || sim.autoObjective !== 'power' || sim.autoElectricalTarget !== objective.targetMw) reason = `Select Auto → Electrical output at ${objective.targetMw} MW.`;
-        else if (sim.gridDispatch.enabled) reason = 'Turn off Follow requests for this fixed-output test.';
-        else if (sim.condition.fault !== 'none' || sim.components.hasFaults || sim.condition.damaged || sim.components.damaged) reason = 'Clear active faults and repair retained damage.';
-        else if (sim.temperature > 335 || sim.condition.peakTemperature > 410 || sim.condition.coolingMargin <= 0
-            || sim.primaryFlow < 20 || sim.secondaryFlow < 20) reason = 'Restore circulation and healthy cooling.';
-        else if (Math.abs(sim.electricalOutput - objective.targetMw) > objective.toleranceMw) reason = `Waiting for actual output within ${objective.targetMw} ± ${objective.toleranceMw} MW.`;
+        if (!checks.start) reason = 'Explicitly start the reactor after accepting this assignment.';
+        else if (!checks.running) reason = 'Reactor must be running without a trip.';
+        else if (!checks.regulation) reason = `Select Auto → Electrical output at ${objective.targetMw} MW.`;
+        else if (!checks.following) reason = 'Turn off Follow requests for this fixed-output test.';
+        else if (!checks.equipment) reason = 'Clear active faults and repair retained damage.';
+        else if (!checks.cooling || !checks.circulation) reason = 'Restore circulation and healthy cooling.';
+        else if (!checks.output) reason = `Waiting for actual output within ${objective.targetMw} ± ${objective.toleranceMw} MW.`;
         assignment.held = reason ? 0 : Math.min(objective.seconds, assignment.held + dt);
         assignment.reason = reason || 'Holding stable generation. Pause freezes this timer.';
         if (assignment.held < objective.seconds) return false;

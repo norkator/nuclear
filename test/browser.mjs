@@ -150,11 +150,16 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
                 await until(`document.readyState === 'complete' && document.title === ${JSON.stringify(entry.title)}`, 'Static search page did not load');
                 assert.equal(await evaluate('document.querySelector("h1").textContent'), entry.heading);
                 assert.ok(await evaluate('document.querySelector("h1").getBoundingClientRect().height > 0'));
-                assert.ok(await evaluate('document.querySelector("article.site-content").textContent.length > 2000'));
+                if (entry.path === '/') {
+                    await screenshot('landing-desktop');
+                } else {
+                    assert.ok(await evaluate('document.querySelector("article.site-content").textContent.length > 2000'));
+                }
                 assert.equal(await evaluate('document.querySelector("nuclear-power-console")'), null);
                 assert.ok(await evaluate('document.querySelector("link[rel=stylesheet]").sheet.cssRules.length > 0'));
                 await page('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
                 assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Static content must fit a phone');
+                if (entry.path === '/') await screenshot('landing-mobile');
                 if (entry.path === '/guides/startup/') await screenshot('startup-guide-mobile');
                 await page('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1120, deviceScaleFactor: 1, mobile: false });
             }
@@ -1176,7 +1181,7 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         await screenshot('electrical-control-dark');
         await consoleCode(`const toggle=s.querySelector('#light-theme');toggle.checked=true;toggle.dispatchEvent(new Event('change',{bubbles:true}));`);
         await screenshot('electrical-control-light');
-        assert.equal(await evaluate(`getComputedStyle(document.querySelector('.nuclear-power-view')).backgroundColor`), 'rgb(237, 242, 245)');
+        assert.equal(await evaluate(`getComputedStyle(document.querySelector('.nuclear-power-view')).backgroundColor`), 'rgb(197, 208, 215)');
         await consoleCode(`const toggle=s.querySelector('#light-theme');toggle.checked=false;toggle.dispatchEvent(new Event('change',{bubbles:true}));`);
         await input('#auto-electrical', 400);
         await advance(180);

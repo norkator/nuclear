@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NuclearPowerSimulation, CORE_CHANNELS } from '../src/simulation/nuclear-power-model.js';
 import { FuelTransferAnimation } from '../src/simulation/nuclear-power-refuelling.js';
-import { CompanyCareer, MISSIONS, validateMissionCatalogue } from '../src/simulation/nuclear-power-missions.js';
+import { assignmentSteps, CompanyCareer, MISSIONS, validateMissionCatalogue } from '../src/simulation/nuclear-power-missions.js';
 import { captureCareer, restoreCareerBundle } from '../src/simulation/nuclear-power-game-save.js';
 
 function advance(sim, career, seconds) {
@@ -25,6 +25,52 @@ function firstReport() {
     assert.ok(career.report(sim));
     return { sim, career };
 }
+
+test('assignment steps appear after acceptance and use actual circulation and post-acceptance startup evidence', () => {
+    const sim = new NuclearPowerSimulation(), career = new CompanyCareer();
+    const steps = () => Object.fromEntries(assignmentSteps(career.current, sim).map(step => [step.id, step.done]));
+    assert.deepEqual(assignmentSteps(career.current, sim), []);
+    startup(sim, career); advance(sim, career, 120);
+    career.accept(sim);
+    assert.equal(steps().start, false, 'Starting before acceptance cannot complete the startup step');
+    assert.equal(steps().circulation, true);
+    assert.equal(steps().regulation, true);
+    assert.equal(steps().hold, false);
+    const state = structuredClone(career.state);
+    assignmentSteps(career.current, sim);
+    assert.deepEqual(career.state, state, 'Rendering never changes saved evidence or grants hold time');
+    sim.stop(); advance(sim, career, 20); sim.start(); advance(sim, career, 150);
+    assert.equal(career.current.status, 'ready');
+    assert.ok(Object.values(steps()).every(Boolean));
+    sim.stop(); sim.setGridDispatchEnabled(true);
+    assert.ok(Object.values(steps()).every(Boolean), 'Verified steps stay complete after plant changes');
+    career.report(sim);
+    assert.deepEqual(assignmentSteps(career.current, sim), [], 'New work stays hidden until accepted');
+
+    const cold = new NuclearPowerSimulation(), freshCareer = new CompanyCareer();
+    freshCareer.accept(cold);
+    cold.togglePump('A'); cold.togglePump('B');
+    assert.equal(assignmentSteps(freshCareer.current, cold).find(step => step.id === 'circulation').done, false,
+        'Requested pump switches alone do not prove circulation');
+});
+
+test('assignment steps retain pinned terms and restore partial progress without marking the hold complete', () => {
+    const { sim, career } = firstReport();
+    career.accept(sim); advance(sim, career, 40);
+    const transfer = new FuelTransferAnimation(CORE_CHANNELS);
+    const restored = restoreCareerBundle(captureCareer(sim, transfer, career));
+    const changed = structuredClone(MISSIONS);
+    changed[1].objective.targetMw = 240; changed[1].objective.seconds = 600;
+    const resumed = new CompanyCareer(restored.state, changed);
+    assert.equal(resumed.current.held, career.current.held);
+    const steps = assignmentSteps(resumed.current, restored.simulation);
+    assert.match(steps.find(step => step.id === 'hold').label, /200 ± 5 MW for 5 min/);
+    assert.equal(steps.find(step => step.id === 'hold').done, false);
+    assert.ok(steps.filter(step => step.id !== 'hold').every(step => step.done));
+    restored.simulation.stop(); advance(restored.simulation, resumed, 1);
+    assert.equal(resumed.current.held, 0);
+    assert.equal(assignmentSteps(resumed.current, restored.simulation).find(step => step.id === 'start').done, false);
+});
 
 test('company issues work without starting equipment and accepts verified reports once', () => {
     const sim = new NuclearPowerSimulation(), career = new CompanyCareer();

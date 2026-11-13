@@ -59,22 +59,22 @@ export function renderHead(page) {
     <script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }).replaceAll('<', '\\u003c')}</script>`;
 }
 
-const footer = `<footer class="site-footer"><p>Nuclear Power by <a href="https://porssiohjain.fi/">Pörssiohjain</a>. A fictional browser simulation. All signals and commands stay local to the page session.</p></footer>`;
+const footer = `<footer class="site-footer"><p>A fictional browser simulation by <a href="https://porssiohjain.fi/">Pörssiohjain</a>.</p></footer>`;
 
 const screenCards = `<section class="site-launcher" aria-label="Choose your control room screen">
-    <p class="launcher-brand">PÖRSSIOHJAIN / NUCLEAR POWER</p>
-    <p class="launcher-title">Your control room starts here.</p>
+    <p class="launcher-brand">PÖRSSIOHJAIN</p>
+    <p class="launcher-title">Nuclear Power</p>
     <nav class="launcher-cards" aria-label="Open a screen">
       <a class="launcher-card launcher-reactor" href="/reactor/">
         <span class="launcher-card-top"><span class="launcher-icon" aria-hidden="true">☢</span><span>MAIN CONTROL ROOM</span></span>
         <h2>Nuclear reactor</h2>
-        <p>Run the plant from the full control room. Explore the 3D reactor, operate equipment and manage your session.</p>
+        <p>Operate the plant in free operation or start a saved career with company assignments.</p>
         <span class="launcher-card-action">Open reactor <span aria-hidden="true">→</span></span>
       </a>
       <a class="launcher-card launcher-companion" href="/companion/">
         <span class="launcher-card-top"><svg class="launcher-icon" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="7" y="3" width="26" height="34" rx="4"/><path d="M12 13h16M12 22h16M17 9v8M24 18v8M18 32h4"/></svg><span>CONNECTED DEVICE</span></span>
         <h2>Companion screen</h2>
-        <p>Join an existing desktop session from a tablet or another computer. Use touch controls, grid requests and the core map.</p>
+        <p>Connect a tablet or another computer to a running desktop session.</p>
         <span class="launcher-card-action">Connect a screen <span aria-hidden="true">→</span></span>
       </a>
     </nav>

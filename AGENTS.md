@@ -33,6 +33,11 @@ cover startup and five reliable minutes, with reports, archived achieved goals
 and explicit full-state saves. Money, bankruptcy and further missions remain
 planned. Do not present those as implemented.
 
+Accepted assignments show a gray-to-green checklist above Live trends. Derive
+steps from pinned terms and actual plant/evidence; verified steps remain green
+until reported. Keep full briefings in Company inbox, hide the checklist before
+acceptance/in free operation. The checklist adds no saved fields.
+
 Use permanent semantic mission IDs and capability dependencies, not a current
 mission array index. Pin issued objective terms and preserve completed IDs and
 achievements when inserting later missions. Mission updates cannot reset progress

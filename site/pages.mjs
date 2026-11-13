@@ -11,63 +11,48 @@ export const pages = [
     {
         path: '/',
         title: 'Nuclear Reactor Simulator — Free Online Control Room',
-        heading: 'Nuclear reactor simulator: run your own control room',
+        heading: 'Nuclear reactor simulator',
         description: 'Run a fictional nuclear power plant in your browser. Control rods, cooling pumps and turbines, manage faults and explore a 3D reactor. Free, no download or login.',
         body: `
-          <p class="site-eyebrow">NUCLEAR POWER · PÖRSSIOHJAIN</p>
-          <h1>Nuclear reactor simulator: run your own control room</h1>
-          <p class="site-lead">Start a cold reactor, balance cooling and electrical output, and respond when equipment fails. Nuclear Power is a free online nuclear power plant simulator with an interactive 3D control room. Play directly in your browser, with no download or account.</p>
-          <nav class="site-actions" aria-label="Simulator and guides">
-            <a class="site-button" href="/reactor/">Open the reactor</a>
-            <a href="/guides/startup/" target="_blank" rel="noopener">Read the startup guide ↗</a>
-          </nav>
-          <p>The plant uses a fictional two-loop layout: a primary coolant circuit carries heat from the core to a heat exchanger, while a separate secondary circuit drives the turbine and generator. All readings and commands are simulated locally in this browser session.</p>
-          <h2>What can you control?</h2>
+          <h1>Nuclear reactor simulator</h1>
+          <p class="site-lead">Start a cold reactor, manage cooling and generate electricity. Free to use in your browser, with no download or account.</p>
+          <p>The fictional plant has two coolant loops. The primary circuit carries core heat to a heat exchanger; the secondary circuit drives the turbine and generator. All plant readings are simulated.</p>
+          <h2>Inside the control room</h2>
           <div class="site-grid">
             <section>
               <h3>Reactor core and control rods</h3>
-              <p>Open the core map to inspect individual rods, fuel reserves, local temperatures and damage. Try automatic electrical-output regulation or take manual control and watch the actual rod positions follow your requests.</p>
+              <p>Inspect individual rods, fuel reserves, temperatures and damage in the core map. Use automatic regulation or control the rods manually.</p>
             </section>
             <section>
               <h3>Cooling and power generation</h3>
-              <p>Run both cooling pumps, adjust valves and heat-exchanger settings, and inspect the turbine and condenser. Requested pump speed, actual circulation, core heat and electrical megawatts are separate readings.</p>
+              <p>Operate pumps, valves, the heat exchanger, turbine and condenser. Compare requested settings with actual speed, flow and electrical output.</p>
             </section>
             <section>
               <h3>Faults, blackouts and recovery</h3>
-              <p>Explore cooling loss, pump deterioration and auxiliary power failures. Follow alarms and trends, manage backup diesels, clear faults and repair cooled equipment. Sustained overheating can cause lasting damage and a simulated meltdown.</p>
+              <p>Try cooling loss, pump faults or blackouts. Read alarms and trends, use backup diesels and repair cooled equipment. Overheating can cause lasting damage.</p>
             </section>
             <section>
               <h3>Fuel handling and maintenance</h3>
-              <p>Inspect uneven fuel use, replace fuel after shutdown and cooldown, and watch the handling crane transfer a representative batch to the spent-fuel pool. Dispatch cooled batches to free pool space.</p>
+              <p>Replace fuel after shutdown and cooldown. The crane shows a representative transfer to the spent-fuel pool; dispatch cooled batches to free space.</p>
             </section>
           </div>
-          <h2>How to start your first session</h2>
+          <h2>First startup</h2>
           <ol>
-            <li>Leave <strong>Auto</strong> and <strong>Electrical output</strong> selected for a first run. The initial target is 200 MW, but the reactor starts stopped and cold.</li>
-            <li>Switch on the primary and secondary pumps. Wait for actual motor speed and coolant flow to build in both loops.</li>
-            <li>Press the reactor <strong>Start</strong> button when the startup interlocks are satisfied. Watch actual output rise toward the requested target.</li>
-            <li>Inspect components and live trends. Grid-controller following is enabled initially; disable it if you want to keep your own operating targets.</li>
+            <li>Keep <strong>Auto → Electrical output</strong> selected. The target starts at 200 MW.</li>
+            <li>Switch on one pump per circuit and wait for actual circulation.</li>
+            <li>Press reactor <strong>Start</strong> when the readiness checks pass.</li>
+            <li>Watch output and cooling. Turn off grid following to keep your own targets.</li>
           </ol>
-          <p>The <a href="/guides/startup/" target="_blank" rel="noopener">full startup guide</a> explains blocked starts, camera controls and ending a session. Guides open in another tab so your current plant session stays available.</p>
-          <h2>Control-room guides</h2>
+          <p>Guides open in another tab so the plant stays available.</p>
+          <h2>Guides</h2>
           <nav class="site-grid site-guide-links" aria-label="Control-room guides">
             <a href="/guides/startup/" target="_blank" rel="noopener"><strong>Startup and first megawatts ↗</strong><span>Start both pumps, establish circulation and bring the cold reactor online.</span></a>
             <a href="/guides/reactor-controls/" target="_blank" rel="noopener"><strong>Control rods, cooling and output ↗</strong><span>Understand Auto, Manual, pump read-backs and the turbine breaker.</span></a>
             <a href="/guides/faults-and-recovery/" target="_blank" rel="noopener"><strong>Faults, shutdown and recovery ↗</strong><span>Investigate alarms, restore power and work through trip and repair checks.</span></a>
           </nav>
-          <h2>Frequently asked questions</h2>
-          <section>
-            <h3>Is this nuclear reactor simulator free?</h3>
-            <p>Yes. The current simulator is free to use in your browser. You do not need to install an app, sign in or connect any equipment.</p>
-            <h3>Is this a Chernobyl or RBMK simulator?</h3>
-            <p>No. The 3D channel deck has an RBMK-inspired appearance, but the plant is a fictional two-loop design. Its behavior, temperatures and protection limits do not reproduce a specific real reactor.</p>
-            <h3>Is it a game or an engineering simulator?</h3>
-            <p>It is an interactive control-room sandbox with objectives, fault scenarios and progressive equipment damage. It is intended for experimentation and play; it is not a validated engineering model or operator training tool.</p>
-            <h3>Can I play on a phone or without WebGL?</h3>
-            <p>The controls adapt to small screens. The 3D cutaway uses WebGL 2; an interactive SVG schematic is available when WebGL is unavailable or when you select Schematic.</p>
-            <h3>Does the simulator save my reactor?</h3>
-            <p>Free operation belongs to the current page session and is discarded on reload. Start game creates a separate commissioning career with a company inbox, assignments and achieved goals saved on this browser. Continue game restores that career paused. Use Save to export a career backup; export free-operation logs before resetting.</p>
-          </section>
+          <h2>Sessions and saved games</h2>
+          <p>Free operation starts a fresh plant on reload. <strong>Start game</strong> creates a separate career with startup and reliable-operation assignments. Your plant, inbox and achievements save on this browser. <strong>Continue game</strong> restores the career paused; Save offers a JSON backup.</p>
+          <p>Controls adapt to phones and tablets. Choose the SVG schematic if 3D WebGL is unavailable. The channel deck has an RBMK-inspired appearance, but this fictional two-loop plant does not model a specific real reactor.</p>
         `,
     },
     {

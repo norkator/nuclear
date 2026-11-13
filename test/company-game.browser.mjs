@@ -9,10 +9,12 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
     const gameAction = name => consoleCode(`s.querySelector('[data-game-action="${name}"]').click();`);
     const ready = (expression, message) => until(`(()=>{const c=document.querySelector('nuclear-power-console');return ${expression};})()`, message);
     const tab = name => consoleCode(`s.querySelector('[data-game-tab="${name}"]').click();`);
+    const steps = () => consoleCode('return Object.fromEntries([...s.querySelectorAll(".game-task-list li")].map(item=>[item.dataset.step,item.dataset.complete==="true"]));');
     const advance = seconds => consoleCode(`for(let i=0;i<${seconds * 4};i++){c.simulation.tick(.25);c.game.career.advance(c.simulation);}c.update();`);
     await ready('c?.game && !c.game.status.startsWith("Checking")', 'Career store initialized');
     assert.equal(await consoleCode('return c.game.career;'), undefined);
     assert.equal(await consoleCode('return c.simulation.running;'), false);
+    assert.equal(await consoleCode('return s.querySelector(".game-tasks").hidden;'), true, 'Free operation has no assignment checklist');
     for (const [width, height] of [[1920, 1080], [2560, 1440]]) {
         await page('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
         assert.ok(await consoleCode('return s.querySelector(".console-footer").getBoundingClientRect().bottom <= innerHeight;'), 'Free-operation game entry retains wide-screen fit');
@@ -25,21 +27,42 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
     await ready('c.game.career && c.game.hasSave && !c.game.busy', 'New career saved');
     assert.equal(await consoleCode('return c.simulation.paused && !c.simulation.running && !c.simulation.pumpA;'), true);
     assert.ok(await consoleCode('return s.querySelector(".game-page").textContent.includes("Elena Ward");'));
+    assert.equal(await consoleCode('return s.querySelector(".game-tasks").hidden;'), true, 'An unaccepted briefing does not show steps');
     await tab('assignments'); await gameAction('accept');
     await ready('!c.game.busy', 'Assignment accepted');
+    assert.equal(await consoleCode('return s.querySelector(".game-tasks").hidden;'), false);
+    assert.equal(await consoleCode('return s.querySelector(".game-dialog").matches(":popover-open");'), false, 'Accepting reveals the plant and checklist');
+    assert.ok(await consoleCode('return s.querySelector(".game-tasks").nextElementSibling.classList.contains("trend-panel");'), 'Steps sit directly above Live trends');
+    assert.deepEqual(await steps(), { regulation: false, circulation: false, start: false, condition: false, hold: false });
+    const pendingColor = await consoleCode('return getComputedStyle(s.querySelector(".game-task-list li")).color;');
     await gameAction('resume');
     await ready('!c.game.busy', 'Shift resumed');
     await consoleCode('s.querySelector("#follow-grid").checked=false;s.querySelector("#follow-grid").dispatchEvent(new Event("change",{bubbles:true}));');
     await action('pumpA'); await action('pumpB');
+    assert.equal((await steps()).circulation, false, 'Switch requests alone do not complete the circulation step');
     await advance(6); await action('start'); await advance(150);
     assert.equal(await consoleCode('return c.game.career.current.status;'), 'ready');
-    await tab('assignments'); await gameAction('report');
+    assert.ok(Object.values(await steps()).every(Boolean), 'Verified steps all turn green');
+    assert.notEqual(await consoleCode('return getComputedStyle(s.querySelector(".game-task-list li")).color;'), pendingColor);
+    for (const [width, height] of [[1920, 1080], [2560, 1440]]) {
+        await page('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+        assert.ok(await consoleCode('return s.querySelector(".game-tasks").getBoundingClientRect().bottom <= s.querySelector(".trend-panel").getBoundingClientRect().top;'));
+        assert.ok(await consoleCode('return s.querySelector(".events-panel").getBoundingClientRect().bottom <= Math.max(s.querySelector(".control-column").getBoundingClientRect().bottom, innerHeight-50);'), 'Checklist and journal fit within the existing controls or available screen height');
+        await screenshot(`career-steps-verified-${width}-dark`);
+    }
+    await page('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1120, deviceScaleFactor: 1, mobile: false });
+    await gameAction('report');
     await ready('c.game.career.state.achievements.length===1 && !c.game.busy', 'First report archived');
+    assert.equal(await consoleCode('return s.querySelector(".game-tasks").hidden;'), true, 'Next assignment waits for acceptance');
+    await gameAction('open'); await tab('assignments');
     await gameAction('accept'); await ready('!c.game.busy', 'Reliability assignment accepted');
     await advance(40);
     await action('pause');
     await consoleCode('return c.game.save(true);');
     const saved = await consoleCode('return {elapsed:c.simulation.elapsed,held:c.game.career.current.held,strength:c.simulation.components.turbineIntegrity.strength};');
+    const savedSteps = await steps();
+    assert.equal(savedSteps.hold, false);
+    await gameAction('open');
     await tab('achievements'); await screenshot('career-achievements-dark');
     assert.ok(await consoleCode('return s.querySelector(".game-page").textContent.includes("First generation");'));
     await tab('archive');
@@ -54,7 +77,14 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
     assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Career fits phone');
     await gameAction('close');
     assert.equal(await consoleCode('return s.activeElement.dataset.gameAction;'), 'open', 'Company window restores focus');
+    assert.ok(await consoleCode('const panel=s.querySelector(".game-tasks").getBoundingClientRect();return panel.width>0 && panel.left>=0 && panel.right<=innerWidth;'), 'Checklist fits a phone');
+    await consoleCode('s.querySelector(".game-tasks").scrollIntoView({block:"start"});');
+    await screenshot('career-steps-mobile-light');
+    await consoleCode('s.querySelector(".game-tasks [data-game-action=open]").click();');
+    assert.ok(await consoleCode('return s.querySelector(".game-dialog").matches(":popover-open") && s.querySelector(".game-page").textContent.includes(c.game.career.current.definition.brief);'), 'Full briefing opens the inbox with the issued requirements');
+    await gameAction('close');
     await page('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1120, deviceScaleFactor: 1, mobile: false });
+    await evaluate('scrollTo(0,0)');
 
     // A different desktop tab must not acquire the active career's write lock.
     const { targetId } = await send('Target.createTarget', { url: new URL('/reactor/', baseUrl).href });
@@ -74,6 +104,7 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
 
     await gameAction('return');
     await ready('!c.game.career', 'Return restores free operation');
+    assert.equal(await consoleCode('return s.querySelector(".game-tasks").hidden;'), true);
     assert.equal(await consoleCode('return c.simulation.pumpA;'), true, 'Original free plant retained');
     assert.equal(await consoleCode('return c.simulation.running;'), false);
     await page('Page.reload');
@@ -84,12 +115,14 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
     assert.equal(await consoleCode('return c.simulation.paused;'), true);
     assert.deepEqual(await consoleCode('return {elapsed:c.simulation.elapsed,held:c.game.career.current.held,strength:c.simulation.components.turbineIntegrity.strength};'), saved);
     assert.equal(await consoleCode('return c.game.career.state.achievements.length;'), 1);
+    assert.deepEqual(await steps(), savedSteps, 'Continue restores the checklist from saved plant and mission evidence');
     await consoleCode('c.act("reset");');
     assert.equal(await consoleCode('return c.simulation.elapsed;'), saved.elapsed, 'Reset demo cannot erase a career');
     await gameAction('resume'); await ready('!c.game.busy', 'Restored shift resumes');
     await advance(300); await tab('assignments'); await gameAction('report');
     await ready('c.game.career.state.achievements.length===2 && !c.game.busy', 'Reliability goal achieved');
-    await tab('archive'); await screenshot('career-completed-reports');
+    await gameAction('open'); await tab('archive'); await screenshot('career-completed-reports');
+    assert.equal(await consoleCode('return s.querySelector(".game-tasks").hidden;'), true, 'Completed commissioning has no active steps');
     assert.equal(await consoleCode('return c.game.career.current;'), undefined);
     // A failed write remains visible outside the company window and cannot claim success.
     assert.equal(await consoleCode('window.originalCareerWriter=c.game.store.write.bind(c.game.store);c.game.store.write=async()=>{throw new Error("Test storage unavailable");};return c.game.save(true);'), false);

@@ -5,7 +5,7 @@
  */
 import { CORE_CHANNELS, NuclearPowerSimulation } from './nuclear-power-model.js';
 import { FuelTransferAnimation } from './nuclear-power-refuelling.js';
-import { CompanyCareer, MISSIONS } from './nuclear-power-missions.js';
+import { assignmentSteps, CompanyCareer, MISSIONS } from './nuclear-power-missions.js';
 import { CareerStore, captureCareer, restoreCareerBundle } from './nuclear-power-game-save.js';
 import { disconnectSession } from './nuclear-power-companion.js';
 
@@ -13,6 +13,7 @@ const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': 
 const time = seconds => `${Math.floor(seconds / 60)}m ${Math.floor(seconds % 60)}s`;
 export const gameEntry = `<div class="game-entry"><button class="small-button" data-game-action="start" aria-controls="company-window" aria-expanded="false">Start game</button><button class="small-button" data-game-action="continue" hidden>Continue game</button><button class="small-button" data-game-action="open" hidden aria-controls="company-window" aria-expanded="false">Company inbox <span class="game-unread"></span></button><span class="game-error" role="status" hidden></span></div>`;
 export const gamePanel = `<section class="game-status" hidden aria-label="Career assignment"><strong class="game-assignment"></strong><span class="game-progress"></span><button class="small-button" data-game-action="open">View assignment</button><button class="small-button" data-game-action="resume" hidden>Resume shift</button><button class="small-button" data-game-action="return">Save &amp; return to free operation</button></section>`;
+export const gameTasks = `<section class="panel game-tasks" hidden aria-labelledby="game-tasks-title"><div class="panel-heading"><h2 id="game-tasks-title">Assignment steps</h2><button class="small-button" data-game-action="open">Full briefing ↗</button></div><div class="game-tasks-content"><h3 class="game-tasks-assignment"></h3><ol class="game-task-list" aria-label="Assignment checklist"></ol><progress class="game-task-hold" aria-label="Verified continuous operation"></progress><p class="game-task-timer"></p><p class="game-task-reason"></p><button class="small-button" data-game-action="report" hidden>Send report</button></div></section>`;
 export const gameDialog = `<section id="company-window" class="game-dialog floating-dialog" popover="manual" role="dialog" aria-modal="false" aria-labelledby="company-title"><div class="core-dialog-titlebar" tabindex="0" aria-label="Move company window with arrow keys or drag"><h2 id="company-title">Unit 01 · Company</h2><button class="small-button" data-game-action="close" aria-label="Close company window">×</button></div><div class="game-content"><p class="game-storage-status" role="status"></p><nav class="game-tabs" aria-label="Company pages">${['Inbox', 'Assignments', 'Achievements', 'Archive', 'Save'].map(label => `<button class="small-button" data-game-tab="${label.toLowerCase()}" aria-pressed="false">${label}</button>`).join('')}</nav><div class="game-page"></div><input class="game-import-file" type="file" accept="application/json,.json" hidden/></div></section>`;
 
 export function initializeGame(host) {
@@ -159,7 +160,10 @@ class GameController {
             if (action === 'resume' && this.career && this.owner) {
                 this.host.simulation.paused = false; this.host.update(); await this.save(true);
             }
-            if (action === 'accept' && this.career?.accept(this.host.simulation)) await this.save(true);
+            if (action === 'accept' && this.career?.accept(this.host.simulation)) {
+                await this.save(true);
+                this.host.closeFloatingDialog(this.root.querySelector('.game-dialog'));
+            }
             if (action === 'report' && this.career?.report(this.host.simulation)) await this.save(true);
             if (action === 'save') await this.save(true);
             if (action === 'return' && this.career) {
@@ -213,6 +217,24 @@ class GameController {
         await this.release();
     }
 
+    renderTasks(current) {
+        const panel = this.root.querySelector('.game-tasks');
+        const steps = assignmentSteps(current, this.host.simulation);
+        panel.hidden = steps.length === 0;
+        if (panel.hidden) return;
+        panel.querySelector('.game-tasks-assignment').textContent = current.definition.title;
+        const signature = JSON.stringify([current.definition.id, steps]);
+        if (signature !== this.tasksSignature) {
+            this.tasksSignature = signature;
+            panel.querySelector('.game-task-list').innerHTML = steps.map((step, index) => `<li data-step="${step.id}" data-complete="${step.done}"><span class="game-task-marker" aria-hidden="true">${step.done ? '✓' : index + 1}</span><span><span class="sr-only">${step.done ? 'Done' : 'Pending'}: </span>${escape(step.label)}</span></li>`).join('');
+        }
+        panel.querySelector('.game-task-hold').max = current.definition.objective.seconds;
+        panel.querySelector('.game-task-hold').value = current.held;
+        panel.querySelector('.game-task-timer').textContent = `${time(current.held)} / ${time(current.definition.objective.seconds)}`;
+        panel.querySelector('.game-task-reason').textContent = current.reason;
+        panel.querySelector('[data-game-action="report"]').hidden = current.status !== 'ready';
+    }
+
     render(force = false) {
         const active = Boolean(this.career), current = this.career?.current;
         this.host.dataset.game = active ? 'career' : 'free';
@@ -223,9 +245,10 @@ class GameController {
             this.root.querySelector(`.game-entry [data-game-action="${action}"]`).hidden = hidden;
         }
         this.root.querySelector('.game-status').hidden = !active;
+        this.renderTasks(current);
         this.root.querySelector('.game-unread').textContent = active ? `(${this.career.state.messages.filter(item => !item.read).length})` : '';
         this.root.querySelector('.game-assignment').textContent = current?.definition.title || 'Commissioning complete';
-        this.root.querySelector('.game-progress').textContent = current ? `${time(current.held)} / ${time(current.definition.objective.seconds)} · ${current.reason}` : 'Your achievements are saved. Further assignments can arrive in updates.';
+        this.root.querySelector('.game-progress').textContent = current ? current.status === 'assigned' ? 'Read the briefing and accept in Company inbox.' : current.status === 'ready' ? 'Verified · ready to report' : `In progress · ${time(current.held)} / ${time(current.definition.objective.seconds)}` : 'Your achievements are saved. Further assignments can arrive in updates.';
         this.root.querySelector('[data-game-action="resume"]').hidden = !active || !this.host.simulation.paused;
         for (const reset of this.root.querySelectorAll('[data-action="reset"]')) { reset.disabled = active; reset.title = active ? 'Return to free operation before resetting a demo.' : ''; }
         const dialog = this.root.querySelector('.game-dialog');

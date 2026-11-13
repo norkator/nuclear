@@ -47,8 +47,12 @@ Continue game restores a local save paused. The plant manager assigns First shif
 (five uninterrupted simulated minutes). Briefs instruct disabling grid following
 during these fixed-output tests. Objectives use actual readings and existing
 interlocks, not target edits or email acknowledgement. Stop/violations reset a
-hold; pause freezes it. Reports create permanent achieved goals and archive
-records. Future mission insertion preserves issued terms and completed IDs.
+hold; pause freezes it. Accepting closes the company window and reveals gray-to-green
+assignment steps above Live trends, with a continuous hold timer and Send report
+when verified. Full briefing reopens the inbox. Steps use actual plant conditions
+and pinned saved terms; verified steps stay green until reported. Reports create
+permanent achieved goals and archive records. Future mission insertion preserves
+issued terms and completed IDs.
 
 IndexedDB saves explicit full plant/pool state, mission terms, inbox, reports and
 sampled turbine tolerance, keeping current and previous revisions atomically.

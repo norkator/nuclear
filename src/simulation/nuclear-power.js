@@ -23,7 +23,7 @@ import { leakSources, waterJetPoint } from './nuclear-power-leaks.js';
 import { ELECTRICAL_TARGET_MAX_MW, TURBINE_RATING_MW } from './nuclear-power-turbine.js';
 import { initializeCompanion, sessionControls, pairingDialog, updateSessionControls, publishSession, disconnectSession } from './nuclear-power-companion.js';
 import companionStyles from './nuclear-power-companion.css?inline';
-import { initializeGame, gameEntry, gamePanel, gameDialog } from './nuclear-power-game.js';
+import { initializeGame, gameEntry, gamePanel, gameTasks, gameDialog } from './nuclear-power-game.js';
 import gameStyles from './nuclear-power-game.css?inline';
 
 const PLANT_TABS = ['reactor', 'maintenance'];
@@ -381,6 +381,7 @@ export class NuclearPowerConsole extends HTMLElement {
           </div>
           </section>
           <aside class="analysis-column" aria-label="Trends and event journal">
+            ${gameTasks}
             <section class="panel trend-panel trend-display" role="button" tabindex="0" data-action="trends-view" aria-haspopup="dialog" aria-controls="trends-window" aria-expanded="false" aria-label="Open larger live trends chart"><div class="panel-heading"><div><span class="section-index">03</span><h2>Live trends ↗</h2></div><span class="local-tag">SIMULATED / 2 MIN</span></div>
               <div class="trend-legend"><span><i class="legend-dot warm-dot"></i> Core temperature <strong data-value="core">286.0 °C</strong></span><span><i class="legend-dot"></i> <span data-value="trendOutputLabel">Reactor output</span> <strong data-value="trendOutput">64.0%</strong></span><span class="target-legend" hidden><i class="legend-target"></i> Electrical target <strong data-value="electricalTarget"></strong></span></div>
               <svg class="trend-chart" viewBox="0 0 760 300" role="img" aria-label="Simulated temperature and reactor output over the last two minutes">

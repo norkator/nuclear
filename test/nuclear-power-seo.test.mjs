@@ -26,7 +26,9 @@ test('every indexable page has static content, a unique title and matching canon
         assert.ok(html.includes(`<meta property="og:url" content="${siteUrl}${page.path}"`));
         assert.match(html, /name="robots" content="index, follow, max-image-preview:large"/);
         assert.doesNotMatch(html, /noindex|name="keywords"/);
-        assert.ok(page.body.split(/\s+/).length > 400, 'Each page must contain a useful guide or introduction before JavaScript runs');
+        if (page.path !== '/') {
+            assert.ok(page.body.split(/\s+/).length > 400, 'Guides must contain useful instructions before JavaScript runs');
+        }
         titles.add(page.title);
         descriptions.add(page.description);
         const graph = JSON.parse(html.match(/<script type="application\/ld\+json">([^]*?)<\/script>/)[1]);

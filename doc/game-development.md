@@ -5,7 +5,7 @@ Licensed under the Pörssiohjain Personal Use License v1.0.
 -->
 # Continuing company-game development
 
-Updated 2026-11-12. This is the implementation handoff for the standalone
+Updated 2026-11-13. This is the implementation handoff for the standalone
 [norkator/nuclear](https://github.com/norkator/nuclear) repository. All commands
 below run from this repository root. Read [AGENTS.md](../AGENTS.md), this file,
 [the product plan](../GAMEPLAY-PLAN.md) and [the plant specification](nuclear-power.md)
@@ -23,6 +23,14 @@ Switching plants ends companion pairing and clears old local audio/motion.
 
 The boss, Elena Ward, automatically issues one assignment at a time through the
 company inbox. The player accepts, operates, waits for verification and reports.
+
+Accepting closes the company window and reveals a compact checklist above Live
+trends. Gray numbered steps turn green with checkmarks as actual conditions are
+met; the hold timer shows continuous verified time. Unverified conditions can
+return to gray, while a verified assignment stays green until reported. Full
+briefing opens the inbox; Send report is available on the verified checklist.
+Unaccepted assignments and free operation have no checklist. Steps are derived
+from pinned objective terms and saved plant/evidence, without new save fields.
 
 | Stable mission ID | Criterion | Capability earned on report |
 | --- | --- | --- |
