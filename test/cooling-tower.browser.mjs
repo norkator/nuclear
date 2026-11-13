@@ -9,7 +9,8 @@ export async function checkCoolingTower({ consoleCode, action, page, until, scre
     const showOverview = async () => {
         // Scrolling and full-page captures can suspend the overview independently
         // of the plant. Wait for its visibility observer before reading particles.
-        await consoleCode('s.querySelector(".diagram-viewport").scrollIntoView({block:"center"});');
+        await consoleCode(`s.querySelector('.diagram-viewport').scrollIntoView({block:'center'});
+            return new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));`);
         await until(`(()=>{const c=document.querySelector('nuclear-power-console');return c.intersecting && c.overviewIntersecting && !document.hidden;})()`, 'Cooling tower overview did not become visible');
     };
     await page('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
