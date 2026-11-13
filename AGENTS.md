@@ -77,6 +77,9 @@ settled shell: it checks actual transitions, stable geometry and renderer resize
 Test in-flight animation/interlocks separately without that wait. Set required
 panel/preset state explicitly rather than depending on earlier scenarios or saved
 preferences. Keep focused and full checks shared so they cannot silently diverge.
+After a viewport change, settle geometry before scrolling or picking; then await
+actual visibility. Do not assign visibility flags to force a pass. Observers can
+deliver several changes for one target together: the latest record must win.
 
 On a browser failure, inspect the assertion's geometry and active-transition
 diagnostics and its screenshot before deciding whether code or expectations are

@@ -261,12 +261,14 @@ export class NuclearPowerConsole extends HTMLElement {
         this.reducedMotion.addEventListener('change', this.onVisibilityChange);
         window.addEventListener('resize', this.onViewportResize);
         this.intersectionObserver = new IntersectionObserver(entries => {
-            this.intersecting = entries[0].isIntersecting;
+            // Resizes/captures can queue several changes for this one target.
+            // Apply the latest record so a stale hidden state cannot win.
+            this.intersecting = entries.at(-1).isIntersecting;
             this.updateActivity();
         });
         this.intersectionObserver.observe(this);
         this.overviewObserver = new IntersectionObserver(entries => {
-            this.overviewIntersecting = entries[0].isIntersecting;
+            this.overviewIntersecting = entries.at(-1).isIntersecting;
             this.overviewScene?.setVisible(this.overviewIntersecting);
             if (this.overviewIntersecting) {
                 this.drawProcessMotion();

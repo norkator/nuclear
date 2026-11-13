@@ -17,7 +17,7 @@ import { checkTurbineOverload } from './turbine-overload.browser.mjs';
 import { checkCoolingTower } from './cooling-tower.browser.mjs';
 import { waitForChrome } from './chrome-startup.mjs';
 import { checkCompanyGame } from './company-game.browser.mjs';
-import { captureConsoleLayout, checkConsoleLayout } from './console-layout.browser.mjs';
+import { captureConsoleLayout, checkConsoleLayout, checkBatchedConsoleVisibility } from './console-layout.browser.mjs';
 
 const dist = fileURLToPath(new URL('../dist/', import.meta.url));
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -194,6 +194,7 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         await page('Page.navigate', { url: new URL('/reactor/', baseUrl).href });
         await until(`!!document.querySelector('nuclear-power-console')?.shadowRoot?.querySelector('.console')`, 'Control room did not render');
         if (focusedLayout) {
+            await checkBatchedConsoleVisibility(consoleCode);
             await checkConsoleLayout({ consoleCode, page, screenshot });
             assert.deepEqual(exceptions, []);
             console.log(`Console layout browser checks passed; artifacts: ${artifacts}`);

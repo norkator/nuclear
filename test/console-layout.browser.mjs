@@ -68,3 +68,30 @@ export async function checkConsoleLayout({ consoleCode, page, screenshot }) {
     }
     await consoleCode('c.setTheme("dark");');
 }
+
+export async function checkBatchedConsoleVisibility(consoleCode) {
+    const result = await consoleCode(`
+        const OriginalObserver = window.IntersectionObserver;
+        const observers = [];
+        window.IntersectionObserver = class extends OriginalObserver {
+            constructor(callback, options) { super(callback, options); this.deliver = callback; observers.push(this); }
+            observe(target) { this.observedTarget = target; super.observe(target); }
+        };
+        const parent = c.parentElement;
+        try { c.remove(); parent.append(c); }
+        finally { window.IntersectionObserver = OriginalObserver; }
+        const whole = observers.find(observer=>observer.observedTarget===c);
+        const process = observers.find(observer=>observer.observedTarget===s.querySelector('.diagram-viewport'));
+        const sample = (observer, key) => {
+            observer.deliver([{isIntersecting:false},{isIntersecting:true}]);
+            const visible = c[key];
+            observer.deliver([{isIntersecting:true},{isIntersecting:false}]);
+            const hidden = c[key];
+            observer.deliver([{isIntersecting:true}]);
+            return {visible,hidden};
+        };
+        return {whole:sample(whole,'intersecting'),process:sample(process,'overviewIntersecting')};
+    `);
+    assert.deepEqual(result, { whole: { visible: true, hidden: false }, process: { visible: true, hidden: false } },
+        'The last delivered visibility state must win when resize/capture notifications arrive in a batch');
+}

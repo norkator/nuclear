@@ -142,7 +142,10 @@ offscreen suspends WebGL draws, SVG animation writes and the crane illustration;
 the visible console's plant clock, instruments and floating equipment windows
 continue working. Returning refreshes the overview from actual state, including
 while paused or using reduced motion, without fast-forwarding the crane. Hiding
-the entire console still suspends the whole simulation. The shared animation loop
+the entire console still suspends the whole simulation. Both visibility observers
+use the newest record when notifications arrive in a batch; stale hidden records
+cannot override a later visible state after resizing or capturing a screenshot.
+The shared animation loop
 retains its 30 FPS cap. Schematic steam markers follow the same static polyline
 definition as the drawing, using distance interpolation rather than per-frame SVG
 geometry queries. Motion elements retain DOM references across frames. Coolant,
