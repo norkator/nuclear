@@ -6,8 +6,15 @@
 import assert from 'node:assert/strict';
 
 export async function checkCoolingTower({ consoleCode, action, page, until, screenshot, warmOperatingPoint }) {
+    const showOverview = async () => {
+        // Scrolling and full-page captures can suspend the overview independently
+        // of the plant. Wait for its visibility observer before reading particles.
+        await consoleCode('s.querySelector(".diagram-viewport").scrollIntoView({block:"center"});');
+        await until(`(()=>{const c=document.querySelector('nuclear-power-console');return c.intersecting && c.overviewIntersecting && !document.hidden;})()`, 'Cooling tower overview did not become visible');
+    };
     await page('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
     await until(`!!document.querySelector('nuclear-power-console')?.overviewScene?.coolingTower`, 'Cooling tower did not build');
+    await showOverview();
     assert.equal(await consoleCode('return c.overviewScene.coolingTower.plume.mesh.count;'), 0);
     assert.ok(await consoleCode(`return s.querySelector('[data-scene-feature="cooling-tower"]').textContent.includes('No heat rejection');`));
     await screenshot('cooling-tower-cold');
@@ -22,6 +29,7 @@ export async function checkCoolingTower({ consoleCode, action, page, until, scre
     await consoleCode('c.setTheme("light");');
     await screenshot('cooling-tower-running-light');
     await consoleCode('c.setTheme("dark");');
+    await showOverview();
     const density = await consoleCode(`
         const sim=c.simulation, actual=sim.components.items.condenser.actual;
         const saved={temperature:sim.secondaryTemperature,cooling:actual.coolingFactor};
@@ -36,7 +44,7 @@ export async function checkCoolingTower({ consoleCode, action, page, until, scre
         actual.coolingFactor=saved.cooling;sim.secondaryTemperature=saved.temperature;
         sim.components.items.condenser.settings.coolingValve=100;c.update();
         return {low,high,requested,blocked};`);
-    assert.ok(density.high > density.low && density.low > 0);
+    assert.ok(density.high > density.low && density.low > 0, `Tower vapor must increase with actual heat: ${JSON.stringify(density)}`);
     assert.equal(density.requested, density.high, 'Requested valve changes must not substitute for actual cooling');
     assert.equal(density.blocked, 0);
     await action('stop');
@@ -62,10 +70,11 @@ export async function checkCoolingTower({ consoleCode, action, page, until, scre
     await screenshot('cooling-tower-reduced-motion');
     assert.equal(await consoleCode('return c.processMotion.coolingTowerPhase;'), reduced);
     await page('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
-    await consoleCode('s.querySelector(".diagram-viewport").scrollIntoView({block:"center"});');
+    await showOverview();
     await screenshot('cooling-tower-mobile');
     await action('reset');
-    assert.equal(await consoleCode('return c.overviewScene.coolingTower.plume.mesh.count;'), 0);
+    await showOverview();
+    await until(`document.querySelector('nuclear-power-console').overviewScene.coolingTower.plume.mesh.count === 0`, 'Reset did not clear tower vapor after the overview became visible');
     await page('Emulation.setEmulatedMedia', { features: [] });
     await page('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1120, deviceScaleFactor: 1, mobile: false });
     await consoleCode('window.scrollTo(0,0);');
