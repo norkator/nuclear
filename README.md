@@ -76,7 +76,16 @@ any pairing code in the URL fragment.
 
 ## Companion console and Docker session backend
 
-The normal desktop retains its full layout. **Connect screen** in the header
+On desktop screens at least 1400 px wide, the plant workspace fills the available
+viewport height. Close either side panel with its × button or Escape; small,
+translucent chevron tabs at the left/right edges reopen them. Panels slide in/out
+as the process view expands, with immediate changes under reduced motion. These
+controls use no extra row above the workspace. The header and
+operator console stay in place; long side panels and operator controls scroll
+within their columns. Panel choices are remembered in this browser. Smaller
+desktop windows retain the stacked, page-scrolling layout.
+
+**Connect screen** in the header
 starts sharing that existing simulation and displays an eight-digit pairing code.
 Open the same site's **Companion screen** link on a tablet, another computer or
 another browser window, enter the code, and press **Connect to desktop**. The
@@ -107,6 +116,16 @@ Narrow screens stack the operator controls above the information pane. Themes an
 local to each screen. Information and operator panels grow to their natural
 content height. The document scrolls to reach the lower controls; there are no
 separate scrolling columns or empty landing-page space below the console.
+
+**Screen layout** selects **All controls**, **Pumps & load**, **Core & fuel**, or
+**Monitor**. **Customize this screen** lets each browser choose its regulation,
+run/shutdown, load, rod, pump, grid, instrument, electrical, core, trend and event
+sections. A core-only screen uses the full width; a pump station has larger touch
+controls and puts the two circuits side by side when space permits. Layout and
+information selection survive reload in this browser, independently of desktop
+panel choices. They issue no plant commands and do not change pairing or save
+ownership. Company inbox, assignments, achievements and marking mail as read
+remain desktop-only; there is no companion company summary yet.
 
 After the production workflow publishes both images, run these commands from
 the repository root on the Ubuntu Docker host to install or update both containers:

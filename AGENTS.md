@@ -82,7 +82,12 @@ screen cards. Independent `/reactor/` and `/companion/` HTML entries mount the
 consoles without landing/guide DOM. Keep selected URLs on reload and let Back
 return to the landing page; free-operation plant state is not saved across reload; careers use local saves.
 Companion columns grow with content and use ordinary page scrolling, with no
-fixed-height inner scroll regions or empty trailing content. The companion omits
+fixed-height inner scroll regions or empty trailing content. Screen layout offers
+All controls / Pumps & load / Core & fuel / Monitor and individual section choices.
+Keep its browser-local preferences and last information pane separate from desktop
+panel preferences, career saves and transport state; layout changes send no commands.
+Preserve full-width dedicated stations, touch controls and available-pane navigation.
+The companion omits
 its logo/title; pairing uses a blocking native dialog with the console behind it.
 Escape/backdrop clicks cannot dismiss it; only live session state closes it.
 Preserve invalid-code retry, stale/disconnect/revocation reopening, reconnect
@@ -183,8 +188,18 @@ retained heat and progressive damage remain active. Irreversible meltdown stops
 generation through its own failure state without pressing the emergency button;
 Reset demo is still required. Mode changes never activate or clear a trip, and an
 explicit operator trip remains latched across meltdown.
-Wide windows use stacked instruments on the left, tabbed reactor/maintenance views
-and operator controls in the middle, and trends/logs on the right. Regulation, plant
+At least 1400 px wide, the desktop workspace fills the available viewport height,
+with independently hideable left Instruments and right Trends & events panels.
+Both start open and remember browser-local choices. Hiding panels expands the
+process without resetting its camera/state. Closed panels use compact translucent
+edge tabs, without a top button row; panels slide/fade as their grid tracks resize.
+Preserve close/Escape focus return to the edge tab, immediate control locks during
+exit, rapid reversal, reduced-motion switching, full remaining-height 3D,
+side-panel scrolling and the always-present header
+and operator column (its controls scroll when needed). Smaller desktop windows and
+all companions retain ordinary page scrolling. Wide windows use stacked instruments
+on the left, tabbed reactor/maintenance views and operator controls in the middle,
+and trends/logs on the right. Regulation, plant
 sound enable/mute, theme, simulation status and clock share the header card beside
 the title. UI clicks default to 100% of their bounded range (0.26 gain); there is no
 volume slider or test-click button. Thermal/electrical/flow instrument motion follows

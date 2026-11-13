@@ -29,6 +29,7 @@
 .companion-views [aria-pressed="true"] { border-color: var(--cool); color: var(--cool); }
 .companion-pane { display: grid; gap: 14px; min-width: 0; }
 :host([data-screen="companion"]) .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+:host([data-screen="companion"]) :is(.metrics, .grid-dispatch-panel, .power-source-panel) { grid-area: auto; }
 :host([data-screen="companion"]) .grid-dispatch-message { font-size: 14px; }
 :host([data-screen="companion"]) .grid-dispatch-content > :is(span, small) { font-size: 12px; }
 :host([data-screen="companion"]) .grid-dispatch-content > strong { font-size: 13px; }
@@ -56,5 +57,48 @@
     .companion-workspace { grid-template-columns: minmax(0, 1fr); }
     .companion-operator { grid-row: 1; }
     .companion-connection-state { flex-wrap: wrap; }
-    :host([data-screen="companion"]) .console { padding: 10px; }
+    :host([data-screen="companion"]) .console { padding: 10px 10px 0; }
+}
+.companion-layout-tools { display: flex; flex-wrap: wrap; align-items: start; gap: 10px 20px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.companion-layout-tools > label { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
+.companion-layout-tools select { min-height: 40px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 5px; color: inherit; background: transparent; font: inherit; }
+.companion-layout-tools select option { color: #e3e9ee; background: #15212d; }
+.companion-customize { flex: 1; min-width: min(240px, 100%); padding: 8px 0; }
+.companion-customize summary { color: var(--cool); cursor: pointer; font-size: 12px; min-height: 24px; }
+.companion-customize p { color: var(--muted); font-size: 11px; padding-top: 10px; }
+.companion-section-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 4px 16px; padding-top: 12px; }
+.companion-section-options label { display: flex; align-items: center; gap: 8px; min-height: 40px; font-size: 12px; cursor: pointer; }
+.companion-section-options input { width: 18px; height: 18px; accent-color: var(--cool); }
+.companion-workspace[data-columns="one"] { grid-template-columns: minmax(0, 1fr); }
+.companion-workspace[data-columns="one"] .companion-operator { width: 100%; max-width: 960px; justify-self: center; }
+:host([data-screen="companion"]) .header-control-card[data-regulation-visible="false"] { grid-template-columns: minmax(0, 1fr); }
+:host([data-screen="companion"]) .header-control-card[data-regulation-visible="false"] .header-settings { border: 0; padding: 0; }
+:host([data-screen="companion"]) :is(.automation-strip input[type="number"], .automation-strip select, .individual-rod select) { min-height: 44px; font-size: 16px; }
+:host([data-screen="companion"]) .header-control-card .mode-switch button { min-height: 40px; padding-inline: 14px; font-size: 12px; }
+:host([data-screen="companion"]) .pump-controls { gap: 16px; }
+:host([data-screen="companion"]) .pump-circuit { gap: 8px; }
+:host([data-screen="companion"]) .pump-circuit-heading { font-size: 11px; }
+:host([data-screen="companion"]) .pump-controls .pump-control { padding: 10px; grid-template-columns: minmax(0, 1fr) 48px; }
+:host([data-screen="companion"]) .pump-controls .pump-rocker { width: 48px; min-height: 68px; }
+:host([data-screen="companion"]) .pump-open { min-height: 36px; font-size: 13px; }
+:host([data-screen="companion"]) .pump-controls .regulator-display { font-size: 16px; }
+:host([data-screen="companion"]) .operator-panel .pump-controls .regulator-rail input[type="range"] { height: 44px; }
+:host([data-screen="companion"]) .pump-controls .regulator-scale { font-size: 8px; padding-top: 8px; }
+:host([data-screen="companion"]) .pump-controls .pump-readback { flex-wrap: wrap; font-size: 10px; gap: 5px 10px; }
+:host([data-screen="companion"]) .pump-controls .pump-badge { font-size: 9px; }
+:host([data-screen="companion"]) .core-map-svg { max-width: 650px; }
+:host([data-screen="companion"]) .core-map-note { font-size: 11px; }
+:host([data-theme="light"]) .companion-layout-tools select option { color: #1a2d36; background: #e3e9ed; }
+@container nuclear-console (min-width: 850px) {
+    .companion-workspace[data-columns="one"] .pump-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .companion-workspace[data-columns="one"] .core-map-layout { grid-template-columns: minmax(0, 1fr) minmax(220px, 300px); align-items: start; }
+    .companion-workspace[data-columns="one"] .individual-rod { border: 1px solid var(--border); }
+    .companion-workspace[data-columns="one"] .companion-pane[data-companion-pane="trends"] { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+    .companion-workspace[data-columns="one"] .companion-pane[data-companion-pane="trends"]:has(> [hidden]) { grid-template-columns: minmax(0, 1fr); }
+}
+@container nuclear-console (max-width: 700px) {
+    .companion-layout-tools { gap: 8px; }
+    .companion-customize { flex-basis: 100%; }
+    :host([data-screen="companion"]) .header-control-card .automation-strip { gap: 12px; }
+    :host([data-screen="companion"]) .companion-operator .operator-content { padding: 12px; }
 }

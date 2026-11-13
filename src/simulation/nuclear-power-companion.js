@@ -7,6 +7,21 @@ import { SessionConnection, sessionCommandId } from './nuclear-power-session-cli
 import { captureSessionState, restoreSessionState, remoteSimulation } from './nuclear-power-session-state.js';
 import { applySessionCommand, validSessionCommand, freshSessionCommand } from './nuclear-power-session-protocol.js';
 
+const LAYOUT_KEY = 'porssiohjain.nuclear-power.companion-layout';
+const screenSections = {
+    regulation: 'Regulation & targets', reactor: 'Start / Stop & shutdown', load: 'Load setpoint',
+    rods: 'Rod bank controls', pumps: 'Pump controls', grid: 'Grid controller',
+    readings: 'Plant instruments', power: 'Electrical supply', core: 'Core map & fuel',
+    trends: 'Live trends', events: 'Event journal & alarms',
+};
+const screenPresets = {
+    all: { label: 'All controls', sections: Object.keys(screenSections), view: 'grid' },
+    pumps: { label: 'Pumps & load', sections: ['regulation', 'load', 'pumps'], view: 'grid' },
+    core: { label: 'Core & fuel', sections: ['core'], view: 'core' },
+    monitor: { label: 'Monitor', sections: ['readings', 'grid', 'power', 'trends', 'events'], view: 'trends' },
+};
+const viewSections = { grid: ['grid', 'readings', 'power'], core: ['core'], trends: ['trends', 'events'] };
+
 export const sessionControls = `<div class="header-screens"><button class="small-button" data-action="connect-screen">Connect screen</button><a class="small-button companion-link" href="/companion/" target="_blank" rel="noopener">Companion screen ↗</a></div>`;
 export const pairingDialog = `<div class="pairing-dialog floating-dialog" popover="manual" role="dialog" aria-modal="false" aria-labelledby="pairing-title"><div class="core-dialog-titlebar" tabindex="0" aria-label="Move screen connection window"><h2 id="pairing-title">Connect another screen</h2><button class="small-button" data-action="close-pairing" aria-label="Close screen connection window">×</button></div><div class="pairing-content"><p>Open this site on your tablet or another computer, choose <b>Companion screen</b> and enter this code.</p><output class="pairing-code" aria-label="Screen pairing code">Connecting…</output><p class="pairing-status" role="status"></p><a class="pairing-open small-button" href="/companion/" target="_blank" rel="noopener">Open companion on this computer ↗</a><div class="pairing-actions"><button class="small-button" data-action="new-pairing-code">New code</button><button class="small-button" data-action="disconnect-screens">Disconnect screens</button><button class="small-button" data-action="stop-sharing">Stop sharing</button></div><p class="pairing-help">Keep this desktop session open. The simulation continues while a paired companion is visible. Pause applies to every screen.</p></div></div>`;
 
@@ -86,8 +101,9 @@ function prepareCompanion(host) {
     root.querySelector('.operator-panel .local-tag').textContent = 'LINKED';
     const connection = document.createElement('section');
     connection.className = 'companion-connection panel';
-    connection.innerHTML = `<div class="companion-connection-state"><strong class="companion-status" role="status">Enter the code shown by Connect screen on your desktop.</strong><button class="small-button" data-action="leave-session" hidden>Disconnect</button></div>`;
+    connection.innerHTML = `<div class="companion-connection-state"><strong class="companion-status" role="status">Enter the code shown by Connect screen on your desktop.</strong><button class="small-button" data-action="leave-session" hidden>Disconnect</button></div><div class="companion-layout-tools"><label for="companion-layout">Screen layout <select id="companion-layout">${Object.entries(screenPresets).map(([id, preset]) => `<option value="${id}">${preset.label}</option>`).join('')}<option value="custom">Custom</option></select></label><details class="companion-customize"><summary>Customize this screen</summary><div class="companion-section-options">${Object.entries(screenSections).map(([id, label]) => `<label><input type="checkbox" data-companion-section-toggle="${id}" checked/> ${label}</label>`).join('')}</div><p>Saved only in this browser. Choose different controls on each device.</p></details></div>`;
     station.before(connection);
+    initializeCompanionLayout(host);
     const pairing = document.createElement('dialog');
     pairing.className = 'companion-pairing-dialog';
     pairing.setAttribute('closedby', 'none');
@@ -119,15 +135,93 @@ function prepareCompanion(host) {
     if (/^\d{8}$/.test(code || '')) root.querySelector('.companion-code').value = code;
     // Bulk maintenance, exposure speed and session reset stay desktop-owned.
     root.querySelectorAll('[data-core-repair], .fuel-inspector label[for="fuel-rate"], #fuel-rate, [data-action="reset"], [data-action="repair"], [data-action="clear-fault"]').forEach(node => { node.hidden = true; node.disabled = true; });
-    selectCompanionView(host, 'grid');
+    applyCompanionLayout(host);
     updateSessionControls(host);
 }
 
 function selectCompanionView(host, view) {
     if (!['grid', 'core', 'trends'].includes(view)) return;
+    // Equipment shortcuts can reveal a section omitted from a custom layout.
+    if (!viewSections[view].some(section => host.companionLayout.sections.includes(section))) {
+        host.companionLayout.sections.push(...viewSections[view]);
+        host.companionLayout.preset = 'custom';
+    }
     host.companionView = view;
+    host.companionLayout.view = view;
+    applyCompanionLayout(host);
+    saveCompanionLayout(host);
+}
+
+function initializeCompanionLayout(host) {
+    const root = host.shadowRoot;
+    const mark = (selector, section) => { root.querySelector(selector).dataset.companionSection = section; };
+    for (const [selector, section] of Object.entries({
+        '.automation-strip': 'regulation', '.setpoint': 'load', '.rod-control': 'rods', '.pump-controls': 'pumps',
+        '.grid-dispatch-panel': 'grid', '.metrics': 'readings', '.power-source-panel': 'power',
+        '.core-map': 'core', '.reactor-equipment-detail': 'core', '.trend-panel': 'trends', '.events-panel': 'events',
+        '.emergency-station': 'reactor',
+    })) mark(selector, section);
+    const run = document.createElement('div');
+    run.dataset.companionSection = 'reactor';
+    const content = root.querySelector('.operator-content');
+    content.prepend(run);
+    for (const selector of ['.operation-state', '.reactor-pushbuttons', '.trip-recovery']) run.append(content.querySelector(selector));
+    const defaults = { preset: 'all', sections: [...screenPresets.all.sections], view: 'grid' };
+    let saved;
+    try { saved = JSON.parse(localStorage.getItem(LAYOUT_KEY)); } catch { /* Use all controls if storage is unavailable. */ }
+    host.companionLayout = saved && Array.isArray(saved.sections) ? {
+        preset: Object.hasOwn(screenPresets, saved.preset) ? saved.preset : 'custom',
+        sections: [...new Set(saved.sections.filter(section => Object.hasOwn(screenSections, section)))],
+        view: Object.hasOwn(viewSections, saved.view) ? saved.view : 'grid',
+    } : defaults;
+    if (!host.companionLayout.sections.length) host.companionLayout = defaults;
+    root.querySelector('#companion-layout').addEventListener('change', event => {
+        const preset = screenPresets[event.target.value];
+        if (preset) host.companionLayout = { preset: event.target.value, sections: [...preset.sections], view: preset.view };
+        else root.querySelector('.companion-customize').open = true;
+        applyCompanionLayout(host);
+        saveCompanionLayout(host);
+    });
+    root.addEventListener('change', event => {
+        const section = event.target.dataset.companionSectionToggle;
+        if (!section) return;
+        const current = new Set(host.companionLayout.sections);
+        event.target.checked ? current.add(section) : current.delete(section);
+        // Keep one useful section so the screen never becomes empty.
+        if (!current.size) { event.target.checked = true; return; }
+        host.companionLayout.sections = [...current];
+        host.companionLayout.preset = 'custom';
+        applyCompanionLayout(host);
+        saveCompanionLayout(host);
+    });
+}
+
+function saveCompanionLayout(host) {
+    try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(host.companionLayout)); } catch { /* The layout remains usable for this session. */ }
+}
+
+function applyCompanionLayout(host) {
+    const root = host.shadowRoot;
+    const { sections } = host.companionLayout;
+    const selected = new Set(sections);
+    for (const node of root.querySelectorAll('[data-companion-section]')) node.hidden = !selected.has(node.dataset.companionSection);
+    const available = Object.keys(viewSections).filter(view => viewSections[view].some(section => selected.has(section)));
+    const view = available.includes(host.companionLayout.view) ? host.companionLayout.view : available[0];
+    host.companionView = view;
+    if (view) host.companionLayout.view = view;
+    const operator = ['reactor', 'load', 'rods', 'pumps'].some(section => selected.has(section));
+    root.querySelector('.companion-information').hidden = !available.length;
+    root.querySelector('.companion-operator').hidden = !operator;
+    root.querySelector('.companion-workspace').dataset.columns = available.length && operator ? 'two' : 'one';
+    root.querySelector('.companion-views').hidden = available.length < 2;
+    root.querySelector('#companion-layout').value = host.companionLayout.preset;
+    root.querySelector('.header-control-card').dataset.regulationVisible = String(selected.has('regulation'));
+    for (const input of root.querySelectorAll('[data-companion-section-toggle]')) input.checked = selected.has(input.dataset.companionSectionToggle);
     for (const pane of host.shadowRoot.querySelectorAll('[data-companion-pane]')) pane.hidden = pane.dataset.companionPane !== view;
-    for (const button of host.shadowRoot.querySelectorAll('[data-companion-view]')) button.setAttribute('aria-pressed', String(button.dataset.companionView === view));
+    for (const button of root.querySelectorAll('[data-companion-view]')) {
+        button.hidden = !available.includes(button.dataset.companionView);
+        button.setAttribute('aria-pressed', String(button.dataset.companionView === view));
+    }
     if (view === 'core') host.updateCore();
     if (view === 'trends') host.updateTrend();
 }
@@ -228,7 +322,8 @@ export function updateSessionControls(host) {
         const pairing = root.querySelector('.companion-pairing-dialog');
         if (ready && pairing.open) {
             pairing.close();
-            root.querySelector('.companion-views [aria-pressed="true"]').focus({ preventScroll: true });
+            const navigation = root.querySelector('.companion-views');
+            (navigation.hidden ? root.querySelector('#companion-layout') : navigation.querySelector('[aria-pressed="true"]')).focus({ preventScroll: true });
         } else if (!ready && host.isConnected && !pairing.open) {
             for (const dialog of [...host.floatingDialogs]) host.closeFloatingDialog(dialog, false);
             host.reopenMeltdown = host.simulation.condition.meltdown;

@@ -94,7 +94,29 @@ test('desktop and companion share controls, grid/core readings and lifecycle acr
         for (const [width,height] of [[1920,1080],[2560,1440]]) {
             await host.call('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
             assert.ok(await host.code('return s.querySelector(".console-footer").getBoundingClientRect().bottom<=innerHeight;'), 'Reactor keeps its wide-screen fit');
+            const fit = await host.code('const scene=s.querySelector(".plant-scene").getBoundingClientRect(),footer=s.querySelector(".console-footer").getBoundingClientRect(),legend=s.querySelector(".diagram-legend").getBoundingClientRect();return {height:scene.height,bottom:scene.bottom,legend:legend.top,footer:footer.bottom,overflow:document.documentElement.scrollWidth>innerWidth};');
+            assert.ok(fit.height>height*.5 && Math.abs(fit.bottom-fit.legend)<2 && Math.abs(fit.footer-height)<2 && !fit.overflow, `3D uses the available screen height without page overflow: ${JSON.stringify(fit)}`);
         }
+        const camera = await host.code('return {yaw:c.overviewScene.yaw,zoom:c.overviewScene.zoom,width:s.querySelector(".plant-scene").clientWidth};');
+        const closing = await host.code('s.querySelector(".side-panel-heading [data-workspace-panel=instruments]").click();s.querySelector(".side-panel-heading [data-workspace-panel=analysis]").click();return ["plant-instruments","plant-analysis"].map(id=>{const n=s.getElementById(id);return {hidden:n.hidden,inert:n.inert,animated:n.getAnimations().some(a=>a.transitionProperty==="transform")};});');
+        assert.ok(closing.every(panel=>!panel.hidden&&panel.inert&&panel.animated), 'Panels animate out while their controls are already locked');
+        await host.until('s.querySelector("#plant-instruments").hidden && s.querySelector("#plant-analysis").hidden && s.querySelector(".plant-scene").clientWidth > ' + camera.width + ' && c.overviewScene.width === s.querySelector(".plant-scene").clientWidth', 'Closing panels expands and resizes the model');
+        assert.deepEqual(await host.code('return {yaw:c.overviewScene.yaw,zoom:c.overviewScene.zoom};'), { yaw: camera.yaw, zoom: camera.zoom }, 'Panel changes preserve the camera');
+        assert.ok(await host.code('return s.querySelector(".operator-panel").getBoundingClientRect().width>250 && !s.querySelector(".masthead").hidden;'), 'Header and operator console stay visible');
+        assert.ok(await host.code('return getComputedStyle(s.querySelector(".workspace-tools")).position==="absolute" && Math.abs(s.querySelector(".console-layout").getBoundingClientRect().top-s.querySelector(".masthead").getBoundingClientRect().bottom)<2;'), 'Panel buttons use no row above the workspace');
+        assert.ok(await host.code('return [...s.querySelectorAll(".panel-edge-button")].every(n=>{const r=n.getBoundingClientRect(),opacity=Number(getComputedStyle(n).opacity);return r.width<=28&&r.height<=70&&r.left>=0&&r.right<=innerWidth&&opacity>0&&opacity<1&&s.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest(".panel-edge-button")===n;});'), 'Closed panels have compact translucent, clickable edge tabs');
+        await host.screenshot('desktop-panels-closed');
+        await host.call('Page.reload');
+        await host.until('c?.initialized && s.querySelector("#plant-instruments").hidden && s.querySelector("#plant-analysis").hidden', 'Desktop remembers closed panels after reload');
+        await host.code('s.querySelector(".workspace-tools [data-workspace-panel=instruments]").click();s.querySelector(".workspace-tools [data-workspace-panel=analysis]").click();s.querySelector("#plant-instruments button").focus();');
+        await host.call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+        await host.call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+        await host.until('s.querySelector("#plant-instruments").hidden && s.activeElement.dataset.workspacePanel === "instruments"', 'Escape closes a focused panel and returns focus to its edge tab');
+        await host.call('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+        assert.ok(await host.code('s.querySelector(".workspace-tools [data-workspace-panel=instruments]").click();s.querySelector(".side-panel-heading [data-workspace-panel=instruments]").click();return s.querySelector("#plant-instruments").hidden;'), 'Reduced motion closes panels immediately');
+        await host.call('Emulation.setEmulatedMedia', { features: [] });
+        await host.code('s.querySelector(".workspace-tools [data-workspace-panel=instruments]").click();s.querySelector(".side-panel-heading [data-workspace-panel=instruments]").click();s.querySelector(".workspace-tools [data-workspace-panel=instruments]").click();');
+        await host.until('!s.querySelector("#plant-instruments").hidden && !s.querySelector("#plant-instruments").inert && !s.querySelector("#plant-instruments").getAnimations().length', 'Rapid reopening leaves the panel visible and usable');
         await host.call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
         await host.until('c.overviewScene.width === s.querySelector(".plant-scene").clientWidth', 'Main overview resizes while outside the phone viewport');
         assert.ok(await host.code('const v=s.querySelector(".plant-scene").getBoundingClientRect();return [...s.querySelectorAll(".plant-scene-label")].every(label=>{const r=label.getBoundingClientRect();return r.left>=v.left&&r.right<=v.right;});'), 'Main equipment labels stay inside the mobile overview');
@@ -138,22 +160,48 @@ test('desktop and companion share controls, grid/core readings and lifecycle acr
         const positions = await tablet.code('const left=s.querySelector(".companion-information").getBoundingClientRect(),right=s.querySelector(".companion-operator").getBoundingClientRect();return {left:left.right,right:right.left,overflow:document.documentElement.scrollWidth>innerWidth};');
         assert.ok(positions.left < positions.right, 'Information left and operator controls right');
         assert.equal(positions.overflow, false);
+        await tablet.input('#companion-layout', 'pumps');
+        assert.ok(await tablet.code('return s.querySelector(".companion-information").hidden && !s.querySelector(".pump-controls").hidden && !s.querySelector(".setpoint").hidden && s.querySelector(".emergency-station").hidden;'), 'Pumps & load removes unrelated sections');
+        assert.ok(await tablet.code('return c.pendingSessionCommands.size===0 && !c.simulation.pumpA;'), 'Layout changes issue no plant commands');
+        for (const [width,height] of [[320,740],[390,844],[768,1024],[1024,600]]) {
+            await tablet.call('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+            assert.ok(await tablet.code('return document.documentElement.scrollWidth<=innerWidth && s.querySelector("#pump-A-speed").getBoundingClientRect().height>=44;'), 'Pump station fits phone/tablet/laptop sizes with touch sliders');
+        }
+        await tablet.call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false });
+        await tablet.screenshot('companion-pumps-phone');
+        await tablet.input('#companion-layout', 'core');
+        assert.ok(await tablet.code('return c.companionView==="core" && s.querySelector(".companion-operator").hidden && s.querySelector(".automation-strip").hidden && !s.querySelector(".core-map").hidden;'), 'Core & fuel dedicates the screen to the core without operator or regulation panels');
+        await tablet.screenshot('companion-core-phone');
+        await tablet.call('Emulation.setDeviceMetricsOverride', { width: 1180, height: 820, deviceScaleFactor: 1, mobile: false });
+        await tablet.screenshot('companion-core-station');
+        const savedScreen = await page('/companion/', 1024, 768);
+        assert.ok(await savedScreen.code('return c.companionLayout.preset==="core" && c.companionView==="core" && s.querySelector(".companion-pairing-dialog").open && c.timer===null;'), 'A freshly loaded companion restores its browser layout and still requires pairing');
+        await savedScreen.call('Page.close');
+        await tablet.input('#companion-layout', 'monitor');
+        assert.ok(await tablet.code('return c.companionView==="trends" && s.querySelector(".companion-operator").hidden && !s.querySelector(".events-panel").hidden;'), 'Monitor shows trends and events without operator controls');
+        await tablet.code('s.querySelector("[data-companion-section-toggle=events]").click();');
+        assert.ok(await tablet.code('return c.companionLayout.preset==="custom" && s.querySelector(".events-panel").hidden && !s.querySelector(".trend-panel").hidden;'), 'Custom layouts hide individual sections');
+        await tablet.input('#companion-layout', 'all');
         await tablet.call('Page.bringToFront');
-        for (const [width, height] of [[1180, 820], [1024, 600], [768, 1024]]) {
+        for (const [width, height] of [[1180, 820], [1024, 600], [768, 1024], [390, 844]]) {
             await tablet.call('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
             await tablet.code('scrollTo(0,0);');
+            await tablet.code('return new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));');
             const layout = await tablet.code('const panes=[...s.querySelectorAll(".companion-information,.companion-operator")],pane=panes[1],r=pane.getBoundingClientRect(),footer=s.querySelector(".console-footer").getBoundingClientRect();return {panes:panes.map(p=>({client:p.clientHeight,content:p.scrollHeight,overflow:getComputedStyle(p).overflowY})),expected:Math.max(innerHeight,Math.ceil(footer.bottom+scrollY)),height:document.scrollingElement.scrollHeight,x:r.right-30,y:Math.min(innerHeight-30,r.top+100)};');
             for (const pane of layout.panes) {
                 assert.ok(!['auto','scroll'].includes(pane.overflow) && pane.content <= pane.client + 1, 'Companion panes grow with content without nested scrolling');
             }
-            assert.ok(Math.abs(layout.height-layout.expected)<=2, 'Document ends at the console footer without an empty tail');
+            assert.ok(await tablet.code('const panels=[...s.querySelector("[data-companion-pane=grid]").children].filter(n=>!n.hidden).map(n=>n.getBoundingClientRect());return panels.every((r,i)=>!i||r.top>=panels[i-1].bottom);'), 'Grid requests, instruments and power source stack without overlap at every size');
+            assert.ok(Math.abs(layout.height-layout.expected)<=2, `Document ends at the console footer without an empty tail at ${width}x${height}: ${JSON.stringify(layout)}`);
             await tablet.call('Input.dispatchMouseEvent', { type: 'mouseWheel', x: layout.x, y: layout.y, deltaX: 0, deltaY: 2200 });
             await tablet.until('scrollY > 0', 'Wheel over operator controls scrolls the page');
-            await tablet.code('scrollTo(0,document.scrollingElement.scrollHeight);');
+            await tablet.code('s.querySelector("[data-action=pumpB2]").scrollIntoView({block:"center"});');
             const lower = await tablet.code('const pump=s.querySelector("[data-action=pumpB2]"),r=pump.getBoundingClientRect(),cover=s.querySelector("[data-action=trip-cover]").getBoundingClientRect(),footer=s.querySelector(".console-footer").getBoundingClientRect();return {pump:r.top>=0&&r.bottom<=innerHeight,cover:cover.top>=0&&cover.bottom<=innerHeight,hit:s.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest("[data-action=pumpB2]")===pump,footer:footer.bottom,viewport:innerHeight,inner:[...s.querySelectorAll(".companion-information,.companion-operator")].map(p=>p.scrollTop)};');
             assert.ok(lower.pump && lower.hit && lower.cover, 'Page scrolling reaches the final pump and emergency cover');
-            assert.ok(Math.abs(lower.footer-lower.viewport)<=2, 'Page bottom shows content rather than blank space');
             assert.deepEqual(lower.inner,[0,0], 'Content panes never acquire their own scroll position');
+            await tablet.code('scrollTo(0,document.scrollingElement.scrollHeight);');
+            assert.ok(await tablet.code('return Math.abs(s.querySelector(".console-footer").getBoundingClientRect().bottom-innerHeight)<=2;'), 'Page bottom shows content rather than blank space');
+            if (width === 390) { await tablet.code('scrollTo(0,0);'); await tablet.screenshot('companion-all-phone-dark'); }
         }
         await tablet.call('Emulation.setDeviceMetricsOverride', { width: 1180, height: 820, deviceScaleFactor: 1, mobile: false });
         await tablet.code('scrollTo(0,0);');

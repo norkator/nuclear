@@ -31,6 +31,10 @@ return to gray, while a verified assignment stays green until reported. Full
 briefing opens the inbox; Send report is available on the verified checklist.
 Unaccepted assignments and free operation have no checklist. Steps are derived
 from pinned objective terms and saved plant/evidence, without new save fields.
+On wide screens the checklist and trends share the independently hideable right
+side panel. Its contents scroll without overlapping or moving the process/header;
+the career status and Company inbox entry remain available when that panel is
+closed. Companion station presets do not add company pages or career commands.
 
 | Stable mission ID | Criterion | Capability earned on report |
 | --- | --- | --- |

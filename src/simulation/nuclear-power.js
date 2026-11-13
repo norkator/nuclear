@@ -25,6 +25,8 @@ import { initializeCompanion, sessionControls, pairingDialog, updateSessionContr
 import companionStyles from './nuclear-power-companion.css?inline';
 import { initializeGame, gameEntry, gamePanel, gameTasks, gameDialog } from './nuclear-power-game.js';
 import gameStyles from './nuclear-power-game.css?inline';
+import { initializeDesktopLayout, layoutControls } from './nuclear-power-layout.js';
+import layoutStyles from './nuclear-power-layout.css?inline';
 
 const PLANT_TABS = ['reactor', 'maintenance'];
 const STEAM_PATH = createPolylinePath([[610, 160], [790, 160], [790, 210]]);
@@ -279,6 +281,7 @@ export class NuclearPowerConsole extends HTMLElement {
     }
 
     disconnectedCallback() {
+        this.finishWorkspacePanelTransitions?.();
         if (this.game) this.game.detaching = this.game.detach();
         disconnectSession(this);
         this.closeFloatingDialog(this.shadowRoot.querySelector('.game-dialog'), false);
@@ -305,7 +308,7 @@ export class NuclearPowerConsole extends HTMLElement {
     initialize() {
         this.initialized = true;
         this.setAttribute('lang', 'en');
-        this.shadowRoot.innerHTML = `<style>${styles}\n${lightStyles}\n${generationStyles}\n${companionStyles}\n${gameStyles}</style>
+        this.shadowRoot.innerHTML = `<style>${styles}\n${lightStyles}\n${generationStyles}\n${companionStyles}\n${gameStyles}\n${layoutStyles}</style>
         <main class="console">
           <header class="masthead">
             <div class="brand-mark">${radiation}</div>
@@ -325,7 +328,8 @@ export class NuclearPowerConsole extends HTMLElement {
 
           ${gamePanel}
           <div class="console-layout">
-          <aside class="instrument-column" aria-label="Plant instruments">
+          ${layoutControls}
+          <aside id="plant-instruments" class="instrument-column" aria-label="Plant instruments">
           <section class="metrics" aria-label="Simulated plant instruments">
             <article class="metric core-temperature-metric"><div class="metric-label"><span class="metric-icon warm">↗</span> Core temperature <span class="channel">TI-01</span></div><div class="metric-reading"><span data-value="coreNumber">286.0</span><span class="unit">°C</span></div><div class="metric-foot"><span><i class="status-dot"></i> <span data-value="temperatureState">WITHIN DEMO RANGE</span></span><span>SIMULATED</span></div><div class="metric-track warm-track"><i data-meter="temperature"></i></div></article>
             <article class="metric animated-metric thermal-metric" data-instrument="thermal"><svg class="metric-motion" viewBox="0 0 60 42" aria-hidden="true"><path class="thermal-base" d="M6 35h48"/><path class="metric-heat-wisp" data-wisp="0" d="M16 32q-7-5 0-10t0-10"/><path class="metric-heat-wisp" data-wisp="1" d="M30 32q-7-5 0-10t0-10"/><path class="metric-heat-wisp" data-wisp="2" d="M44 32q-7-5 0-10t0-10"/></svg><div class="metric-label"><span class="metric-icon warm">ϟ</span> Thermal output <span class="channel">PI-01</span></div><div class="metric-reading"><span data-value="thermalNumber">768</span><span class="unit">MW<span class="subscript">th</span></span></div><div class="metric-foot"><span><span data-value="load">64.0%</span> OF DEMO CAPACITY</span><span>SIMULATED</span></div><div class="metric-track warm-track"><i data-meter="power"></i></div></article>
@@ -380,7 +384,7 @@ export class NuclearPowerConsole extends HTMLElement {
             </aside>
           </div>
           </section>
-          <aside class="analysis-column" aria-label="Trends and event journal">
+          <aside id="plant-analysis" class="analysis-column" aria-label="Trends and event journal">
             ${gameTasks}
             <section class="panel trend-panel trend-display" role="button" tabindex="0" data-action="trends-view" aria-haspopup="dialog" aria-controls="trends-window" aria-expanded="false" aria-label="Open larger live trends chart"><div class="panel-heading"><div><span class="section-index">03</span><h2>Live trends ↗</h2></div><span class="local-tag">SIMULATED / 2 MIN</span></div>
               <div class="trend-legend"><span><i class="legend-dot warm-dot"></i> Core temperature <strong data-value="core">286.0 °C</strong></span><span><i class="legend-dot"></i> <span data-value="trendOutputLabel">Reactor output</span> <strong data-value="trendOutput">64.0%</strong></span><span class="target-legend" hidden><i class="legend-target"></i> Electrical target <strong data-value="electricalTarget"></strong></span></div>
@@ -599,6 +603,7 @@ export class NuclearPowerConsole extends HTMLElement {
             else this.playUiSound('adjust');
         });
         initializeCompanion(this);
+        initializeDesktopLayout(this);
         initializeGame(this);
         this.inspect('reactor', false);
     }

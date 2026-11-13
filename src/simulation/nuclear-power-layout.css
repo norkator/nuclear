@@ -1,0 +1,53 @@
+/*
+ * Pörssiohjain - Energy usage optimization platform
+ * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
+ * Licensed under the Pörssiohjain Personal Use License v1.0.
+ */
+.console-layout { position: relative; }
+.workspace-tools { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
+.panel-edge-button { position: absolute; top: 50%; width: 24px; height: 64px; padding: 0; display: grid; place-items: center; transform: translateY(-50%); border: 1px solid var(--border); border-radius: 0 7px 7px 0; background: color-mix(in srgb, var(--border) 65%, transparent); color: var(--cool); opacity: .55; pointer-events: auto; font: 25px Arial, sans-serif; backdrop-filter: blur(4px); transition: opacity .18s, background .18s; }
+.panel-edge-button[data-workspace-panel="instruments"] { left: -16px; }
+.panel-edge-button[data-workspace-panel="analysis"] { right: -16px; border-radius: 7px 0 0 7px; }
+.panel-edge-button:is(:hover, :focus-visible) { opacity: 1; background: var(--border); }
+.panel-edge-button:not(:disabled):active { transform: translateY(-50%); }
+.side-panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--muted); font-size: 10px; }
+.side-panel-heading button { padding: 1px 7px; font-size: 14px; }
+:host([data-screen="companion"]) .workspace-tools { display: none; }
+@container nuclear-console (min-width: 1400px) {
+    :host([data-screen="desktop"]) .console { height: 100dvh; display: flex; flex-direction: column; }
+    :host([data-screen="desktop"]) .console > :is(.masthead, .game-status, .console-footer) { flex-shrink: 0; }
+    :host([data-screen="desktop"]) .console-layout { --instruments-width: clamp(180px, 11cqw, 240px); --analysis-width: clamp(280px, 20cqw, 420px); --instruments-track: calc(var(--instruments-width) + 16px); --analysis-track: calc(var(--analysis-width) + 16px); flex: 1; min-height: 0; grid-template-columns: var(--instruments-track) minmax(0, 1fr) var(--analysis-track); gap: 0; align-items: stretch; overflow: clip; overflow-clip-margin: 16px; transition: grid-template-columns .26s ease; }
+    :host([data-screen="desktop"]) .console-layout[data-instruments="closed"] { --instruments-track: 0px; }
+    :host([data-screen="desktop"]) .console-layout[data-analysis="closed"] { --analysis-track: 0px; }
+    :host([data-screen="desktop"]) :is(.instrument-column, .analysis-column) { min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; align-content: start; grid-auto-rows: max-content; padding: 0 2px 2px; transition: transform .26s ease, opacity .26s ease; }
+    :host([data-screen="desktop"]) .instrument-column { grid-column: 1; width: var(--instruments-width); }
+    :host([data-screen="desktop"]) .analysis-column { grid-column: 3; width: var(--analysis-width); justify-self: end; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    :host([data-screen="desktop"]) .console-layout[data-instruments="closed"] .instrument-column { transform: translateX(calc(-100% - 16px)); opacity: 0; }
+    :host([data-screen="desktop"]) .console-layout[data-analysis="closed"] .analysis-column { transform: translateX(calc(100% + 16px)); opacity: 0; }
+    :host([data-screen="desktop"]) .panel-edge-button[aria-expanded="true"] { opacity: 0; visibility: hidden; pointer-events: none; }
+    :host([data-screen="desktop"]) .analysis-column .event-list { max-height: none; overflow: visible; }
+    :host([data-screen="desktop"]) .analysis-column .log-toolbar { flex-wrap: wrap; gap: 8px; }
+    :host([data-screen="desktop"]) .analysis-column .log-toolbar > span { display: none; }
+    :host([data-screen="desktop"]) .analysis-column .trend-legend { flex-direction: column; align-items: start; gap: 8px; }
+    :host([data-screen="desktop"]) .control-column { grid-column: 2; grid-row: 1; min-height: 0; position: relative; z-index: 1; }
+    :host([data-screen="desktop"]) .workspace { height: 100%; min-height: 0; grid-template-columns: minmax(0, 1fr) 280px; align-items: stretch; }
+    :host([data-screen="desktop"]) .process-panel { display: flex; flex-direction: column; min-height: 0; }
+    :host([data-screen="desktop"]) .process-panel > .plant-tabs { flex-shrink: 0; }
+    :host([data-screen="desktop"]) #reactor-panel { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+    :host([data-screen="desktop"]) #reactor-panel > :not(.diagram-viewport) { flex-shrink: 0; }
+    :host([data-screen="desktop"]) .diagram-viewport { flex: 1; min-height: 120px; position: relative; }
+    :host([data-screen="desktop"]) .diagram-viewport > .plant-scene { position: absolute; inset: 0; height: 100%; }
+    :host([data-screen="desktop"]) .diagram-viewport > .schematic { height: 100%; max-height: none; min-width: 620px; }
+    :host([data-screen="desktop"]) .operator-column { display: block; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+    :host([data-screen="desktop"]) .operator-panel > .panel-heading { position: sticky; top: 0; z-index: 5; background: inherit; }
+    :host([data-screen="desktop"]) .maintenance-panel { min-height: 0; overflow-y: auto; }
+}
+@container nuclear-console (max-width: 1399px) {
+    .side-panel-heading { display: none; }
+    .panel-edge-button { position: fixed; }
+    .panel-edge-button[data-workspace-panel="instruments"] { left: 0; }
+    .panel-edge-button[data-workspace-panel="analysis"] { right: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    :host([data-screen="desktop"]) :is(.console-layout, .instrument-column, .analysis-column), .panel-edge-button { transition: none; }
+}

@@ -338,13 +338,28 @@ All constants are gameplay/demo parameters, not real reactor engineering:
 ## Layout and appearance
 
 The console uses the full browser width with no fixed maximum width. At
-container widths of at least 1400 px, it has three columns. Regulation, plant
+container widths of at least 1400 px, the workspace fills the viewport height
+between the header and footer. Closed left/right panels expose small translucent
+chevron tabs at the screen edges, with full-opacity hover/focus and descriptive
+tooltips. There is no panel-button row above the workspace. Both panels start
+open. Closing them gives their width to the process without resetting its camera,
+plant, windows or motion. Choices persist in `porssiohjain.nuclear-power.panels`.
+Each panel has a close button; Escape within a panel closes it and restores focus
+to its edge tab. Panels slide/fade from their own side over 260 ms while the
+workspace width adjusts. Closing controls lock immediately and hide from assistive
+technology, with the panel removed after its exit. Rapid reversal stays usable;
+reduced motion switches immediately. Smaller desktop windows keep edge toggles
+available for opening/closing their stacked panels. The header and operator column stay visible. Long side
+panels and operator controls scroll within their columns; Maintenance also scrolls
+within the process panel. The 3D canvas stretches to all remaining process height
+instead of using a fixed maximum. Below 1400 px the desktop retains ordinary page
+scrolling and its responsive column/stacked layout. Regulation, plant
 sound enable/mute, theme, simulation information and session clock share a header
 card beside the brand/title, leaving more room for the main overview:
 
 - left: stacked temperature, thermal output, electrical output, flow and rod cards,
   followed by the collapsed fault/incident tools; equipment details live in dialogs;
-- middle: tabbed reactor/auxiliary overview beside the operator console;
+- middle: tabbed reactor/maintenance overview beside the operator console;
 - right: live trends above the filterable event journal.
 
 The operator console uses beveled metal mounting plates, round green/red Start
@@ -395,7 +410,7 @@ rotating generator symbol, flowing coolant markers and traveling meter highlight
 Their phase and intensity follow actual reported output/flow, remain still at zero,
 and share pause, visibility, detach and reduced-motion cleanup. Numeric read-backs
 are not interpolated or substituted with requested settings.
-Long event lists scroll inside the journal. Narrower/resized windows progressively
+On wide screens, long event lists scroll with the right side panel. Narrower/resized windows progressively
 use two columns and then stacked sections, with mobile-sized controls retained.
 
 Dark is the default. The header's **Light theme** switch changes this feature's
@@ -1054,7 +1069,7 @@ instruments and controls continue to work.
 
 ## Optional companion console
 
-The desktop layout is retained. **Connect screen** opens an expiring eight-digit
+**Connect screen** opens an expiring eight-digit
 pairing code and a link for testing in another browser window. A tablet or another
 computer opens **Companion screen** (`/companion/`), enters that code and
 connects to the existing desktop session. The companion omits the logo and visible
@@ -1078,7 +1093,26 @@ scenario injection and Reset demo remain desktop-owned. Themes, sound opt-in, pa
 emergency-cover position are local; desktop reset closes the companion cover.
 The information and operator columns grow to their natural content height. Page
 scrolling reaches all controls and stops at the console footer; there are no
-viewport-height column scrollers or landing-content gaps in either console.
+viewport-height column scrollers or landing-content gaps in the companion.
+
+**Screen layout** offers **All controls**, **Pumps & load**, **Core & fuel** and
+**Monitor**. **Customize this screen** chooses individual regulation, reactor
+run/shutdown, load, rod-bank, pump, grid, instrument, supply, core/fuel, trend and
+journal sections. At least one section remains selected. Information navigation
+only shows available panes; a single-purpose station uses the full width, with
+side-by-side pump circuits or core/inspector when space permits. Pump controls
+have 44 px slider targets and larger labels/rockers for touch. The existing DOM
+controls are moved/hidden, never cloned, so requested/actual readings, native
+events, Auto ownership and interlocks remain shared. Hidden sections continue to
+receive authoritative state. Layout changes send no plant commands.
+
+`porssiohjain.nuclear-power.companion-layout` stores section choices and the last
+information view in this browser, separately from desktop panels and career saves.
+Unavailable/invalid storage falls back to All controls. Each device can therefore
+keep a different station. Pairing requirements, stale locks and desktop ownership
+remain unchanged. Company inbox, assignments, achievements, finance summaries
+and marking company mail as read remain desktop-only; companion summaries are
+still future work.
 
 `server/session-server.mjs` is a bounded Node WebSocket relay with room isolation,
 same-origin checks, ten-minute codes, separate per-device credentials, command
@@ -1124,8 +1158,10 @@ See the Nuclear README for deployment details and limitations.
 - `src/simulation/nuclear-power.css` is isolated in the element's shadow root.
 - `src/simulation/nuclear-power-light.css` supplies the optional light palette.
 - `src/simulation/nuclear-power-companion.js` lays out the paired console and manages
-  connection state. The session client/protocol/state modules handle socket lifecycle,
+  browser-local station preferences and connection state. The session client/protocol/state modules handle socket lifecycle,
   whitelisted commands and a read-only simulation copy with restored class getters.
+- `src/simulation/nuclear-power-layout.js` and its CSS manage desktop side-panel
+  preferences and the viewport-height workspace, independently of companion layout.
 - `server/session-server.mjs` relays rooms, state and commands without a database.
 - `src/simulation/nuclear-power-model.js` contains the deterministic, browser-local
   plant, individual rod/channel layout, controller, disturbances, alarms and log.
