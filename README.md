@@ -54,7 +54,7 @@ Careers save to IndexedDB with one writer tab, complete plant/pool state and sam
 rotor tolerances. **Save & return to free operation** restores the parked free
 plant on this page. Reload starts free operation; **Continue game** restores the
 career paused, without offline progress. Export/import JSON backups from Save.
-Schema-1 saves migrate to schema 2 as Easy careers, preserving issued terms,
+Schema-1 saves migrate as Easy careers; schema-1/2 saves upgrade to schema 3, preserving issued terms,
 progress, heat, damage, trips and rotor samples. New saves also retain work orders,
 inspection/sample records, water state and difficulty. Maintenance management
 and sampling are desktop-owned; companions remain plant-control followers.
@@ -68,6 +68,40 @@ company/debrief flow is still planned.
 Mission IDs and saved objective terms support inserting new assignments in later
 updates without deleting completed goals or changing an issued assignment.
 Focused verification: `npm run test:browser:game`.
+
+## Computer systems
+
+The **Computer systems** tab contains a clickable 3D server rack with two
+redundant process servers, a control-network switch, rack UPS and cooling tray.
+Drag or use arrow keys to orbit, wheel or +/− to zoom, and Home/Reset view to
+restore the camera. The rack uses only the 3D presentation. Native unit buttons
+also open the same inspection window and remain usable if 3D is unavailable.
+
+Inspect actual power/online state, boot countdown, temperature, operating hours,
+UPS charge/battery health and cooling airflow/filter load. Run diagnostics,
+transfer process duty to the spare server, or create an existing-style work order.
+Switch a unit OFF before isolation/service, release it for test, switch it ON and
+prove ten continuous seconds before explicitly returning it to service. Servers
+can be serviced with the other server online; network work needs Manual or a
+stopped reactor, UPS work needs AC bypass, and cooling service waits for fan stop.
+
+Either online server plus the network supports normal Auto regulation. Total
+computing loss holds requested rod/pump targets and suspends dispatch; it never
+starts, stops, trips or resets the reactor. Independent Manual controls, essential
+instruments and emergency shutdown remain available. Hard still prohibits Auto.
+The rack UPS bridges auxiliary AC interruptions for a fictional 120 seconds at
+full battery health and recharges from AC; it never powers coolant pumps. Blocked
+cooling can latch hardware overheat faults, requiring explicit cooled hardware
+service. All state follows plant time, including while another tab is selected;
+rack drawing suspends offscreen, hidden or detached. Pause and reduced motion
+freeze fan animation while camera and inspection controls remain usable.
+
+Schema-3 career saves retain rack state, diagnostics, boot/test progress and UPS
+inventory. Older saves receive healthy rack defaults without changing previous
+plant state or issued goals. Rack management is desktop-owned; companions receive
+read-back and obey the host's automation availability. The career remains eight
+assignments; rack targets are available for optional work orders and future missions.
+Focused checks: `npm run test:browser:computers`.
 
 ## Repository and branches
 

@@ -81,6 +81,7 @@ export class GridDispatcher {
         if (sim.condition.meltdown) return { ready: false, reason: 'Meltdown / dispatch suspended' };
         if (sim.tripped) return { ready: false, reason: 'Trip latched / dispatch suspended' };
         if (!sim.autoMode) return { ready: false, reason: 'Waiting for Auto mode' };
+        if (!sim.computers.automationAvailable) return { ready: false, reason: 'Process computers unavailable / dispatch suspended' };
         if (sim.autoObjective !== 'power') return { ready: false, reason: 'Select Electrical output regulation' };
         if (!sim.running) return { ready: false, reason: 'Waiting for reactor Start' };
         if (sim.paused) return { ready: false, reason: 'Simulation paused' };

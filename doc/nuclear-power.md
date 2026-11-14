@@ -64,8 +64,9 @@ Web Locks allow one writer tab. JSON export/import provides local backups. Resto
 does not erase trips/damage/heat or advance offline time. Returning parks/saves
 the career and restores the free plant retained on this page. Session changes
 end pairing and stop old audio/motion; companion plant commands remain host owned.
-Schema-1 saves migrate to schema 2 with healthy new water systems and Easy
-difficulty, preserving existing plant/progress/issued requirements. New saves
+Schema-1 saves migrate through schema 2 with healthy new water systems and Easy
+difficulty; schema-1/2 saves then migrate to schema 3 with a healthy computer
+rack, preserving existing plant/progress/issued requirements. New saves
 retain water inventories, inspection/sample records, work-order stages and test
 time. Reset demo is unavailable in Career. Money, bankruptcy and further assignments are
 planned in [GAMEPLAY-PLAN.md](../GAMEPLAY-PLAN.md), not implemented yet.
@@ -989,6 +990,39 @@ are shown beside the button. The trip latch, retained heat, other assemblies and
 settings remain intact. Component repair never renews fuel. Reset demo resets inventory.
 These are illustrative UI interlocks, not a real refuelling procedure.
 
+## Computer systems rack
+
+The third desktop plant tab contains a dedicated 3D rack with process servers A/B,
+a control-network switch, UPS and cooling tray. The rack has only a 3D presentation.
+Each unit opens a shared movable inspection window with actual state, boot,
+temperature/hours, diagnostics and explicit work-order actions. Keyboard unit
+buttons remain available even if 3D is unavailable; the rack camera is independent of the
+plant camera. Renderer creation is lazy, and drawing/fan poses use the console's
+existing visibility-aware frame loop. A dedicated latest-record-wins observer
+suspends offscreen rack work. Pause/reduced motion freeze fan poses; hiding and
+detach clean up windows, observer and GPU resources, and reconnect rebuilds them.
+
+The pure model follows plant time across tabs. One server and the network support
+normal regulation; total computing loss holds requested targets and suspends grid
+dispatch, without any reactor Start/Stop/trip/reset. Manual controls, essential
+instruments and emergency shutdown remain independent. Hard continues to disallow
+Auto. Servers/network boot for five plant seconds after being enabled or restored
+from power loss. The rack UPS bridges AC loss for 120 fictional full-health seconds,
+then recharges over 180 seconds from AC. Pump AC is unchanged. Cooling filter load
+and fan health affect airflow and rack temperature; hardware overheating at 70 °C
+latches a unit fault until explicit service. Healthy defaults preserve normal play.
+
+All five rack targets reuse planned/isolate/service/test/return work orders.
+Hardware service needs the selected unit OFF/offline and below 45 °C. A running
+plant additionally needs the other process server online for server work;
+network service requires Manual or a stopped reactor; UPS service requires AC
+bypass; cooling service requires fan coast-down below 0.5%. After release,
+explicitly power ON and prove ten actual continuous seconds below 60 °C with the
+required airflow/UPS readiness. Diagnostics record actual values and never repair.
+Existing heat, fuel, plant settings and trips are preserved. Schema-3 saves and
+companion snapshots retain rack state/prototypes; only the desktop manages it.
+Run `npm run test:browser:computers` and the computer model tests for focused checks.
+
 ## Auxiliary power and backup generators
 
 Two small low-poly diesel cutaways (46% of their former standalone scale) sit
@@ -1054,8 +1088,9 @@ can carry all four pumps at full speed. Pump enabled states and
 speed requests remain separate from energized/actual speed. Without AC the pumps coast
 down and coolant animations slow, even if their requested enable state is still on.
 Restoring power ramps the requested pumps back up but never resets a trip or restarts
-the reactor. Instruments have an independent, idealized simulated DC supply; battery
-capacity and charging are not modeled.
+the reactor. Essential instruments retain an independent, idealized DC supply.
+The operational computer rack has its own modeled UPS capacity and charging;
+it never supplies coolant-pump motors.
 
 Source transitions, starts/stops and refuelling enter the journal. Total AC loss begins
 an incident, raises low-flow alarms and affects retained heat and progressive core
@@ -1181,7 +1216,7 @@ See the Nuclear README for deployment details and limitations.
   and records inbox messages, reports, capabilities and achievements.
 - `src/simulation/nuclear-power-game.js` and its CSS provide game entry, company UI,
   session switching, save orchestration and one-tab ownership.
-- `src/simulation/nuclear-power-game-save.js` defines schema-2 full-state saves, version-1 migration and
+- `src/simulation/nuclear-power-game-save.js` defines schema-3 full-state saves, version-1/2 migrations and
   IndexedDB revisions; do not replace this with a companion transport snapshot.
 - `src/App.tsx` mounts the console through React, independently of Vaadin.
 - `src/simulation/nuclear-power.js` renders the native custom element, SVG

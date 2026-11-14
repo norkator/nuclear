@@ -314,6 +314,13 @@ test('desktop and companion share controls, grid/core readings and lifecycle acr
         assert.equal(await host.code('return !c.simulation.autoMode && !c.simulation.pumpA;'), true, 'Host enforces Manual policy and isolation for remote commands');
         await host.action('reset');
         await tablet.until('c.simulation.autoAllowed && !c.simulation.work.hasIsolation', 'Reset restores free-operation policy and clears work orders');
+        await host.code('c.simulation.setComputerEnabled("rackSwitch",false);c.update();');
+        await tablet.until('!c.simulation.computers.automationAvailable && s.querySelector("[data-action=auto]").disabled', 'Rack outage and Auto lock hydrate on companion');
+        await tablet.code('c.sendSessionCommand({method:"setAutoMode",args:[true]});');
+        await tablet.until('c.pendingSessionCommands.size===0', 'Host rejects Auto through a rack outage');
+        await tablet.action('manual'); await host.until('!c.simulation.autoMode', 'Independent Manual mode remains available remotely');
+        await host.action('reset');
+        await tablet.until('c.simulation.computers.automationAvailable && c.simulation.autoMode', 'Rack defaults and Auto restore with a free-operation Reset');
         await host.action('disconnect-screens');
         await tablet.until('!c.remoteReady && s.querySelector(".companion-pairing-dialog").open', 'Revoked screen requires pairing again');
         await tablet.screenshot('companion-pairing-light');

@@ -7,8 +7,9 @@ import { CORE_CHANNELS, NuclearPowerSimulation } from './nuclear-power-model.js'
 import { FuelTransferAnimation } from './nuclear-power-refuelling.js';
 import { validObjective } from './nuclear-power-missions.js';
 import { MONITORED_EQUIPMENT, WORK_EQUIPMENT, WORK_TEST_SECONDS } from './nuclear-power-work.js';
+import { PlantComputers, COMPUTER_IDS } from './nuclear-power-computers-model.js';
 
-export const CAREER_SAVE_VERSION = 2;
+export const CAREER_SAVE_VERSION = 3;
 const ROOT_FIELDS = ['elapsed', 'startSequence', 'running', 'tripped', 'paused', 'demand', 'controlRods', 'autoAllowed',
     'operatingRodTargets', 'power', 'temperature', 'returnTemperature', 'secondaryTemperature',
     'secondaryReturnTemperature', 'pumpA', 'pumpA2', 'pumpB', 'pumpB2', 'pumpASpeed', 'pumpA2Speed',
@@ -26,6 +27,8 @@ const SECTION_FIELDS = {
     water: ['purificationEnabled', 'makeupEnabled', 'conductivity', 'filterLoad', 'intakeDebris', 'basinLevel',
         'purification', 'makeup', 'sampleSequence', 'samples'],
     work: ['sequence', 'inspectionSequence', 'inspections', 'orders'],
+    computers: ['units', 'preferredServer', 'source', 'acAvailable', 'rackTemperature', 'charge',
+        'batteryHealth', 'filterLoad', 'fanHealth', 'fanSpeed', 'diagnosticSequence', 'diagnostics'],
 };
 const TRANSFER_FIELDS = ['job', 'samples', 'nextSlot', 'poolTime', 'sampleSequence', 'dispatchHistory', 'dispatchedAssemblies'];
 const pick = (source, fields) => Object.fromEntries(fields.map(key => [key, source[key]]));
@@ -51,7 +54,7 @@ export function captureCareer(sim, transfer, career) {
 // Migrations only add newly introduced state. Existing heat, damage, rotor samples,
 // objective terms, achievements and IDs are copied without being recalculated.
 export function migrateCareerBundle(source) {
-    if (!source || ![1, CAREER_SAVE_VERSION].includes(source.schemaVersion)) throw new Error('Unsupported career save version.');
+    if (!source || ![1, 2, CAREER_SAVE_VERSION].includes(source.schemaVersion)) throw new Error('Unsupported career save version.');
     validateData(source);
     const bundle = structuredClone(source);
     if (bundle.schemaVersion === 1) {
@@ -64,6 +67,11 @@ export function migrateCareerBundle(source) {
             assignment.baselineInspections = 0; assignment.baselineOrders = 0; assignment.baselineSamples = 0;
         }
         bundle.schemaVersion = 2;
+    }
+    if (bundle.schemaVersion === 2) {
+        if (!bundle.plant) throw new Error('Invalid legacy plant.');
+        bundle.plant.computers = pick(new PlantComputers(), SECTION_FIELDS.computers);
+        bundle.schemaVersion = 3;
     }
     return bundle;
 }
@@ -79,7 +87,7 @@ function validateMaintenance(plant) {
         || water.samples.some(sample => !waterRecord(sample) || !counter(sample.sequence) || sample.sequence < 1
             || sample.sequence > water.sampleSequence || !bounded(sample.time, 0, elapsed))
         || new Set(water.samples.map(sample => sample.sequence)).size !== water.samples.length) throw new Error('Invalid water-treatment records.');
-    if (!counter(work.sequence) || !counter(work.inspectionSequence) || work.orders.length > 50
+    if (!counter(work.sequence) || !counter(work.inspectionSequence) || work.orders.length > 40 + WORK_EQUIPMENT.length
         || new Set(work.orders.map(order => order.id)).size !== work.orders.length) throw new Error('Invalid work-order records.');
     for (const [id, reading] of Object.entries(work.inspections)) {
         if (!MONITORED_EQUIPMENT.includes(id) || !reading || !counter(reading.sequence) || reading.sequence < 1
@@ -102,6 +110,28 @@ function validateMaintenance(plant) {
     }
     const open = work.orders.filter(order => order.status !== 'completed');
     if (new Set(open.map(order => order.equipment)).size !== open.length) throw new Error('Duplicate open work order.');
+}
+
+function validateComputers(plant) {
+    const computer = plant.computers;
+    if (!['serverA', 'serverB'].includes(computer.preferredServer) || !['AC', 'UPS', 'OFF'].includes(computer.source)
+        || !['charge', 'batteryHealth', 'filterLoad', 'fanHealth', 'fanSpeed'].every(key => bounded(computer[key], 0, 100))
+        || !bounded(computer.rackTemperature, 0, 200) || !counter(computer.diagnosticSequence)
+        || Object.keys(computer.units).length !== COMPUTER_IDS.length || computer.diagnostics.length > 40) throw new Error('Invalid computer rack state.');
+    for (const id of COMPUTER_IDS) {
+        const unit = computer.units[id];
+        if (!bounded(unit.temperature, 0, 200) || !bounded(unit.bootRemaining, 0, 5)
+            || !bounded(unit.hours, 0, 1e12) || !counter(unit.services)
+            || unit.online && (!unit.enabled || unit.fault)) throw new Error('Invalid computer unit.');
+    }
+    for (const record of computer.diagnostics) {
+        if (!record || !COMPUTER_IDS.includes(record.id) || !counter(record.sequence) || record.sequence < 1
+            || record.sequence > computer.diagnosticSequence || !bounded(record.time, 0, plant.elapsed)
+            || !bounded(record.temperature, 0, 200) || !bounded(record.charge, 0, 100) || !bounded(record.airflow, 0, 1)
+            || !['AC', 'UPS', 'OFF'].includes(record.source) || typeof record.healthy !== 'boolean'
+            || typeof record.status !== 'string') throw new Error('Invalid computer diagnostics.');
+    }
+    if (new Set(computer.diagnostics.map(record => record.sequence)).size !== computer.diagnostics.length) throw new Error('Duplicate computer diagnostic.');
 }
 
 // Strict shape checking keeps truncated/newer/foreign saves away from class hydration.
@@ -132,6 +162,7 @@ export function restoreCareerBundle(source) {
     validateShape(bundle.plant, template.plant, 'plant');
     validateShape(bundle.transfer, template.transfer, 'transfer');
     validateMaintenance(bundle.plant);
+    validateComputers(bundle.plant);
     const state = bundle.career;
     if (!state || typeof state.id !== 'string' || !Array.isArray(state.assignments) || !Array.isArray(state.messages)
         || !Array.isArray(state.achievements) || !Array.isArray(state.capabilities) || !Number.isFinite(state.lastElapsed)

@@ -107,9 +107,24 @@ treatment, samples and cooling inventories), and `nuclear-power-maintenance-work
 (desktop controls). `test/nuclear-power-work.test.mjs` covers command guards,
 water behavior, Manual progress, migrations and exact hydration.
 
+Computer-rack support is in `nuclear-power-computers-model.js` (pure rack model),
+`nuclear-power-computers-scene.js` (draw-only GPU adapter), and
+`nuclear-power-computers.js`/CSS (3D-only tab and floating inspection). The main
+console owns the shared frame loop. A rack-only observer suspends offscreen GPU
+work; detach disposes resources. Existing work orders accept all five rack units,
+with dedicated hardware isolation and actual online proof. There are no extra
+authored missions yet; the current eight remain unchanged. Rack commands and
+records stay desktop-owned; companion hydration retains model methods and
+blocks Auto while host process computing is unavailable.
+
+The rack diagram and presentation selector have been removed at the user's
+request. Context loss disposes the renderer and shows a status message; native
+unit inspection/maintenance buttons remain available. There is no alternate rack
+diagram. The main reactor's separate schematic is unchanged.
+
 ## Saved-state contract and known gaps
 
-- Save schema: `CAREER_SAVE_VERSION = 2`; content metadata:
+- Save schema: `CAREER_SAVE_VERSION = 3`; content metadata:
   `MISSION_CONTENT_VERSION = 2`. There is no economy rules version yet.
 - IndexedDB: `porssiohjain-nuclear-career`, database version 1, object store
   `career`, keys `current` and `previous`. Keep this namespace when changing
@@ -133,7 +148,9 @@ water behavior, Manual progress, migrations and exact hydration.
 - JSON export/import validates the complete bundle before replacing the career.
   `migrateCareerBundle` adds healthy water, empty work records, evidence baselines
   and Easy difficulty to schema 1, preserving old plant state, issued terms and
-  achievements. Schema 2 validates water bounds, order IDs/stage timestamps,
+  achievements. The schema-2-to-3 step adds healthy computer defaults. Schema 3
+  retains rack power/boot/fault/thermal state, UPS inventory and diagnostics, and
+  validates water bounds, order IDs/stage timestamps,
   evidence types and difficulty/Auto consistency. Manual trend samples can have
   null electrical targets. Continue commits the migrated revision. Unknown
   versions are rejected; previous-revision recovery UI remains planned.
@@ -172,7 +189,7 @@ For an extension:
    together. Retain support for the saved version-1 hold definitions.
 3. Add any new plant/economy/receipt fields to the explicit serializer and a
    tested migration from existing versions. Never silently fill missing required
-   schema-2 fields; legacy additions belong only in explicit migrations.
+   schema-3 fields; legacy additions belong only in explicit migrations.
 4. Update the introduction, progression copy and actual-state checklist. Adding
    a definition alone does not implement new objective behavior or paid contracts.
 5. Test insertion before issuance, during active/ready work and after completion;
@@ -236,6 +253,16 @@ iteration. Browser coverage runs all eight assignments, Hard save/Continue,
 Manual success retention, real isolation tests and desktop/mobile maintenance fit.
 Companion coverage rejects remote Auto and isolated-pump starts at the host.
 No image publishing or deployment was performed for this extension.
+
+The Computer systems rack extension passed 163 unit/model/session tests,
+the production build, focused rack/layout checks, the full browser regression
+against the final build and the focused companion check. Shared browser coverage
+includes 3D mesh picking, diagnostics, real service/boot/test evidence, camera
+independence, mobile fit, reduced motion, pause/offscreen suspension, context-loss
+handling and detach/reconnect disposal. Three-tab keyboard wrap/Home/End checks
+are updated. Companion coverage verifies host-owned rack controls and the Auto
+lock during computing loss. No extra authored assignment, publishing or deployment
+is included in this extension.
 
 | Workflow source | Result |
 | --- | --- |

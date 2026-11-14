@@ -101,7 +101,7 @@ function generationHoldConditions(assignment, sim) {
     return {
         start: !objective.needsStart || sim.startSequence > assignment.baselineStarts,
         running: sim.running && !sim.tripped && !sim.condition.meltdown,
-        regulation: sim.autoMode ? !objective.manualOnly && sim.autoObjective === 'power' && sim.autoElectricalTarget === objective.targetMw
+        regulation: sim.autoMode ? sim.computers.automationAvailable && !objective.manualOnly && sim.autoObjective === 'power' && sim.autoElectricalTarget === objective.targetMw
             : objective.manualAllowed === true,
         following: !sim.gridDispatch.enabled,
         circulation: sim.primaryFlow >= 20 && sim.secondaryFlow >= 20,

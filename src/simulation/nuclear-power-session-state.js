@@ -15,7 +15,7 @@ export function captureSessionState(simulation) {
 }
 
 export function restoreSessionState(state, simulation = new NuclearPowerSimulation()) {
-    const sections = ['condition', 'fuel', 'supply', 'hydraulics', 'components', 'gridDispatch', 'water', 'work'];
+    const sections = ['condition', 'fuel', 'supply', 'hydraulics', 'components', 'gridDispatch', 'water', 'work', 'computers'];
     for (const key of Object.keys(simulation)) {
         if (!sections.includes(key) && Object.hasOwn(state, key)) simulation[key] = state[key];
     }
@@ -52,7 +52,8 @@ export function remoteSimulation(simulation, send) {
         if (key === 'supply') return supply;
         // Actions outside the first companion's scope stay desktop-owned.
         if (['tick', 'reset', 'repairComponents', 'injectFault', 'startObjective', 'startScenario',
-            'inspectEquipment', 'createWorkOrder', 'workOrderAction', 'setWaterControl', 'sampleWater'].includes(key)) return () => false;
+            'inspectEquipment', 'createWorkOrder', 'workOrderAction', 'setWaterControl', 'sampleWater',
+            'setComputerEnabled', 'selectProcessServer', 'diagnoseComputer'].includes(key)) return () => false;
         const value = Reflect.get(target, key);
         return typeof value === 'function' ? value.bind(target) : value;
     } });

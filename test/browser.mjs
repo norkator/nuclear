@@ -17,6 +17,7 @@ import { checkTurbineOverload } from './turbine-overload.browser.mjs';
 import { checkCoolingTower } from './cooling-tower.browser.mjs';
 import { waitForChrome } from './chrome-startup.mjs';
 import { checkCompanyGame } from './company-game.browser.mjs';
+import { checkComputerSystems } from './computer-systems.browser.mjs';
 import { captureConsoleLayout, checkConsoleLayout, checkBatchedConsoleVisibility } from './console-layout.browser.mjs';
 
 const dist = fileURLToPath(new URL('../dist/', import.meta.url));
@@ -145,7 +146,8 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         const focusedCooling = process.env.NUCLEAR_BROWSER_FOCUS === 'cooling';
         const focusedGame = process.env.NUCLEAR_BROWSER_FOCUS === 'game';
         const focusedLayout = process.env.NUCLEAR_BROWSER_FOCUS === 'layout';
-        if (!focusedEquipment && !focusedCooling && !focusedGame && !focusedLayout) {
+        const focusedComputers = process.env.NUCLEAR_BROWSER_FOCUS === 'computers';
+        if (!focusedEquipment && !focusedCooling && !focusedGame && !focusedLayout && !focusedComputers) {
             // Check the actual shipped HTML with JavaScript disabled, as a crawler sees it.
             await page('Emulation.setScriptExecutionDisabled', { value: true });
             for (const entry of pages) {
@@ -200,6 +202,15 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
             console.log(`Console layout browser checks passed; artifacts: ${artifacts}`);
             await send('Browser.close');
             return;
+        }
+        if (focusedComputers || !process.env.NUCLEAR_BROWSER_FOCUS) {
+            await checkComputerSystems({ consoleCode, action, input, page, until, screenshot });
+            if (focusedComputers) {
+                assert.deepEqual(exceptions, []);
+                console.log(`Computer rack browser checks passed; artifacts: ${artifacts}`);
+                await send('Browser.close');
+                return;
+            }
         }
         if (!focusedEquipment && !focusedCooling) {
             await checkCompanyGame({ consoleCode, action, input, page, evaluate, until, screenshot, send, baseUrl });
@@ -1610,9 +1621,13 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         assert.equal(await consoleCode('return s.querySelector("[data-action=replace-all-fuel]").disabled;'), false);
         await action('close-core');
         await consoleCode('s.querySelector("#maintenance-tab").dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowRight",bubbles:true}));');
+        assert.equal(await consoleCode('return c.plantTab;'), 'computers');
+        await consoleCode('s.querySelector("#computers-tab").dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowRight",bubbles:true}));');
         assert.equal(await consoleCode('return c.plantTab;'), 'reactor');
         await consoleCode('s.querySelector("#reactor-tab").dispatchEvent(new KeyboardEvent("keydown",{key:"End",bubbles:true}));');
-        assert.equal(await consoleCode('return c.plantTab;'), 'maintenance');
+        assert.equal(await consoleCode('return c.plantTab;'), 'computers');
+        await consoleCode('s.querySelector("#computers-tab").dispatchEvent(new KeyboardEvent("keydown",{key:"Home",bubbles:true}));');
+        assert.equal(await consoleCode('return c.plantTab;'), 'reactor');
         await page('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1120, deviceScaleFactor: 1, mobile: false });
         await consoleCode('const box=s.querySelector("#light-theme");box.checked=false;box.dispatchEvent(new Event("change",{bubbles:true}));');
         await tab('reactor');

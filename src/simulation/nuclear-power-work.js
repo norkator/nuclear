@@ -4,12 +4,13 @@
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
 import { PUMPS, pumpDefinition } from './nuclear-power-pumps.js';
+import { COMPUTER_UNITS, COMPUTER_IDS, isComputer } from './nuclear-power-computers-model.js';
 
 export const MONITORED_EQUIPMENT = [...PUMPS.map(p => p.id), 'turbine'];
-export const WORK_EQUIPMENT = [...MONITORED_EQUIPMENT, 'exchanger', 'condenser', 'waterFilter', 'intake'];
+export const WORK_EQUIPMENT = [...MONITORED_EQUIPMENT, 'exchanger', 'condenser', 'waterFilter', 'intake', ...COMPUTER_IDS];
 export const WORK_NAMES = Object.fromEntries([...PUMPS.map(p => [p.id, `Pump ${p.key}`]),
     ['turbine', 'Turbine / generator'], ['exchanger', 'Heat exchanger'], ['condenser', 'Condenser'],
-    ['waterFilter', 'Purification filter'], ['intake', 'Cooling-water intake']]);
+    ['waterFilter', 'Purification filter'], ['intake', 'Cooling-water intake'], ...COMPUTER_UNITS.map(unit => [unit.id, unit.name])]);
 const lockedStates = ['isolated', 'serviced'];
 export const WORK_TEST_SECONDS = 10;
 
@@ -62,6 +63,7 @@ export class PlantWork {
     }
 
     readiness(sim, equipment) {
+        if (isComputer(equipment)) return sim.computers.serviceReadiness(sim, equipment);
         const pump = pumpDefinition(equipment);
         const checks = [
             ...sim.condition.repairReadiness(sim).checks,
@@ -85,7 +87,8 @@ export class PlantWork {
         if (action === 'isolate' && order.status === 'planned' && this.readiness(sim, equipment).ready) {
             order.status = 'isolated'; order.isolatedAt = sim.elapsed;
         } else if (action === 'service' && order.status === 'isolated' && this.readiness(sim, equipment).ready) {
-            if (equipment === 'waterFilter') sim.water.filterLoad = 0;
+            if (isComputer(equipment)) { if (!sim.computers.service(sim, equipment, order.id)) return false; }
+            else if (equipment === 'waterFilter') sim.water.filterLoad = 0;
             else if (equipment === 'intake') sim.water.intakeDebris = 0;
             else if (!sim.components.action(equipment, 'repair', false, order.id)) return false;
             order.status = 'serviced'; order.servicedAt = sim.elapsed;
@@ -104,7 +107,7 @@ export class PlantWork {
             const id = order.equipment, pump = pumpDefinition(id), item = sim.components.items[id];
             const healthy = !sim.tripped && !sim.condition.meltdown && sim.condition.fault === 'none'
                 && !sim.components.hasFaults && !sim.condition.damaged && !sim.components.damaged;
-            const met = healthy && (pump ? sim[id] && item.actual.speed >= 20 && item.actual.flow >= 20
+            const met = isComputer(id) ? !sim.condition.meltdown && sim.computers.testReady(id) : healthy && (pump ? sim[id] && item.actual.speed >= 20 && item.actual.flow >= 20
                 && item.actual.pressure <= 145
                 : id === 'waterFilter' ? sim.water.purification > .5 && sim.water.filterLoad < 80 && sim.water.conductivity <= 2
                 : id === 'intake' ? sim.water.makeup > .5 && sim.water.coolingFactor >= .95 && sim.secondaryFlow >= 20

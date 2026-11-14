@@ -1,0 +1,53 @@
+/*
+ * Pörssiohjain - Energy usage optimization platform
+ * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
+ * Licensed under the Pörssiohjain Personal Use License v1.0.
+ */
+.computer-panel { display: flex; flex-direction: column; gap: 12px; padding: 14px; min-width: 0; }
+.computer-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.computer-heading .eyebrow { font-size: 9px; letter-spacing: 1px; color: var(--muted); }
+.computer-heading h2 { margin: 5px 0 0; font-size: 16px; }
+.computer-health { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 5px; font-size: 11px; }
+.computer-health strong { color: var(--cool); }
+.computer-health span { color: var(--muted); font-variant-numeric: tabular-nums; }
+.computer-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 12px; min-width: 0; }
+.computer-rack-viewport { position: relative; min-width: 0; height: 500px; border: 1px solid var(--border); border-radius: 6px; background: radial-gradient(ellipse at 50% 35%, #29445366, transparent 75%); overflow: hidden; }
+.computer-rack-scene { position: absolute; inset: 0; width: 100%; height: 100%; }
+.computer-rack-canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.computer-rack-canvas:active { cursor: grabbing; }
+.computer-rack-canvas:focus-visible { outline: 2px solid var(--cool); outline-offset: -3px; }
+.computer-camera-tools { position: absolute; display: flex; gap: 5px; left: 10px; bottom: 10px; }
+.computer-unit-list { display: grid; align-content: start; gap: 9px; min-width: 0; }
+.computer-unit-list button { display: grid; gap: 7px; text-align: left; border: 1px solid var(--border); background: transparent; color: inherit; padding: 12px; border-radius: 5px; }
+.computer-unit-list small { color: var(--muted); font: 9px Consolas, monospace; }
+.computer-unit-list strong { font-size: 12px; }
+.computer-unit-list span { font-size: 10px; color: var(--cool); overflow-wrap: anywhere; }
+.computer-unit-list button:is(:hover, :focus-visible, [aria-expanded="true"]) { border-color: var(--cool); background: #69b9b810; }
+.computer-note, .computer-view-status { color: var(--muted); font-size: 10px; line-height: 1.6; margin: 0; }
+.computer-view-status { position: absolute; inset: 0; display: grid; place-content: center; padding: 24px; text-align: center; }
+.computer-dialog { width: min(590px, calc(100vw - 24px)); }
+.computer-dialog .equipment-dialog-body { display: grid; gap: 14px; }
+.computer-dialog p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.computer-run, .computer-inspection-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.computer-run > strong { color: var(--cool); font-size: 12px; }
+.computer-readings { display: grid; gap: 9px; margin: 0; }
+.computer-readings > div { display: flex; justify-content: space-between; gap: 14px; font-size: 12px; }
+.computer-readings dt { color: var(--muted); }
+.computer-readings dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.computer-work-order { display: grid; gap: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
+.computer-work-order h3 { margin: 0; font-size: 13px; }
+.computer-work-order progress { width: 100%; accent-color: var(--cool); }
+.computer-service-checks { display: grid; gap: 8px; list-style: none; padding: 0; margin: 0; font-size: 11px; color: var(--warm); }
+.computer-service-checks [data-ready="true"] { color: var(--cool); }
+:host([data-theme="light"]) .computer-rack-viewport { background: radial-gradient(ellipse at 50% 35%, #b6cbd4, #d7e2e8); }
+@container nuclear-console (min-width: 1400px) {
+    :host([data-screen="desktop"]) .computer-panel { flex: 1; min-height: 0; overflow-y: auto; }
+    .computer-workspace { flex: 1; min-height: 250px; }
+    .computer-rack-viewport { height: 100%; min-height: 250px; }
+}
+@media (max-width: 850px) {
+    .computer-panel { padding: 10px; }
+    .computer-workspace { grid-template-columns: minmax(0, 1fr); }
+    .computer-rack-viewport { height: 420px; }
+    .computer-unit-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

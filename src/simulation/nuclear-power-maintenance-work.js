@@ -4,6 +4,7 @@
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
 import { MONITORED_EQUIPMENT, WORK_EQUIPMENT, WORK_NAMES, WORK_TEST_SECONDS } from './nuclear-power-work.js';
+import { isComputer } from './nuclear-power-computers-model.js';
 const text = (node, value) => { if (node.textContent !== value) node.textContent = value; };
 const stages = { planned: 'Planned', isolated: 'Isolated · start inhibited', serviced: 'Serviced · isolation retained',
     testing: 'Functional test', ready: 'Test verified', completed: 'Returned to service' };
@@ -73,7 +74,7 @@ export function updateWorkPanel(host) {
         row.querySelector('progress').value = order.held;
         row.querySelector('progress').hidden = !['testing', 'ready', 'completed'].includes(order.status);
         text(row.querySelector('.work-order-proof'), ['testing', 'ready', 'completed'].includes(order.status)
-            ? `${order.held.toFixed(1)} / ${WORK_TEST_SECONDS} s actual functional test. ${order.equipment.startsWith('pump') ? 'Run this pump: actual speed/flow ≥20%, pressure ≤145%.' : order.equipment === 'waterFilter' ? 'Enable purification: actual >50%, conductivity ≤2 µS/cm, filter <80%.' : order.equipment === 'intake' ? 'Restore make-up >50%, secondary flow ≥20%, cooling-water capacity ≥95%.' : 'Restore healthy generation above 20 MW; turbine test also requires shaft ≥90% and breaker closed.'}` : 'Establish every isolation check below before service.');
+            ? `${order.held.toFixed(1)} / ${WORK_TEST_SECONDS} s actual functional test. ${isComputer(order.equipment) ? 'Switch the unit ON: actual online state, temperature below 60 °C; cooling airflow ≥80%, UPS charge ≥25% where applicable.' : order.equipment.startsWith('pump') ? 'Run this pump: actual speed/flow ≥20%, pressure ≤145%.' : order.equipment === 'waterFilter' ? 'Enable purification: actual >50%, conductivity ≤2 µS/cm, filter <80%.' : order.equipment === 'intake' ? 'Restore make-up >50%, secondary flow ≥20%, cooling-water capacity ≥95%.' : 'Restore healthy generation above 20 MW; turbine test also requires shaft ≥90% and breaker closed.'}` : 'Establish every isolation check below before service.');
         row.querySelector('.work-order-checks').hidden = !['planned', 'isolated', 'serviced'].includes(order.status);
         row.querySelector('.work-order-checks').replaceChildren(...readiness.checks.map(check => {
             const li = document.createElement('li'); li.textContent = `${check.ready ? '✓' : '○'} ${check.label}`; li.dataset.ready = check.ready; return li;

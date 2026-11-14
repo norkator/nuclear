@@ -53,7 +53,7 @@ rotor tolerances, pool records, and no offline advancement. Switching sessions
 ends pairing and clears local motion/audio; companions never tick a career.
 Keep accepting/reporting/import/export and new-career actions desktop owned.
 Company inbox/mission/finance summaries on companions are still planned.
-Save schema version 2 has a tested version-1 migration preserving old progress,
+Save schema version 3 has tested version-1/2 migrations preserving old progress,
 terms, heat/damage/trips and sampled rotor tolerance; older careers become Easy.
 Previous-revision recovery UI and career restart checkpoints remain planned.
 Add tested migrations before changing required saved fields or introducing
@@ -75,6 +75,21 @@ foul the exchanger; intake/basin restrictions reduce condenser capacity. All new
 state follows plant time, saves explicitly and hydrates companion prototypes;
 companions cannot manage orders/samples. Service remains free. Focused coverage:
 `node --test test/nuclear-power-work.test.mjs`.
+
+The third desktop tab, Computer systems, has a lazy 3D rack with no diagram or
+presentation selector. If 3D is unavailable, keep native unit inspection and
+maintenance buttons usable alongside a status message.
+`nuclear-power-computers-model.js` owns redundant process servers, network, UPS,
+cooling, boot and retained hardware faults. One online server plus network supports
+Auto; computing loss holds requested targets/suspends dispatch while independent
+Manual controls, instruments and ESD remain live. Hard never gains Auto. Rack
+power/diagnostics/maintenance are desktop-owned. All five targets reuse work
+orders with hardware-specific OFF/cool/redundancy/AC/fan interlocks and actual
+online proof. Preserve schema-3 rack state and explicit v1→v2→v3 migrations,
+companion prototypes, shared frame ownership, offscreen suspension, reduced motion,
+separate camera, keyboard picking, floating-window focus and GPU disposal/reconnect.
+Use `npm run test:browser:computers` during iteration; the full browser harness
+runs the same rack checks. Existing authored career count remains eight.
 
 ## UI changes and browser verification
 

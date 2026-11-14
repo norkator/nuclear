@@ -13,6 +13,7 @@ import { PUMPS, CIRCUITS, circuitPumps, pumpDefinition, PumpCircuits, FLOW_SCALE
 import { ELECTRICAL_TARGET_MAX_MW } from './nuclear-power-turbine.js';
 import { WaterSystems } from './nuclear-power-water.js';
 import { PlantWork } from './nuclear-power-work.js';
+import { PlantComputers } from './nuclear-power-computers-model.js';
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const approach = (value, target, seconds, response) => target + (value - target) * Math.exp(-seconds / response);
@@ -86,6 +87,7 @@ export class NuclearPowerSimulation {
         this.components = new ComponentProcesses(this);
         this.water = new WaterSystems();
         this.work = new PlantWork();
+        this.computers = new PlantComputers();
         this.gridDispatch = new GridDispatcher();
         this.record('Simulation initialized. Reactor stopped; start a pump in each circuit before reactor Start. Backup pumps require manual enable. Auto electrical output control; process fluctuations enabled.', 'info', 'system');
         this.sample();
@@ -103,6 +105,9 @@ export class NuclearPowerSimulation {
     workOrderAction(id, action) { return this.work.action(this, id, action); }
     setWaterControl(key, value) { return this.water.setControl(this, key, value); }
     sampleWater() { return this.water.sample(this); }
+    setComputerEnabled(id, enabled) { return this.computers.setEnabled(this, id, enabled); }
+    selectProcessServer(id) { return this.computers.prefer(this, id); }
+    diagnoseComputer(id) { return this.computers.diagnose(this, id); }
 
     pumpIsolated(id) {
         return this.work.locked(id) || ['exchanger', 'condenser', 'intake'].some(target => this.work.locked(target));
@@ -305,7 +310,7 @@ export class NuclearPowerSimulation {
     }
 
     setAutoMode(enabled) {
-        if (typeof enabled !== 'boolean' || enabled && !this.autoAllowed) return false;
+        if (typeof enabled !== 'boolean' || enabled && (!this.autoAllowed || !this.computers.automationAvailable)) return false;
         if (this.autoMode === enabled) return;
         this.autoMode = enabled;
         this.clearRodOverrides();
@@ -363,6 +368,7 @@ export class NuclearPowerSimulation {
 
     regulate() {
         if (!this.autoMode || !this.running || this.tripped || this.elapsed - this.lastControlTime < 1) return;
+        if (!this.computers.automationAvailable) { this.regulationLimit = 'Process computers unavailable: targets held; select Manual to operate'; return; }
         const dt = Math.min(1, this.elapsed - this.lastControlTime);
         this.lastControlTime = this.elapsed;
         const error = this.autoTemperature - this.temperature;
@@ -464,7 +470,10 @@ export class NuclearPowerSimulation {
             ['diesel-fuel', this.supply.generators.some(g => g.fuel < 15), 'Backup diesel fuel reserve low', 'warning'],
             ['water-quality', this.water.conductivity > 2, 'Water conductivity high: check purification and sample water', 'warning'],
             ['water-filter', this.water.filterLoad >= 80, 'Purification filter loaded: plan cooled service', 'warning'],
-            ['cooling-water', this.water.intakeDebris > 20 || this.water.basinLevel < 25, 'Cooling-water capacity restricted: inspect intake and basin', 'warning']
+            ['cooling-water', this.water.intakeDebris > 20 || this.water.basinLevel < 25, 'Cooling-water capacity restricted: inspect intake and basin', 'warning'],
+            ['computer-control', !this.computers.automationAvailable, 'Process computing unavailable: Auto suspended; Manual controls remain available', 'warning'],
+            ['computer-temperature', this.computers.rackTemperature > 50 || Object.values(this.computers.units).some(unit => unit.fault), 'Computer rack hot or hardware fault retained: inspect Computer systems', 'warning'],
+            ['computer-ups', this.computers.charge < 20 || this.computers.batteryHealth < 50, 'Computer UPS reserve or battery health low', 'warning']
         ];
         const next = [];
         for (const [id, active, message, severity] of conditions) {
@@ -487,6 +496,7 @@ export class NuclearPowerSimulation {
         this.condition.prepare(dt);
         this.components.prepare(dt);
         this.supply.advance(this, dt);
+        this.computers.advance(this, dt);
         this.water.advance(this, dt);
         this.gridDispatch.advance(this, dt);
         this.regulate();
@@ -585,6 +595,7 @@ export class NuclearPowerSimulation {
         return {
             ...this.readings(),
             water: structuredClone(this.water),
+            computers: structuredClone(this.computers),
             work: { inspections: structuredClone(this.work.inspections), orders: structuredClone(this.work.orders) },
             components: structuredClone({ items: this.components.items, maintenance: this.components.maintenance, objective: this.components.objective, scenario: this.components.scenario }),
             // Requests remain distinct from reported signals for a future scale-model adapter.

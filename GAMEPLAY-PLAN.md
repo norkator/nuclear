@@ -6,7 +6,7 @@ Licensed under the Pörssiohjain Personal Use License v1.0.
 # Nuclear Power game and company progression plan
 
 Status: extended 2026-11-14. Eight operations/maintenance assignments, Easy/Hard
-careers, condition monitoring, work orders, water treatment, reports and schema-2
+careers, condition monitoring, work orders, water treatment, reports, the Computer systems rack and schema-3
 local saves with version-1 migration are implemented. Economy, bankruptcy and
 the remaining original catalogue are still planned. See README.md and
 doc/game-development.md for current behavior. The catalogue below remains the
@@ -58,7 +58,7 @@ and company summaries on companions are requirements, not shipped features.
 | Pool | Representative batches, 35 racks, cooling and dispatch | Authoritative business records and paid dispatch |
 | Journal | Bounded events/incident cause plus a saved company inbox, reports and achievement archive | Financial receipts and fuller shift/debrief reports |
 | Companion | Desktop host, mirrored state, validated commands and host-routed fuel replacement | Read-only mission/finance summaries and host-owned game actions |
-| Persistence | Schema-2 IndexedDB saves, tested version-1 migration, JSON backups and one writer tab | Recovery UI and economic state |
+| Persistence | Schema-3 IndexedDB saves, tested version-1/2 migrations, JSON backups and one writer tab | Recovery UI and economic state |
 
 Keep fuel assemblies separate from control rods. An assignment to change fuel
 means replacing fuel assemblies, not replacing or removing control rods.
@@ -852,7 +852,7 @@ The checkpoint below distinguishes implemented behavior from the remaining plan.
 
 Eight assignments, inbox, actual-state work evidence, reports, achieved goals and
 archive are implemented. New careers offer Easy and Hard. Career saves use
-schema 2 with a tested version-1 migration and atomic current/previous revisions,
+schema 3 with tested version-1/2 migrations and atomic current/previous revisions,
 full explicit plant/pool serialization, JSON backup and a single-tab Web Lock.
 Restore retains trips, heat, damage and sampled rotor strength. Reconnection
 reacquires ownership before ticking. Free operation remains the default and is
