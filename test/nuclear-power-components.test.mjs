@@ -183,6 +183,7 @@ test('progressive fault clearing preserves wear, cooldown service preserves heat
     assert.equal(i.wear, wear);
     assert.equal(s.componentAction('pumpA', 'repair'), false);
     s.trip(); advance(s, 240);
+    s.togglePump('A'); advance(s, 15);
     const heat = s.condition.heatReserve, reserve = s.fuel.remaining, hours = i.hours;
     assert.equal(s.componentAction('pumpA', 'repair'), true);
     assert.equal(i.wear, 0); assert.equal(s.condition.heatReserve, heat);

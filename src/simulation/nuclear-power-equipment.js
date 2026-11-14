@@ -161,7 +161,7 @@ export function updateEquipment(host) {
             const li=document.createElement('li'); li.textContent=`T+${host.time(event.time)} · ${event.message}`; log.append(li);
         }
         if (root.matches(':popover-open')) renderTrend(root,item,sim.elapsed);
-        for (const button of root.querySelectorAll('[data-component-action="repair"]')) button.disabled=!sim.components.serviceReady;
+        for (const button of root.querySelectorAll('[data-component-action="repair"]')) button.disabled=!sim.components.serviceReady || Boolean(sim.work.current(id));
         if (pumpDefinition(id)) updatePumpConsole(host, root);
         if (id === 'exchanger') updateExchanger(host, root);
         if (generation(id)) updateGenerationConsole(host, root);

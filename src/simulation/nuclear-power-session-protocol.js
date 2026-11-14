@@ -53,7 +53,8 @@ export function applySessionCommand(simulation, command, actions = {}) {
         // and starts the crane. Never fall through to a model-only replacement.
         case 'replaceFuel': return actions.replaceFuel?.(first) === true;
         case 'replaceAllFuel': return actions.replaceAllFuel?.() === true;
-        case 'setPumpEnabled': if (simulation[`pump${first}`] !== second) simulation.togglePump(first); break;
+        case 'setPumpEnabled': if (simulation[`pump${first}`] !== second) simulation.togglePump(first); return simulation[`pump${first}`] === second;
+        case 'setAutoMode': return simulation.setAutoMode(first) !== false;
         case 'setPaused': if (simulation.paused !== first) simulation.togglePause(); break;
         case 'setGridAvailable': simulation.supply.setGrid(simulation, first); break;
         case 'setTurbineConnected': simulation.supply.setTurbine(simulation, first); break;

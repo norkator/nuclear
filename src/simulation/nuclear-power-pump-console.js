@@ -134,6 +134,7 @@ export function updatePumpConsole(host, root) {
         speed: `${item.actual.speed.toFixed(1)}%`, flow: `${Math.round(item.actual.flow * 48)} m³/h`, pressure: `${Math.round(item.actual.pressure)}% ΔP` };
     for (const element of root.querySelectorAll('[data-pump-value]')) element.textContent = display[element.dataset.pumpValue];
     root.querySelector('.pump-console-run').setAttribute('aria-checked', String(sim[id]));
+    root.querySelector('.pump-console-run').disabled = !sim[id] && sim.pumpIsolated(id);
     root.querySelector('.component-owner').textContent = item.override ? 'MANUAL OVERRIDE · your motor speed target'
         : sim.autoMode && sim.running ? 'AUTO · speed follows circulation target' : 'MANUAL · speed set by operator';
     root.querySelector('.pump-console').dataset.running = String(item.actual.speed > .5);

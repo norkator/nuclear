@@ -5,10 +5,13 @@ Licensed under the Pörssiohjain Personal Use License v1.0.
 -->
 # Nuclear Power game and company progression plan
 
-Status: implementation started, 2026-11-12. Phase 1 commissioning is implemented:
-optional Start/Continue, company inbox, startup/reliability assignments, reports,
-achievements, local plant saves and stable mission IDs. Economy, bankruptcy and
-the remaining catalogue are still planned. See README.md for current behavior.
+Status: extended 2026-11-14. Eight operations/maintenance assignments, Easy/Hard
+careers, condition monitoring, work orders, water treatment, reports and schema-2
+local saves with version-1 migration are implemented. Economy, bankruptcy and
+the remaining original catalogue are still planned. See README.md and
+doc/game-development.md for current behavior. The catalogue below remains the
+larger economy roadmap; the implemented maintenance qualification sequence is
+listed in the handoff.
 
 ## 1. Agreed direction
 
@@ -47,15 +50,15 @@ and company summaries on companions are requirements, not shipped features.
 | Area | Already available | Game work needed |
 | --- | --- | --- |
 | Startup | Cold plant, explicit pumps, startup checks and assigned startup hold | Further commissioning/operating assignments |
-| Objectives | Existing exercises plus two company missions with saved holds, capability prerequisites, reports and achievements | New objective kinds, failure/deadline states and monetary rewards |
+| Objectives | Eight missions using generation, condition-round, work-order and water-quality evidence; capabilities, reports and achievements | Grid contracts, economic consequences and monetary rewards |
 | Grid controller | Capacity-aware gross MW requests, Auto following and status | Contracts, response scoring, electricity settlement and company messages |
-| Equipment | Four independent pumps, cutaways, overrides, readings and trends | Assigned inspections and tests with pass criteria |
+| Equipment | Four independent pumps, cutaways, condition rounds, isolated work orders and functional tests | Further diagnosis and paid work orders |
 | Failures | Symptom-first scenarios, progressive faults, wear and retained damage | Scheduled incidents, diagnosis tasks and repair costs |
 | Fuel | Assembly reserves, explicit replacement and interlocks | Assigned outages, paid replacement and durable service receipts |
 | Pool | Representative batches, 35 racks, cooling and dispatch | Authoritative business records and paid dispatch |
 | Journal | Bounded events/incident cause plus a saved company inbox, reports and achievement archive | Financial receipts and fuller shift/debrief reports |
 | Companion | Desktop host, mirrored state, validated commands and host-routed fuel replacement | Read-only mission/finance summaries and host-owned game actions |
-| Persistence | Theme preference, schema-1 IndexedDB career saves, JSON backups and one writer tab | Save migrations, recovery UI and economic state |
+| Persistence | Schema-2 IndexedDB saves, tested version-1 migration, JSON backups and one writer tab | Recovery UI and economic state |
 
 Keep fuel assemblies separate from control rods. An assignment to change fuel
 means replacing fuel assemblies, not replacing or removing control rods.
@@ -98,12 +101,15 @@ separate archived result for a finished or bankrupt career until replaced.
 
 ### Difficulty
 
-- **Standard career:** the intended game, with company assignments, costs,
-  limited credit and bankruptcy. This is the initial implementation target.
-- **Guided practice:** free operation plus replayable mission briefs and hints;
-  practice results never transfer money or achievements into a career.
-- More difficult careers can follow later. Do not divide the first release
-  across several separately balanced economic systems.
+- **Easy:** Auto and Manual operation are available.
+- **Hard:** Manual operation only; enabling Auto is rejected by the plant model,
+  including paired-screen commands. Difficulty is saved for the whole career.
+- New power assignments accept actual Manual operation. Qualifying Manual time
+  accumulates; out-of-envelope conditions pause progress without a failure deadline.
+  Verified success stays ready until reported. Auto keeps continuous holds.
+- Migration treats older careers as Easy and preserves already issued terms.
+- Free operation remains independent, with Auto available. Costs, limited credit
+  and bankruptcy remain planned, with no separate economy balance for difficulty yet.
 
 ## 4. Company inbox: how work reaches the player
 
@@ -202,6 +208,12 @@ implemented as commissioning; the first six together form the planned initial
 company/economy slice. Some assignments span several operations;
 these are not twenty copies of the same stable-output timer.
 
+The current free maintenance chapter additionally implements condition rounds,
+preventive pump/filter/intake orders, water-quality proof and return to generation.
+Its eight current assignments are listed in `doc/game-development.md`. The table
+below continues to describe the larger economic catalogue; assigned paid faults,
+contracts and fuel logistics remain planned.
+
 Chapter order describes the intended learning path, not numeric prerequisites.
 Use explicit stable IDs and capability requirements as described in section 14.
 
@@ -212,7 +224,7 @@ Use explicit stable IDs and capability requirements as described in section 14.
 | `grid.first-contract` | First supply contract / Grid | Serve three issued requests and reach the published service score; assess actual response rather than accepting target changes as success |
 | `pumps.acceptance-tests` | Test all four pumps / Maintenance | During a planned stopped/cool window, run A, A2, B and B2 individually; observe actual speed, flow and pressure for ten seconds each, then return to the requested configuration |
 | `maintenance.first-repair` | Falling primary circulation / Maintenance | Diagnose a scripted mechanical restriction, contain it, clear the diagnosed defect through a paid work order, repair retained damage if present, and satisfy all isolation/cooling checks |
-| `operation.return-to-service` | Return the unit to service / Boss | After that work order, explicitly restart and prove stable delivery for two minutes; repair itself must not restart anything |
+| `operation.return-to-service` | Return the unit to service / Boss | Current free chapter: explicit restart after preventive service and 60 qualifying seconds at 200 ± 5 MW; later paid fault recovery can extend this objective in future issued terms |
 | `diesel.standby-proof` | Prove standby engines / Maintenance | In a planned test window, start each diesel, observe actual running state, stop it and restore the specified standby readiness |
 | `fuel.selective-outage` | Replace low-reserve fuel / Fuel | Identify the assigned low-reserve assemblies, shut down and cool, then replace those assemblies through existing interlocks |
 | `fuel.pool-collection` | Clear a cooled batch / Logistics | Dispatch the assignment's authoritative cooled batch to its stated destination; verify assembly count and pay the quoted fee |
@@ -742,8 +754,8 @@ budget and catastrophic-loss treatment before shipping monetary contracts.
 
 ### Phase 1 — optional game shell, inbox and durable progression
 
-Status: commissioning foundation implemented. See the continuation handoff for
-what is present and the migration/recovery/UI gaps still to address.
+Status: operations/maintenance chapter and version-1 save migration implemented.
+See the continuation handoff for current behavior and remaining recovery/economy gaps.
 
 Add explicit game entry/return, separate career ownership, saved mission graph,
 company inbox, live objectives, archive, achievements and IndexedDB persistence.
@@ -776,7 +788,8 @@ to the actual plant, and the catalogue supports several distinct saved shifts.
 ### Phase 4 — continued content and balance
 
 Add further company threads and missions using the insertion policies, more
-contract variants and optional difficulty settings. Consider upgrades, insurance,
+contract variants and further difficulty balancing. Easy/Hard control ownership
+already exists. Consider upgrades, insurance,
 crews, a larger physical fuel inventory or another plant only after the core
 game is enjoyable. Accounts, multiplayer, cloud saves, real mail, real money and
 hardware control remain separate proposals.
@@ -835,13 +848,17 @@ design values remain proposals to validate, without blocking the plan:
 This file defines the staged game, rollout and content-migration strategy.
 The checkpoint below distinguishes implemented behavior from the remaining plan.
 
-## Implementation checkpoint: commissioning foundation
+## Implementation checkpoint: operations and maintenance
 
-The first two assignments, inbox, live holds, reports, achieved goals and archive
-are implemented. Career saves use IndexedDB with atomic current/previous revisions,
+Eight assignments, inbox, actual-state work evidence, reports, achieved goals and
+archive are implemented. New careers offer Easy and Hard. Career saves use
+schema 2 with a tested version-1 migration and atomic current/previous revisions,
 full explicit plant/pool serialization, JSON backup and a single-tab Web Lock.
 Restore retains trips, heat, damage and sampled rotor strength. Reconnection
 reacquires ownership before ticking. Free operation remains the default and is
 parked independently during a career. No economy or game-driven incident exists
 yet; the remaining phases above retain their scope. New-mission insertion and
-pinned active terms have deterministic regression coverage.
+pinned active terms have deterministic regression coverage. Condition monitoring,
+explicit work orders/functional tests and water treatment are implemented; priced
+work orders, paid grid contracts and the rest of the original catalogue remain
+future work. See the handoff for the exact permanent IDs and save contract.

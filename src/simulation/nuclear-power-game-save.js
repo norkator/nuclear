@@ -5,9 +5,11 @@
  */
 import { CORE_CHANNELS, NuclearPowerSimulation } from './nuclear-power-model.js';
 import { FuelTransferAnimation } from './nuclear-power-refuelling.js';
+import { validObjective } from './nuclear-power-missions.js';
+import { MONITORED_EQUIPMENT, WORK_EQUIPMENT, WORK_TEST_SECONDS } from './nuclear-power-work.js';
 
-export const CAREER_SAVE_VERSION = 1;
-const ROOT_FIELDS = ['elapsed', 'startSequence', 'running', 'tripped', 'paused', 'demand', 'controlRods',
+export const CAREER_SAVE_VERSION = 2;
+const ROOT_FIELDS = ['elapsed', 'startSequence', 'running', 'tripped', 'paused', 'demand', 'controlRods', 'autoAllowed',
     'operatingRodTargets', 'power', 'temperature', 'returnTemperature', 'secondaryTemperature',
     'secondaryReturnTemperature', 'pumpA', 'pumpA2', 'pumpB', 'pumpB2', 'pumpASpeed', 'pumpA2Speed',
     'pumpBSpeed', 'pumpB2Speed', 'primaryFlow', 'secondaryFlow', 'autoMode', 'autoObjective',
@@ -21,6 +23,9 @@ const SECTION_FIELDS = {
     hydraulics: ['branches', 'pipes'],
     components: ['items', 'maintenance', 'objective', 'scenario', 'rampActive', 'turbineIntegrity'],
     gridDispatch: ['enabled', 'remaining', 'sequence', 'lastRequest'],
+    water: ['purificationEnabled', 'makeupEnabled', 'conductivity', 'filterLoad', 'intakeDebris', 'basinLevel',
+        'purification', 'makeup', 'sampleSequence', 'samples'],
+    work: ['sequence', 'inspectionSequence', 'inspections', 'orders'],
 };
 const TRANSFER_FIELDS = ['job', 'samples', 'nextSlot', 'poolTime', 'sampleSequence', 'dispatchHistory', 'dispatchedAssemblies'];
 const pick = (source, fields) => Object.fromEntries(fields.map(key => [key, source[key]]));
@@ -43,9 +48,67 @@ export function captureCareer(sim, transfer, career) {
         transfer: pick(transfer, TRANSFER_FIELDS) });
 }
 
+// Migrations only add newly introduced state. Existing heat, damage, rotor samples,
+// objective terms, achievements and IDs are copied without being recalculated.
+export function migrateCareerBundle(source) {
+    if (!source || ![1, CAREER_SAVE_VERSION].includes(source.schemaVersion)) throw new Error('Unsupported career save version.');
+    validateData(source);
+    const bundle = structuredClone(source);
+    if (bundle.schemaVersion === 1) {
+        if (!bundle.plant || !bundle.career || !Array.isArray(bundle.career.assignments)) throw new Error('Invalid legacy career.');
+        const defaults = new NuclearPowerSimulation();
+        bundle.plant.autoAllowed = true;
+        for (const section of ['water', 'work']) bundle.plant[section] = pick(defaults[section], SECTION_FIELDS[section]);
+        bundle.career.difficulty = 'easy';
+        for (const assignment of bundle.career.assignments) {
+            assignment.baselineInspections = 0; assignment.baselineOrders = 0; assignment.baselineSamples = 0;
+        }
+        bundle.schemaVersion = 2;
+    }
+    return bundle;
+}
+
+const bounded = (value, low, high) => Number.isFinite(value) && value >= low && value <= high;
+const counter = value => Number.isSafeInteger(value) && value >= 0;
+function validateMaintenance(plant) {
+    const { water, work, elapsed } = plant;
+    const waterRecord = record => record && bounded(record.conductivity, .2, 50)
+        && ['filterLoad', 'intakeDebris', 'basinLevel'].every(key => bounded(record[key], 0, 100));
+    if (!waterRecord(water) || !bounded(water.purification, 0, 1) || !bounded(water.makeup, 0, 1)
+        || !counter(water.sampleSequence) || water.samples.length > 40
+        || water.samples.some(sample => !waterRecord(sample) || !counter(sample.sequence) || sample.sequence < 1
+            || sample.sequence > water.sampleSequence || !bounded(sample.time, 0, elapsed))
+        || new Set(water.samples.map(sample => sample.sequence)).size !== water.samples.length) throw new Error('Invalid water-treatment records.');
+    if (!counter(work.sequence) || !counter(work.inspectionSequence) || work.orders.length > 50
+        || new Set(work.orders.map(order => order.id)).size !== work.orders.length) throw new Error('Invalid work-order records.');
+    for (const [id, reading] of Object.entries(work.inspections)) {
+        if (!MONITORED_EQUIPMENT.includes(id) || !reading || !counter(reading.sequence) || reading.sequence < 1
+            || reading.sequence > work.inspectionSequence || !bounded(reading.time, 0, elapsed)
+            || !['Normal', 'Watch trend', 'Service attention'].includes(reading.condition)
+            || !['speed', 'flow', 'vibration', 'bearingTemperature', 'lubricant'].every(key => bounded(reading[key], 0, 1000))) throw new Error('Invalid condition inspection.');
+    }
+    for (const order of work.orders) {
+        const statuses = ['planned', 'isolated', 'serviced', 'testing', 'ready', 'completed'];
+        const stage = statuses.indexOf(order?.status), sequence = Number(order?.id?.slice(3));
+        if (stage < 0 || !/^WO-[1-9]\d*$/.test(order.id) || !counter(sequence) || sequence > work.sequence
+            || !WORK_EQUIPMENT.includes(order.equipment) || !bounded(order.createdAt, 0, elapsed)
+            || !bounded(order.held, 0, WORK_TEST_SECONDS) || stage >= 4 && order.held !== WORK_TEST_SECONDS) throw new Error('Invalid work order.');
+        let previous = order.createdAt;
+        for (const [index, key] of ['isolatedAt', 'servicedAt', 'releasedAt', 'completedAt'].entries()) {
+            const required = stage >= [1, 2, 3, 5][index];
+            if (required ? !bounded(order[key], previous, elapsed) : order[key] !== null) throw new Error('Invalid work-order sequence.');
+            if (required) previous = order[key];
+        }
+    }
+    const open = work.orders.filter(order => order.status !== 'completed');
+    if (new Set(open.map(order => order.equipment)).size !== open.length) throw new Error('Duplicate open work order.');
+}
+
 // Strict shape checking keeps truncated/newer/foreign saves away from class hydration.
 function validateShape(value, template, path = 'save', depth = 0) {
     if (depth > 30) throw new Error('Save is too deeply nested.');
+    // Manual/temperature-regulated trend samples have no electrical target.
+    if (/^plant\.history\.\d+\.electricalTarget$/.test(path) && value === null) return;
     if (typeof template === 'number') {
         if (!Number.isFinite(value) || Math.abs(value) > 1e12) throw new Error(`Invalid ${path}.`);
     } else if (typeof template === 'string' || typeof template === 'boolean') {
@@ -62,25 +125,29 @@ function validateShape(value, template, path = 'save', depth = 0) {
     }
 }
 
-export function restoreCareerBundle(bundle) {
-    if (!bundle || bundle.schemaVersion !== CAREER_SAVE_VERSION) throw new Error('Unsupported career save version.');
-    validateData(bundle);
+export function restoreCareerBundle(source) {
+    const bundle = migrateCareerBundle(source);
     const sim = new NuclearPowerSimulation(), transfer = new FuelTransferAnimation(CORE_CHANNELS);
     const template = captureCareer(sim, transfer, { state: {} });
     validateShape(bundle.plant, template.plant, 'plant');
     validateShape(bundle.transfer, template.transfer, 'transfer');
+    validateMaintenance(bundle.plant);
     const state = bundle.career;
     if (!state || typeof state.id !== 'string' || !Array.isArray(state.assignments) || !Array.isArray(state.messages)
         || !Array.isArray(state.achievements) || !Array.isArray(state.capabilities) || !Number.isFinite(state.lastElapsed)
-        || state.assignments.length > 1000 || state.messages.length > 10000) throw new Error('Invalid company progress.');
+        || state.assignments.length > 1000 || state.messages.length > 10000
+        || !['easy', 'hard'].includes(state.difficulty)
+        || bundle.plant.autoAllowed !== (state.difficulty === 'easy')
+        || state.difficulty === 'hard' && bundle.plant.autoMode) throw new Error('Invalid company progress or difficulty.');
     for (const assignment of state.assignments) {
         const definition = assignment.definition, objective = definition?.objective;
         if (!['assigned', 'active', 'ready', 'completed'].includes(assignment.status)
-            || objective?.kind !== 'generation-hold' || !(objective.seconds > 0 && objective.seconds <= 86400)
-            || !Number.isFinite(objective.targetMw) || objective.targetMw < 0 || objective.targetMw > 650
-            || !Number.isFinite(objective.toleranceMw) || objective.toleranceMw < 0 || objective.toleranceMw > 650
+            || !validObjective(objective)
             || !Number.isFinite(assignment.held) || assignment.held < 0 || assignment.held > objective.seconds
-            || !Number.isFinite(assignment.baselineStarts) || typeof assignment.reason !== 'string'
+            || !counter(assignment.baselineStarts) || typeof assignment.reason !== 'string'
+            || !['baselineInspections', 'baselineOrders', 'baselineSamples'].every(key => counter(assignment[key]))
+            || assignment.baselineInspections > bundle.plant.work.inspectionSequence
+            || assignment.baselineOrders > bundle.plant.work.sequence || assignment.baselineSamples > bundle.plant.water.sampleSequence
             || !['id', 'title', 'sender', 'brief', 'completion', 'achievement'].every(key => typeof definition[key] === 'string')
             || !Array.isArray(definition.grants) || !definition.grants.every(item => typeof item === 'string')) throw new Error('Invalid saved assignment.');
     }

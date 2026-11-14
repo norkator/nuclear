@@ -1538,6 +1538,8 @@ export class NuclearPowerConsole extends HTMLElement {
         tripCover.setAttribute('aria-label', `${this.tripCoverOpen ? 'Close' : 'Open'} emergency shutdown cover`);
         this.shadowRoot.querySelector('[data-action="reset-trip"]').dataset.lamp = sim.tripped && sim.tripRecovery().ready ? 'warning' : 'off';
         const disabled = {
+            auto: !sim.autoAllowed,
+            ...Object.fromEntries(PUMPS.map(pump => [pump.id, !sim[pump.id] && sim.pumpIsolated(pump.id)])),
             start: !sim.startupReadiness().ready, stop: !sim.running, trip: sim.tripped || !this.tripCoverOpen,
             insert: sim.autoMode || !sim.running || sim.tripped || sim.rodTarget >= 100,
             withdraw: sim.autoMode || !sim.running || sim.tripped || sim.rodTarget <= 0,
@@ -1584,6 +1586,7 @@ export class NuclearPowerConsole extends HTMLElement {
         this.shadowRoot.querySelector('#fault-scenario').value = condition.fault;
         this.shadowRoot.querySelector('.electrical-target').hidden = sim.autoObjective !== 'power';
         for (const mode of ['manual', 'auto']) this.shadowRoot.querySelector(`[data-action="${mode}"]`).setAttribute('aria-pressed', String(sim.autoMode === (mode === 'auto')));
+        this.shadowRoot.querySelector('[data-action="auto"]').title = sim.autoAllowed ? 'Automatic operation' : 'Hard career: Manual operation only';
         const fluctuations = this.shadowRoot.querySelector('[data-action="fluctuations"]');
         fluctuations.textContent = `Fluctuations: ${sim.fluctuationsEnabled ? 'On' : 'Off'}`;
         fluctuations.setAttribute('aria-pressed', String(sim.fluctuationsEnabled));

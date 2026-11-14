@@ -90,6 +90,7 @@ export class ComponentProcesses {
     setSetting(id, key, value) {
         const item = this.items[id], entry = COMPONENT_SETTINGS[id]?.find(s => s.key === key);
         if (!Object.hasOwn(this.items, id) || !entry) return false;
+        if (this.sim.work?.locked(id) && !(key === 'breaker' && value === false)) return false;
         if (entry.type === 'number') {
             if (!Number.isFinite(value)) return false;
             value = clamp(value, entry.min, entry.max);
@@ -131,9 +132,15 @@ export class ComponentProcesses {
         if (this.maintenance.length > 100) this.maintenance.shift();
     }
 
-    action(id, action, silent = false) {
+    action(id, action, silent = false, orderId = null) {
         const item = this.items[id];
         if (!Object.hasOwn(this.items, id)) return false;
+        const order = this.sim.work?.current(id);
+        if (['repair', 'service'].includes(action) && order
+            && !(order.id === orderId && order.status === 'isolated' && this.sim.work.readiness(this.sim, id).ready)) {
+            item.reason = 'Use the open work order to isolate, service and test this equipment'; return false;
+        }
+        if (this.sim.work?.locked(id) && !['repair', 'service', 'clear', 'trip'].includes(action)) return false;
         const d = item.disturbance;
         if (action === 'pulse') { d.pulseRemaining = d.period; d.age = 0; }
         else if (action === 'oscillate') { d.enabled = !d.enabled; d.mode = 'continuous'; d.age = 0; }
@@ -144,6 +151,12 @@ export class ComponentProcesses {
             d.enabled = false; d.progressiveFault = false; d.pulseRemaining = 0; d.severity = 0; d.value = 0;
         } else if (['repair', 'service'].includes(action)) {
             if (!this.serviceReady) { item.reason = 'Service requires a cooled, stopped, fault-free, non-melted reactor'; return false; }
+            if (pumpDefinition(id) && (this.sim[id] || item.actual.speed >= .5)) {
+                item.reason = 'Switch this pump OFF and wait for the motor to stop before service'; return false;
+            }
+            if (id === 'turbine' && item.actual.shaftSpeed >= .5) {
+                item.reason = 'Wait for the turbine shaft to stop before service'; return false;
+            }
             if (id.endsWith('Pipes') && !this.sim.hydraulics.isolated(this.sim, id.replace('Pipes', ''))) {
                 item.reason = 'Switch both circuit pumps OFF and wait for motor/flow coast-down before pipe repair'; return false;
             }
@@ -231,7 +244,7 @@ export class ComponentProcesses {
                 }
             }
             if (id === 'exchanger') i.actual.transferFactor = (1 - i.actual.bypass / 100) * i.actual.secondaryValve / 100 * i.actual.effectiveness / 100 * (1 - i.actual.fouling / 100) * (1 - d.value) * (1 - i.wear / 100);
-            if (id === 'condenser') i.actual.coolingFactor = i.actual.coolingValve / 100 * clamp(1 - (i.actual.inletTemperature - 20) / 80, 0, 1) * (1 - d.value) * (1 - i.wear / 100);
+            if (id === 'condenser') i.actual.coolingFactor = i.actual.coolingValve / 100 * clamp(1 - (i.actual.inletTemperature - 20) / 80, 0, 1) * (1 - d.value) * (1 - i.wear / 100) * (this.sim.water?.coolingFactor ?? 1);
         }
     }
 

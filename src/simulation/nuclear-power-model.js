@@ -11,6 +11,8 @@ import { ComponentProcesses } from './nuclear-power-components.js';
 import { GridDispatcher, gridDispatchCapacity } from './nuclear-power-grid.js';
 import { PUMPS, CIRCUITS, circuitPumps, pumpDefinition, PumpCircuits, FLOW_SCALE } from './nuclear-power-pumps.js';
 import { ELECTRICAL_TARGET_MAX_MW } from './nuclear-power-turbine.js';
+import { WaterSystems } from './nuclear-power-water.js';
+import { PlantWork } from './nuclear-power-work.js';
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const approach = (value, target, seconds, response) => target + (value - target) * Math.exp(-seconds / response);
@@ -57,6 +59,7 @@ export class NuclearPowerSimulation {
         this.primaryFlow = 0;
         this.secondaryFlow = 0;
         this.autoMode = true;
+        this.autoAllowed = true;
         this.autoObjective = 'power';
         this.autoElectricalTarget = 200;
         this.regulationLimit = '';
@@ -81,6 +84,8 @@ export class NuclearPowerSimulation {
         this.hydraulics = new PumpCircuits();
         this.condition.pipes = this.hydraulics.pipes;
         this.components = new ComponentProcesses(this);
+        this.water = new WaterSystems();
+        this.work = new PlantWork();
         this.gridDispatch = new GridDispatcher();
         this.record('Simulation initialized. Reactor stopped; start a pump in each circuit before reactor Start. Backup pumps require manual enable. Auto electrical output control; process fluctuations enabled.', 'info', 'system');
         this.sample();
@@ -93,6 +98,15 @@ export class NuclearPowerSimulation {
     componentAction(id, action) { return this.components.action(id, action); }
     startObjective(id) { return this.components.startObjective(id); }
     startScenario(id) { return this.components.startScenario(id); }
+    inspectEquipment(id) { return this.work.inspect(this, id); }
+    createWorkOrder(id) { return this.work.create(this, id); }
+    workOrderAction(id, action) { return this.work.action(this, id, action); }
+    setWaterControl(key, value) { return this.water.setControl(this, key, value); }
+    sampleWater() { return this.water.sample(this); }
+
+    pumpIsolated(id) {
+        return this.work.locked(id) || ['exchanger', 'condenser', 'intake'].some(target => this.work.locked(target));
+    }
 
     turbineReadiness() { return this.components.turbineReadiness(); }
 
@@ -100,6 +114,7 @@ export class NuclearPowerSimulation {
         const checks = [
             { id: 'trip', label: 'Reactor trip reset', ready: !this.tripped },
             { id: 'stopped', label: 'Reactor stopped', ready: !this.running },
+            { id: 'work', label: 'Maintenance isolations released for testing', ready: !this.work.hasIsolation },
             { id: 'circulation', label: 'Both coolant circuits circulating with AC', ready: this.circulationReady() },
             { id: 'temperature', label: 'Core below startup temperature limit', ready: this.temperature < 335 },
             { id: 'fuel', label: 'Usable fuel available', ready: this.fuel.capability > 0 },
@@ -228,6 +243,10 @@ export class NuclearPowerSimulation {
         if (!definition) return;
         pump = definition.key;
         const key = `pump${pump}`;
+        if (!this[key] && this.pumpIsolated(key)) {
+            this.record(`Pump ${pump} start blocked by maintenance isolation. Release the work order for testing.`, 'warning');
+            return false;
+        }
         this[key] = !this[key];
         if (!this[key] && this.running && this.power > 10 && !circuitPumps(definition.circuit).some(p => this[p.id])) this.condition.beginIncident(this, `Operator stopped pump ${pump}`);
         this.record(`Pump ${pump} ${this[key] ? 'started' : 'stopped'}.`, this[key] ? 'success' : 'warning');
@@ -277,14 +296,16 @@ export class NuclearPowerSimulation {
 
     repairComponents() {
         if (!this.components.serviceReady) return;
-        if (this.condition.repair(this)) {
-            for (const id of Object.keys(this.components.items)) this.components.action(id, 'repair');
+        const managed = this.work.orders.filter(order => order.status !== 'completed').map(order => order.equipment);
+        if (this.condition.repair(this, managed.map(id => pumpDefinition(id)?.key).filter(Boolean))) {
+            for (const id of Object.keys(this.components.items)) if (!managed.includes(id)) this.components.action(id, 'repair');
             this.components.maintenanceNote('reactor', 'Core/components repaired after cooldown; fuel and heat preserved');
             this.updateAlarms();
         }
     }
 
     setAutoMode(enabled) {
+        if (typeof enabled !== 'boolean' || enabled && !this.autoAllowed) return false;
         if (this.autoMode === enabled) return;
         this.autoMode = enabled;
         this.clearRodOverrides();
@@ -440,7 +461,10 @@ export class NuclearPowerSimulation {
             ['fuel-reserve', this.fuel.assemblies.some(a => a.remaining <= 20), 'Low or depleted fuel: manual replacement after cooldown', 'warning'],
             ['ac-supply', this.supply.factor === 0, 'Auxiliary AC lost: pumps coasting down', 'alarm'],
             ['diesel', this.supply.source.startsWith('BACKUP'), 'Backup diesel supplying coolant pumps', 'warning'],
-            ['diesel-fuel', this.supply.generators.some(g => g.fuel < 15), 'Backup diesel fuel reserve low', 'warning']
+            ['diesel-fuel', this.supply.generators.some(g => g.fuel < 15), 'Backup diesel fuel reserve low', 'warning'],
+            ['water-quality', this.water.conductivity > 2, 'Water conductivity high: check purification and sample water', 'warning'],
+            ['water-filter', this.water.filterLoad >= 80, 'Purification filter loaded: plan cooled service', 'warning'],
+            ['cooling-water', this.water.intakeDebris > 20 || this.water.basinLevel < 25, 'Cooling-water capacity restricted: inspect intake and basin', 'warning']
         ];
         const next = [];
         for (const [id, active, message, severity] of conditions) {
@@ -463,6 +487,7 @@ export class NuclearPowerSimulation {
         this.condition.prepare(dt);
         this.components.prepare(dt);
         this.supply.advance(this, dt);
+        this.water.advance(this, dt);
         this.gridDispatch.advance(this, dt);
         this.regulate();
         const fluctuation = this.disturbances();
@@ -495,6 +520,7 @@ export class NuclearPowerSimulation {
             Math.max(coolingSink, this.secondaryTemperature - secondaryDrop), dt, 7);
         this.condition.advance(this, dt, previousTemperature);
         this.components.advance(dt);
+        this.work.advance(this, dt);
         // Emergency shutdown is an operator action in both modes. Auto may regulate
         // output down, but alarms/flow/temperature must never latch the mushroom button.
         // Terminal core failure still ends generation through its separate meltdown latch.
@@ -537,6 +563,9 @@ export class NuclearPowerSimulation {
                 fuelCapability: signal(this.fuel.capability * 100, '%'),
                 auxiliaryDemand: signal(this.supply.demand, 'MW'),
                 auxiliaryCapacity: signal(this.supply.capacity, 'MW'),
+                waterConductivity: signal(this.water.conductivity, 'µS/cm'),
+                coolingWaterCapacity: signal(this.water.coolingFactor * 100, '%'),
+                coolingWaterLevel: signal(this.water.basinLevel, '%'),
                 primaryFlow: signal(this.primaryFlow * FLOW_SCALE, 'm³/h'),
                 secondaryFlow: signal(this.secondaryFlow * FLOW_SCALE, 'm³/h'),
                 pumpASpeed: signal(this.components.items.pumpA.actual.speed, '%'),
@@ -555,6 +584,8 @@ export class NuclearPowerSimulation {
         const signal = (value, unit) => ({ value, unit, source: 'SIMULATED', quality: 'GOOD', time: this.elapsed });
         return {
             ...this.readings(),
+            water: structuredClone(this.water),
+            work: { inspections: structuredClone(this.work.inspections), orders: structuredClone(this.work.orders) },
             components: structuredClone({ items: this.components.items, maintenance: this.components.maintenance, objective: this.components.objective, scenario: this.components.scenario }),
             // Requests remain distinct from reported signals for a future scale-model adapter.
             commands: {

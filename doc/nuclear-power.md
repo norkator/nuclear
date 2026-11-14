@@ -35,20 +35,24 @@ pairing checks, and QEMU supports the backend’s ARM64 dependency installation.
 The workflow does not configure DNS/TLS or deploy the images.
 See [local development and deployment](../README.md).
 
-## Optional company game: current commissioning chapter
+## Optional company game: operations and maintenance
 
 The standalone repository is https://github.com/norkator/nuclear. Source, tests,
 Docker files and deployment workflow now live at its root, independently of the
 Pörssiohjain Spring project. The external desktop link remains unchanged.
 
 Free operation is still the default. Start game creates a separate cold career;
-Continue game restores a local save paused. The plant manager assigns First shift
-(200 ± 5 gross MW for 30 seconds after explicit Start) and Prove reliable operation
-(five uninterrupted simulated minutes). Briefs instruct disabling grid following
-during these fixed-output tests. Objectives use actual readings and existing
-interlocks, not target edits or email acknowledgement. Stop/violations reset a
-hold; pause freezes it. Accepting closes the company window and reveals gray-to-green
-assignment steps above Live trends, with a continuous hold timer and Send report
+Continue game restores a local save paused. New careers choose Easy (Auto or
+Manual) or Hard (Manual only, enforced at the host command boundary). Eight
+assignments cover startup (200 ± 5 gross MW for 30 seconds after explicit Start),
+five reliable minutes, condition rounds, pump A service, water quality,
+purification-filter service, cooling-water intake service and a 60-second return
+to generation. Briefs disable grid following for fixed-output work. Auto holds
+are continuous; Manual accumulates qualifying actual time, retaining it outside
+the envelope with no failure deadline. Old issued briefs keep their original
+terms. Objectives use actual readings and existing interlocks; pause freezes time.
+Accepting closes the company window and reveals gray-to-green
+assignment steps above Live trends, with qualifying timers where relevant and Send report
 when verified. Full briefing reopens the inbox. Steps use actual plant conditions
 and pinned saved terms; verified steps stay green until reported. Reports create
 permanent achieved goals and archive records. Future mission insertion preserves
@@ -60,7 +64,10 @@ Web Locks allow one writer tab. JSON export/import provides local backups. Resto
 does not erase trips/damage/heat or advance offline time. Returning parks/saves
 the career and restores the free plant retained on this page. Session changes
 end pairing and stop old audio/motion; companion plant commands remain host owned.
-Reset demo is unavailable in Career. Money, bankruptcy and later assignments are
+Schema-1 saves migrate to schema 2 with healthy new water systems and Easy
+difficulty, preserving existing plant/progress/issued requirements. New saves
+retain water inventories, inspection/sample records, work-order stages and test
+time. Reset demo is unavailable in Career. Money, bankruptcy and further assignments are
 planned in [GAMEPLAY-PLAN.md](../GAMEPLAY-PLAN.md), not implemented yet.
 
 For the exact implementation, save schema/limitations, source map and next work,
@@ -69,6 +76,35 @@ plan is not a list of implemented assignments.
 
 Run `npm run test:browser:game` for game entry, company messages, reports,
 achievements, mobile/light rendering, two-tab ownership, reload and reconnect.
+
+The Maintenance tab also provides desktop-owned condition rounds, work orders
+and water-treatment controls in free operation and Career. Vibration, bearing
+temperature and lubricant condition derive deterministically from actual motor/
+shaft speed and existing wear, stress and damage; they are illustrative diagnostic
+readings, not independent real sensors. Recording an inspection never repairs.
+Healthy preventive work is valid and does not require causing damage.
+
+Work orders progress planned → isolated → serviced → testing → ready → completed.
+Existing cooled/stopped/fault-free checks apply, plus actual target isolation:
+pump OFF and motor/branch flow below 0.5%; turbine breaker open and shaft below
+0.5%; exchanger/condenser/intake require both loops isolated. Purification or
+make-up must be OFF for filter/intake isolation. Isolated/serviced orders block
+reactor Start and conflicting equipment commands through desktop and companion
+paths. Explicit release removes isolation but never starts anything. Tests need
+ten continuous actual seconds, then explicit return to service. Pause freezes
+tests. Bulk repair services only equipment without an open work order, allowing
+unrelated core repairs without bypassing an ordered service. Heat, fuel, hours,
+settings and reactor/turbine trips remain intact.
+
+Water systems model conductivity, purification-filter loading, intake debris,
+basin level and AC-powered purification/make-up read-back. Healthy default water
+preserves normal commissioning behavior. Poor conductivity gradually adds
+exchanger fouling during heat production; purification improves water without
+removing that fouling. Intake blockage above 20% and basin level below 25% reduce
+actual condenser capacity, feeding existing Auto limits, heat rejection and tower
+presentation. Filter/intake service uses work orders; samples record actual
+values/time. There is no radiation, full fluid chemistry or physical pool-water
+model. All new state advances only on the authoritative plant clock.
 
 ## Current scope
 
@@ -1145,7 +1181,7 @@ See the Nuclear README for deployment details and limitations.
   and records inbox messages, reports, capabilities and achievements.
 - `src/simulation/nuclear-power-game.js` and its CSS provide game entry, company UI,
   session switching, save orchestration and one-tab ownership.
-- `src/simulation/nuclear-power-game-save.js` defines schema-1 full-state saves and
+- `src/simulation/nuclear-power-game-save.js` defines schema-2 full-state saves, version-1 migration and
   IndexedDB revisions; do not replace this with a companion transport snapshot.
 - `src/App.tsx` mounts the console through React, independently of Vaadin.
 - `src/simulation/nuclear-power.js` renders the native custom element, SVG

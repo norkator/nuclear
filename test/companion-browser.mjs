@@ -306,6 +306,14 @@ test('desktop and companion share controls, grid/core readings and lifecycle acr
         assert.equal(await host.code('return c.simulation.fuel.assemblies[16].replacements;'), 2, 'Offline replacement never replays');
         await host.action('reset');
         await tablet.until('!c.simulation.tripped && !c.tripCoverOpen && !c.simulation.pumpA', 'Reset propagates cold state and closes remote cover');
+        await host.code('c.simulation.autoAllowed=false;c.simulation.setAutoMode(false);window.isolatedOrder=c.simulation.createWorkOrder("pumpA");c.simulation.workOrderAction(window.isolatedOrder.id,"isolate");c.update();');
+        await tablet.until('!c.simulation.autoAllowed && c.simulation.work.locked("pumpA")', 'Hard policy and work isolation hydrate on companion');
+        assert.equal(await tablet.code('return s.querySelector("[data-action=auto]").disabled && s.querySelector("[data-action=pumpA]").disabled;'), true);
+        await tablet.code('c.sendSessionCommand({method:"setAutoMode",args:[true]});c.sendSessionCommand({method:"setPumpEnabled",args:["A",true]});');
+        await tablet.until('c.pendingSessionCommands.size===0', 'Blocked commands acknowledged without operating equipment');
+        assert.equal(await host.code('return !c.simulation.autoMode && !c.simulation.pumpA;'), true, 'Host enforces Manual policy and isolation for remote commands');
+        await host.action('reset');
+        await tablet.until('c.simulation.autoAllowed && !c.simulation.work.hasIsolation', 'Reset restores free-operation policy and clears work orders');
         await host.action('disconnect-screens');
         await tablet.until('!c.remoteReady && s.querySelector(".companion-pairing-dialog").open', 'Revoked screen requires pairing again');
         await tablet.screenshot('companion-pairing-light');

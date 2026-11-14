@@ -109,7 +109,7 @@ test('reliability requires five continuous actual minutes, freezes on pause and 
     assert.equal(career.current.held, 0);
     advance(sim, career, 20); sim.start(); advance(sim, career, 450);
     assert.equal(career.current.status, 'ready'); career.report(sim);
-    assert.equal(career.current, undefined);
+    assert.equal(career.current.definition.id, 'monitoring.condition-rounds');
     assert.equal(career.state.achievements.length, 2);
     assert.equal(career.state.assignments.filter(item => item.status === 'completed').length, 2);
 });

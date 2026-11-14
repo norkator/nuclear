@@ -28,10 +28,14 @@ save contract, known gaps and next implementation slice. It distinguishes curren
 behavior from the larger product plan.
 
 Free operation remains the default. Start game creates a separate cold career;
-Continue restores its IndexedDB save paused. Company inbox assignments currently
-cover startup and five reliable minutes, with reports, archived achieved goals
-and explicit full-state saves. Money, bankruptcy and further missions remain
-planned. Do not present those as implemented.
+Continue restores its IndexedDB save paused. Eight company assignments cover
+startup, reliability, condition rounds, pump service, water quality, filter/intake
+service and return to generation. New careers choose Easy (Auto/Manual) or Hard
+(Manual only, enforced by the host model on every screen). Manual power tasks
+accumulate qualifying time and pause outside requirements, with no failure
+deadline; verified success stays ready until reported. Old issued terms stay
+pinned. Money, bankruptcy and further missions remain planned. Do not present
+those as implemented.
 
 Accepted assignments show a gray-to-green checklist above Live trends. Derive
 steps from pinned terms and actual plant/evidence; verified steps remain green
@@ -49,13 +53,28 @@ rotor tolerances, pool records, and no offline advancement. Switching sessions
 ends pairing and clears local motion/audio; companions never tick a career.
 Keep accepting/reporting/import/export and new-career actions desktop owned.
 Company inbox/mission/finance summaries on companions are still planned.
-Save schema version 1 is validated but has no migration runner, previous-revision
-recovery UI or career restart checkpoint yet; add tested migrations before
-changing required saved fields or introducing new objective kinds.
+Save schema version 2 has a tested version-1 migration preserving old progress,
+terms, heat/damage/trips and sampled rotor tolerance; older careers become Easy.
+Previous-revision recovery UI and career restart checkpoints remain planned.
+Add tested migrations before changing required saved fields or introducing
+new objective kinds.
 
 Run focused model tests and `npm run build`. Use `npm run test:browser:game` for
 company behavior and `npm run test:browser:companion` for session changes. Keep
 the full browser suite for broad changes or release gates.
+
+Maintenance includes derived pump/turbine condition readings and inspection
+records, explicit work orders (planned/isolate/service/test/return) and water
+treatment/cooling-water controls. `nuclear-power-work.js` and
+`nuclear-power-water.js` own plant behavior; `nuclear-power-maintenance-work.js`
+renders desktop controls. Isolation checks actual cooldown/coast-down and blocks
+conflicting desktop/component/companion commands. Ten actual continuous seconds
+prove a released order; return to service stays explicit. Bulk repair skips
+equipment owned by open orders, allowing unrelated core repairs. Poor water can
+foul the exchanger; intake/basin restrictions reduce condenser capacity. All new
+state follows plant time, saves explicitly and hydrates companion prototypes;
+companions cannot manage orders/samples. Service remains free. Focused coverage:
+`node --test test/nuclear-power-work.test.mjs`.
 
 ## UI changes and browser verification
 

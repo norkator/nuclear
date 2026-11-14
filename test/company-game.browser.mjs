@@ -126,6 +126,59 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
     await ready('c.game.career.state.achievements.length===2 && !c.game.busy', 'Reliability goal achieved');
     await gameAction('open'); await tab('archive'); await screenshot('career-completed-reports');
     assert.equal(await consoleCode('return s.querySelector(".game-tasks").hidden;'), true, 'Completed commissioning has no active steps');
+    assert.equal(await consoleCode('return c.game.career.current.definition.id;'), 'monitoring.condition-rounds');
+    const acceptNext = async () => {
+        await gameAction('open'); await tab('assignments'); await gameAction('accept');
+        await ready('!c.game.busy', 'Next assignment accepted');
+    };
+    const maintenance = async code => consoleCode(`${code}c.update();`);
+    const workAction = async name => maintenance(`s.querySelector('.work-order-list [data-work-action="${name}"]:not([disabled])').click();`);
+    const createOrder = async id => maintenance(`const select=s.querySelector('#work-equipment');select.value='${id}';select.dispatchEvent(new Event('change',{bubbles:true}));s.querySelector('[data-work-create]').click();`);
+    const waterControl = async (key, value) => maintenance(`const control=s.querySelector('[data-water-control="${key}"]');control.checked=${value};control.dispatchEvent(new Event('change',{bubbles:true}));`);
+    const reportNext = async () => {
+        assert.equal(await consoleCode('return c.game.career.current.status;'), 'ready');
+        await gameAction('report'); await ready('!c.game.busy', 'Maintenance report saved');
+    };
+    await acceptNext();
+    await maintenance('s.querySelector("[data-plant-tab=maintenance]").click();');
+    for (const id of ['pumpA', 'pumpA2', 'pumpB', 'pumpB2', 'turbine']) await maintenance(`s.querySelector('[data-work-inspect="${id}"]').click();`);
+    assert.equal(await consoleCode('return s.querySelector("[data-condition-equipment=pumpA2] [data-condition-reading=vibration]").textContent;'), '0.00 mm/s');
+    await advance(2); await reportNext();
+    await acceptNext(); await createOrder('pumpA');
+    assert.equal(await consoleCode('return s.querySelector("[data-work-action=isolate]").disabled;'), true, 'Running equipment cannot be isolated');
+    await action('stop'); await advance(600); await action('pumpA'); await advance(15);
+    await workAction('isolate');
+    assert.equal(await consoleCode('return s.querySelector("[data-action=pumpA]").disabled;'), true);
+    assert.equal(await consoleCode('return s.querySelector("[data-action=start]").disabled;'), true);
+    await workAction('service'); await workAction('release'); await action('pumpA'); await advance(15);
+    assert.equal(await consoleCode('return c.game.career.current.status;'), 'active', 'A test needs explicit return to service');
+    await workAction('complete'); await advance(2); await reportNext();
+    await acceptNext(); await maintenance('s.querySelector("[data-water-sample]").click();'); await advance(12); await reportNext();
+    await acceptNext(); await createOrder('waterFilter'); await waterControl('purificationEnabled', false);
+    await workAction('isolate');
+    assert.equal(await consoleCode('return s.querySelector("[data-water-control=purificationEnabled]").disabled;'), true);
+    await workAction('service'); await workAction('release'); await waterControl('purificationEnabled', true);
+    await advance(12); await workAction('complete'); await advance(2); await reportNext();
+    await acceptNext(); await createOrder('intake'); await action('pumpA'); await action('pumpB');
+    await waterControl('makeupEnabled', false); await advance(15);
+    await workAction('isolate'); await workAction('service'); await workAction('release');
+    await waterControl('makeupEnabled', true); await action('pumpA'); await action('pumpB'); await advance(15);
+    await workAction('complete'); await advance(2); await reportNext();
+    // New maintenance controls preserve viewport fit and keyboard reachability.
+    for (const [width, height, theme] of [[1920, 1080, 'dark'], [390, 844, 'light']]) {
+        await page('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: width < 500 });
+        await consoleCode(`c.setTheme('${theme}');`);
+        await waitForConsoleLayout(consoleCode, 'Maintenance work layout');
+        assert.ok(await consoleCode('return s.querySelector(".maintenance-panel").scrollWidth <= s.querySelector(".maintenance-panel").clientWidth;'), 'Maintenance controls fit the viewport');
+        await consoleCode('s.querySelector("[data-water-sample]").scrollIntoView({block:"center"});s.querySelector("[data-water-sample]").focus();');
+        assert.equal(await consoleCode('return s.activeElement.hasAttribute("data-water-sample");'), true);
+        await screenshot(`career-maintenance-${width}-${theme}`);
+    }
+    await page('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1120, deviceScaleFactor: 1, mobile: false });
+    await waitForConsoleLayout(consoleCode, 'Return to operation');
+    await acceptNext(); await maintenance('s.querySelector("[data-plant-tab=reactor]").click();');
+    await action('start'); await advance(180); await reportNext();
+    assert.equal(await consoleCode('return c.game.career.state.achievements.length;'), 8);
     assert.equal(await consoleCode('return c.game.career.current;'), undefined);
     // A failed write remains visible outside the company window and cannot claim success.
     assert.equal(await consoleCode('window.originalCareerWriter=c.game.store.write.bind(c.game.store);c.game.store.write=async()=>{throw new Error("Test storage unavailable");};return c.game.save(true);'), false);
@@ -137,5 +190,23 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
     await ready('c?.game.owner && !c.game.attaching', 'Reconnected element reacquires career lock');
     assert.equal(await consoleCode('return c.simulation.paused;'), true);
     await gameAction('return'); await ready('!c.game.career', 'Finished career saved');
+    // Hard policy is selected explicitly, survives Continue, and rejects Auto at the model boundary.
+    await gameAction('start');
+    await consoleCode('const hard=s.querySelector("[name=career-difficulty][value=hard]");hard.checked=true;hard.dispatchEvent(new Event("change",{bubbles:true}));');
+    await gameAction('begin'); await ready('c.game.career && !c.game.busy', 'Hard career created');
+    assert.equal(await consoleCode('return c.game.career.state.difficulty;'), 'hard');
+    assert.equal(await consoleCode('return c.simulation.autoMode;'), false);
+    assert.equal(await consoleCode('return s.querySelector("[data-action=auto]").disabled;'), true);
+    await acceptNext(); await gameAction('resume'); await ready('!c.game.busy', 'Hard shift resumed');
+    await consoleCode('c.simulation.setAutoMode(true);c.simulation.setGridDispatchEnabled(false);c.simulation.setLoad(49);c.update();');
+    assert.equal(await consoleCode('return c.simulation.autoMode;'), false);
+    await action('pumpA'); await action('pumpB'); await advance(8); await action('start'); await advance(120);
+    assert.equal(await consoleCode('return c.game.career.current.status;'), 'ready');
+    await action('stop'); await advance(10);
+    assert.ok(Object.values(await steps()).every(Boolean), 'Manual success remains verified after leaving the target');
+    await gameAction('return'); await ready('!c.game.career', 'Hard career saved');
+    await gameAction('continue'); await ready('c.game.career && !c.game.busy', 'Hard career continued');
+    assert.equal(await consoleCode('return c.simulation.paused && !c.simulation.autoAllowed && !c.simulation.autoMode;'), true);
+    await gameAction('return'); await ready('!c.game.career', 'Hard career parked');
     await consoleCode('c.setTheme("dark");'); await action('reset');
 }

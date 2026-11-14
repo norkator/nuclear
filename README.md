@@ -19,29 +19,45 @@ company inbox and achieved goals locally; Continue game restores a paused career
 Reload ends any companion pairing session. The light/dark theme is also saved
 locally. The external Vaadin desktop and Start menu open this app in a separate tab.
 
-## Company game: commissioning chapter
+## Company game: operations and maintenance
 
 Free operation remains the default. Choose **Start game → Begin career** for a
-separate cold plant and assignments from the plant manager. The first chapter
-contains **First shift** and **Prove reliable operation**. Accept assignments in
-the company inbox, verify the actual plant criteria, and send reports to record
-achievements and the assignment archive. These two commissioning assignments do
-not charge money; electricity trading, expenses, bankruptcy and further missions
-remain the next stages in [GAMEPLAY-PLAN.md](GAMEPLAY-PLAN.md). For continuation,
+separate cold plant. Choose **Easy** for Auto or Manual operation, or **Hard** for
+Manual only; Hard blocks Auto on the desktop and paired companions. Eight
+assignments cover startup, reliable operation, condition rounds, pump service,
+water quality, filter service, cooling-water intake service and return to generation.
+Accept work in the company inbox, satisfy actual plant criteria and report verified
+results. Service is free; electricity trading, expenses and bankruptcy remain
+planned in [GAMEPLAY-PLAN.md](GAMEPLAY-PLAN.md). For continuation,
 read [the game-development handoff](doc/game-development.md) for the exact current
 code, save format, known gaps and next slice.
 
-For the fixed-output tests, disable Follow requests and use Auto → Electrical
-output at 200 MW, then establish circulation and explicitly Start. The first task
-requires a 30-second stable hold; the next requires five uninterrupted simulated
-minutes. Stop, faults, damage or leaving the operating envelope reset the hold;
-Pause freezes it. Reporting never starts or repairs equipment.
+For fixed-output tests, disable Follow requests and establish actual circulation
+before explicitly starting. Easy Auto can regulate 200 MW; in Manual, adjust
+load/rods and pump speeds to reach actual 200 ± 5 MW. The first task requires
+30 seconds and reliability requires five minutes. Auto uses continuous holds;
+Manual accumulates qualifying time and pauses progress outside the requirements,
+with no failure deadline. Verified success stays ready until reported. Pause
+freezes all plant time. Previously issued version-1 briefs retain their pinned terms.
+
+In **Maintenance**, condition monitoring derives vibration, bearing temperature
+and lubricant readings from actual speed, stress, wear and damage. Record
+inspections, then use work orders to isolate, service, release for a ten-second
+actual functional test and explicitly return equipment to service. Isolation
+checks actual cooldown/coast-down and blocks conflicting commands on every screen.
+Water treatment adds purification, filter load, samples, intake debris, make-up
+supply and basin level. Poor quality gradually fouls the exchanger; intake/basin
+restrictions reduce condenser capacity. These are illustrative game systems.
 
 The company window contains Inbox, Assignments, Achievements, Archive and Save.
 Careers save to IndexedDB with one writer tab, complete plant/pool state and sampled
 rotor tolerances. **Save & return to free operation** restores the parked free
 plant on this page. Reload starts free operation; **Continue game** restores the
 career paused, without offline progress. Export/import JSON backups from Save.
+Schema-1 saves migrate to schema 2 as Easy careers, preserving issued terms,
+progress, heat, damage, trips and rotor samples. New saves also retain work orders,
+inspection/sample records, water state and difficulty. Maintenance management
+and sampling are desktop-owned; companions remain plant-control followers.
 Reset demo remains available only in free operation. Game management is desktop
 owned; companion plant commands continue through the same authoritative host.
 Company inbox/mission summaries are not yet shown on companions. Descriptions of

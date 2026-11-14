@@ -26,11 +26,15 @@ class GameController {
         this.host = host;
         this.store = new CareerStore();
         this.tab = 'inbox';
+        this.difficulty = 'easy';
         this.status = 'Checking local career…';
         this.owner = false;
         this.pendingSave = Promise.resolve();
         this.lastSaved = -Infinity;
         this.root = host.shadowRoot;
+        this.root.addEventListener('change', event => {
+            if (event.target.matches('[name="career-difficulty"]')) this.difficulty = event.target.value;
+        });
         this.root.addEventListener('click', event => {
             const tab = event.target.closest('[data-game-tab]');
             if (tab) { this.tab = tab.dataset.gameTab; this.render(true); }
@@ -148,7 +152,11 @@ class GameController {
             if (action === 'begin') {
                 if (!await this.acquire()) return;
                 await this.store.load(); // Read the current revision only after acquiring ownership.
-                this.install({ simulation: new NuclearPowerSimulation(), transfer: new FuelTransferAnimation(CORE_CHANNELS), state: null });
+                const simulation = new NuclearPowerSimulation();
+                simulation.autoAllowed = this.difficulty !== 'hard';
+                if (!simulation.autoAllowed) simulation.setAutoMode(false);
+                this.install({ simulation, transfer: new FuelTransferAnimation(CORE_CHANNELS),
+                    state: new CompanyCareer(null, MISSIONS, this.difficulty).state });
                 await this.save(true);
             }
             if (action === 'continue') {
@@ -156,6 +164,7 @@ class GameController {
                 const bundle = await this.store.load();
                 if (!bundle) { await this.release(); throw new Error('No saved career was found.'); }
                 this.install(restoreCareerBundle(bundle));
+                await this.save(true);
             }
             if (action === 'resume' && this.career && this.owner) {
                 this.host.simulation.paused = false; this.host.update(); await this.save(true);
@@ -230,7 +239,10 @@ class GameController {
         }
         panel.querySelector('.game-task-hold').max = current.definition.objective.seconds;
         panel.querySelector('.game-task-hold').value = current.held;
-        panel.querySelector('.game-task-timer').textContent = `${time(current.held)} / ${time(current.definition.objective.seconds)}`;
+        const timed = ['generation-hold', 'water-quality'].includes(current.definition.objective.kind);
+        panel.querySelector('.game-task-hold').hidden = !timed;
+        panel.querySelector('.game-task-hold').setAttribute('aria-label', 'Verified qualifying time');
+        panel.querySelector('.game-task-timer').textContent = timed ? `${time(current.held)} / ${time(current.definition.objective.seconds)}${!this.host.simulation.autoMode && current.definition.objective.manualAllowed ? ' · Qualifying time; outside limits pauses progress' : ''}` : 'Complete the verified work steps';
         panel.querySelector('.game-task-reason').textContent = current.reason;
         panel.querySelector('[data-game-action="report"]').hidden = current.status !== 'ready';
     }
@@ -247,8 +259,8 @@ class GameController {
         this.root.querySelector('.game-status').hidden = !active;
         this.renderTasks(current);
         this.root.querySelector('.game-unread').textContent = active ? `(${this.career.state.messages.filter(item => !item.read).length})` : '';
-        this.root.querySelector('.game-assignment').textContent = current?.definition.title || 'Commissioning complete';
-        this.root.querySelector('.game-progress').textContent = current ? current.status === 'assigned' ? 'Read the briefing and accept in Company inbox.' : current.status === 'ready' ? 'Verified · ready to report' : `In progress · ${time(current.held)} / ${time(current.definition.objective.seconds)}` : 'Your achievements are saved. Further assignments can arrive in updates.';
+        this.root.querySelector('.game-assignment').textContent = current?.definition.title || 'Shift assignments complete';
+        this.root.querySelector('.game-progress').textContent = `${active ? `${this.career.state.difficulty === 'hard' ? 'Hard · Manual only' : 'Easy · Auto available'} · ` : ''}${current ? current.status === 'assigned' ? 'Read the briefing and accept in Company inbox.' : current.status === 'ready' ? 'Verified · ready to report' : 'In progress · see assignment steps' : 'Your achievements are saved. Further assignments can arrive in updates.'}`;
         this.root.querySelector('[data-game-action="resume"]').hidden = !active || !this.host.simulation.paused;
         for (const reset of this.root.querySelectorAll('[data-action="reset"]')) { reset.disabled = active; reset.title = active ? 'Return to free operation before resetting a demo.' : ''; }
         const dialog = this.root.querySelector('.game-dialog');
@@ -265,11 +277,11 @@ class GameController {
         if (!force && signature === this.signature) return;
         this.signature = signature;
         if (this.introduction || !active) {
-            page.innerHTML = `<div class="game-welcome"><span class="eyebrow">UNIT 01 · YOUR FIRST SHIFT</span><h3>Work for the company. Run the plant.</h3><p>Your plant manager assigns startup and reliable-operation tests through the company inbox. Accept the work, operate the actual plant, then report verified results. Your plant, inbox and achievements save on this browser.</p><p>This commissioning chapter has two assignments. Electricity trading, company expenses and later chapters will follow. No money is charged during commissioning.</p><p>Beginning starts a separate cold plant. Your current free-operation plant stays available on this page.${this.hasSave ? ' <strong>Beginning a new career replaces your existing local career. Continue it instead to keep that progress.</strong>' : ''}</p><button class="control-button" data-game-action="begin">${this.hasSave ? 'Replace saved career & begin' : 'Begin career'}</button>${this.hasSave ? '<button class="small-button" data-game-action="continue">Continue saved career</button>' : ''}<button class="small-button" data-game-action="import">Import career backup</button></div>`;
+            page.innerHTML = `<div class="game-welcome"><span class="eyebrow">UNIT 01 · YOUR FIRST SHIFT</span><h3>Work for the company. Run the plant.</h3><p>Your plant manager and specialists assign startup, reliable operation, condition rounds, work orders and water-treatment checks. Accept the work, operate the actual plant, then report verified results. Your plant, inbox and achievements save on this browser.</p><p>This career has ${MISSIONS.length} assignments. Service is free; electricity trading and company expenses remain planned.</p><fieldset class="game-difficulty"><legend>Career difficulty</legend><label><input type="radio" name="career-difficulty" value="easy" ${this.difficulty === 'easy' ? 'checked' : ''}/> <strong>Easy</strong><span>Auto and Manual operation available.</span></label><label><input type="radio" name="career-difficulty" value="hard" ${this.difficulty === 'hard' ? 'checked' : ''}/> <strong>Hard</strong><span>Manual operation only. Auto is disabled on every screen.</span></label><p>Manual power assignments accumulate qualifying time. Outside the requirements, progress pauses. There is no failure deadline; verified success stays ready to report. Plant heat and damage still apply.</p></fieldset><p>Beginning starts a separate cold plant. Your current free-operation plant stays available on this page.${this.hasSave ? ' <strong>Beginning a new career replaces your existing local career. Continue it instead to keep that progress.</strong>' : ''}</p><button class="control-button" data-game-action="begin">${this.hasSave ? 'Replace saved career & begin' : 'Begin career'}</button>${this.hasSave ? '<button class="small-button" data-game-action="continue">Continue saved career</button>' : ''}<button class="small-button" data-game-action="import">Import career backup</button></div>`;
         } else if (this.tab === 'inbox') {
             page.innerHTML = `<h3>Company inbox</h3>${[...this.career.state.messages].reverse().map(message => `<article class="company-message ${message.read ? '' : 'unread'}"><p class="game-meta">${escape(message.sender)} · T+${time(message.time)}</p><h3>${escape(message.subject)}</h3><p>${escape(message.body)}</p>${message.read ? '' : `<button class="small-button" data-game-message="${escape(message.id)}">Mark read</button>`}${message.missionId === current?.definition.id ? '<button class="small-button" data-game-tab="assignments">View assignment</button>' : ''}</article>`).join('')}`;
         } else if (this.tab === 'assignments') {
-            page.innerHTML = current ? `<h3>${escape(current.definition.title)}</h3><p>${escape(current.definition.brief)}</p><progress max="${current.definition.objective.seconds}" value="${current.held}" aria-label="Continuous stable operation"></progress><p>${time(current.held)} / ${time(current.definition.objective.seconds)} · ${escape(current.status)}</p><p role="status">${escape(current.reason)}</p>${current.status === 'assigned' ? '<button class="control-button" data-game-action="accept">Accept assignment</button>' : current.status === 'ready' ? '<button class="control-button" data-game-action="report">Send report</button>' : ''}<p class="game-meta">Upcoming: ${escape(MISSIONS.filter(item => !this.career.state.assignments.some(saved => saved.definition.id === item.id)).map(item => item.title).join(', ') || 'Further company assignments can arrive in updates.')}</p>` : '<h3>Commissioning complete</h3><p>Both reports are in the archive. Keep this career for future assignments, or return to free operation.</p>';
+            page.innerHTML = current ? `<h3>${escape(current.definition.title)}</h3><p>${escape(current.definition.brief)}</p>${['generation-hold', 'water-quality'].includes(current.definition.objective.kind) ? `<progress max="${current.definition.objective.seconds}" value="${current.held}" aria-label="Verified qualifying time"></progress><p>${time(current.held)} / ${time(current.definition.objective.seconds)} · ${escape(current.status)}</p>` : `<p>${escape(current.status)} · Follow the verified work steps in Maintenance.</p>`}<p role="status">${escape(current.reason)}</p>${current.status === 'assigned' ? '<button class="control-button" data-game-action="accept">Accept assignment</button>' : current.status === 'ready' ? '<button class="control-button" data-game-action="report">Send report</button>' : ''}<p class="game-meta">Upcoming: ${escape(MISSIONS.filter(item => !this.career.state.assignments.some(saved => saved.definition.id === item.id)).map(item => item.title).join(', ') || 'Further company assignments can arrive in updates.')}</p>` : '<h3>Shift assignments complete</h3><p>Your reports are in the archive. Keep this career for future assignments, or return to free operation.</p>';
         } else if (this.tab === 'achievements') {
             page.innerHTML = `<h3>Achieved goals</h3>${this.career.state.achievements.map(item => `<article class="company-message"><h3>✓ ${escape(item.title)}</h3><p>T+${time(item.time)} · ${time(item.heldSeconds)} verified operation</p></article>`).join('') || '<p>No achieved goals yet. Report your first verified assignment to earn one.</p>'}`;
         } else if (this.tab === 'archive') {

@@ -1131,6 +1131,29 @@ select { background: #1b2c38; color: #cadddf; border: 1px solid #47606c; padding
 .maintenance-readiness li { color: #f1c38e; font-size: 10px; line-height: 1.5; }
 .maintenance-readiness li.ready { color: var(--cool); }
 .maintenance-panel .maintenance-result { margin-top: 12px; color: var(--cool); }
+.maintenance-work { display: grid; gap: 14px; margin-top: 22px; min-width: 0; }
+.maintenance-section { min-width: 0; padding: 14px; border: 1px solid var(--border); border-radius: 6px; }
+.maintenance-section > summary { cursor: pointer; font-weight: 700; font-size: 13px; }
+.maintenance-section > p { margin: 12px 0; }
+.condition-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 10px; }
+.condition-card, .work-order { min-width: 0; padding: 12px; border: 1px solid var(--border); border-radius: 5px; }
+.condition-card h4, .work-order h4 { margin: 0 0 8px; font-size: 12px; }
+.condition-state { color: var(--cool); font-size: 11px; }
+.condition-card[data-attention="true"] .condition-state { color: var(--warm); }
+.condition-card dl, .water-readings { display: grid; gap: 8px; margin: 12px 0; }
+.condition-card dl > div, .water-readings > div { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; }
+.condition-card dt, .water-readings dt { color: var(--muted); }
+.condition-card dd, .water-readings dd { margin: 0; font-variant-numeric: tabular-nums; text-align: right; }
+.work-order-create, .work-order-actions, .water-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.work-order-create label, .water-controls label { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.work-order-create select { min-width: 0; max-width: 100%; }
+.work-order-list { display: grid; gap: 12px; margin-top: 12px; }
+.work-order-state { display: block; color: var(--cool); font-size: 11px; }
+.work-order progress { display: block; margin-top: 12px; width: 100%; accent-color: var(--cool); }
+.work-order-checks { display: grid; gap: 6px; padding: 0; list-style: none; font-size: 11px; color: var(--warm); }
+.work-order-checks [data-ready="true"] { color: var(--cool); }
+.water-samples { padding-left: 20px; color: var(--muted); font-size: 11px; line-height: 1.7; }
+.work-result { color: var(--cool); }
 .auxiliary-panel { padding: 12px; }
 .auxiliary-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
 .auxiliary-heading .eyebrow { font-size: 8px; letter-spacing: 1px; }

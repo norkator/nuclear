@@ -5,14 +5,14 @@ Licensed under the Pörssiohjain Personal Use License v1.0.
 -->
 # Continuing company-game development
 
-Updated 2026-11-13. This is the implementation handoff for the standalone
+Updated 2026-11-14. This is the implementation handoff for the standalone
 [norkator/nuclear](https://github.com/norkator/nuclear) repository. All commands
 below run from this repository root. Read [AGENTS.md](../AGENTS.md), this file,
 [the product plan](../GAMEPLAY-PLAN.md) and [the plant specification](nuclear-power.md)
 before continuing. The plan describes the intended game; this file describes the
 code that exists and the work still needed.
 
-## Current playable chapter
+## Current playable operations and maintenance chapter
 
 Free operation remains the initial mode. **Start game → Begin career** creates
 a separate cold plant, initially paused. **Resume shift** starts its clock.
@@ -21,12 +21,16 @@ free operation**; it does not earn career progress. Reload opens free operation;
 **Continue game** restores the saved career paused, without offline advancement.
 Switching plants ends companion pairing and clears old local audio/motion.
 
+New careers select Easy (Auto and Manual) or Hard (Manual only). Hard sets the
+saved plant `autoAllowed` policy false, enforced at the model boundary for
+both desktop and companion commands. Free operation retains Auto.
+
 The boss, Elena Ward, automatically issues one assignment at a time through the
 company inbox. The player accepts, operates, waits for verification and reports.
 
 Accepting closes the company window and reveals a compact checklist above Live
 trends. Gray numbered steps turn green with checkmarks as actual conditions are
-met; the hold timer shows continuous verified time. Unverified conditions can
+met; timers show qualifying plant time where required. Unverified conditions can
 return to gray, while a verified assignment stays green until reported. Full
 briefing opens the inbox; Send report is available on the verified checklist.
 Unaccepted assignments and free operation have no checklist. Steps are derived
@@ -38,35 +42,49 @@ closed. Companion station presets do not add company pages or career commands.
 
 | Stable mission ID | Criterion | Capability earned on report |
 | --- | --- | --- |
-| `startup.first-shift` | Explicit successful reactor Start after acceptance, then 200 ± 5 gross MW for 30 continuous simulated seconds | `commissioned` |
-| `operation.reliable-five` | 200 ± 5 gross MW for 300 continuous simulated seconds after acceptance | `reliable-operation` |
+| `startup.first-shift` | Explicit successful Start after acceptance, then 200 ± 5 gross MW for 30 qualifying seconds | `commissioned` |
+| `operation.reliable-five` | 200 ± 5 gross MW for 300 qualifying seconds | `reliable-operation` |
+| `monitoring.condition-rounds` | New inspections of all four pumps and turbine | `condition-survey` |
+| `maintenance.planned-service` | New pump A order, isolation, service, actual test and explicit return | `work-order-qualified` |
+| `water.quality-check` | New healthy sample and ten seconds of powered treatment/make-up | `water-quality-qualified` |
+| `water.filter-service` | New filter order, cooled service and actual treatment test | `filter-service-qualified` |
+| `cooling.intake-service` | New intake order, both loops isolated, service and restored cooling-water test | `cooling-service-qualified` |
+| `operation.return-to-service` | Explicit Start, then 200 ± 5 MW for 60 seconds with water healthy and work complete | `maintenance-chapter-complete` |
 
-Both require Auto/electrical regulation with the 200 MW target, grid following
-disabled, running/no trip, no active faults or damage under the existing model
+Generation tests require Auto/electrical regulation at 200 MW or actual Manual
+operation (Hard requires Manual), grid following disabled, running/no trip,
+no active faults or damage under the existing model
 checks, positive cooling margin, both flows at least 20%, core at most 335 °C and
 peak fuel at most 410 °C. These are fictional model limits. Violations reset the
-hold immediately; pause does not advance it. A completed verification stays ready
-to report even if the plant changes afterward. Reporting records an achievement,
+continuous Auto hold immediately. Manual qualifying time accumulates and pauses
+outside requirements without a failure deadline; pause freezes time. Version-1
+issued briefs retain their original Auto-only terms. A completed verification
+stays ready to report even if the plant changes afterward. Reporting records an achievement,
 archives the saved requirements/result, sends follow-up mail and issues eligible
 next work. Email read state does not determine plant success.
 
 Current saved lifecycle values are `assigned`, `active`, `ready`, `completed`.
-Only the `generation-hold` objective kind is implemented. The larger lifecycle,
-20-mission catalogue, costs, rewards, contracts and bankruptcy in the product
-plan are future work. There is no wallet or monetary reward for either current
-mission. Ordinary repairs, refuelling and dispatch remain free.
+Objective kinds are `generation-hold`, `condition-rounds`, `work-order` and
+`water-quality`. Post-acceptance baselines use monotonic inspection, sample and
+order sequences. Requested switches, old samples and unclosed work orders cannot
+substitute for actual success. Work tests need ten continuous plant seconds.
+The remaining original catalogue, economic lifecycle, costs, monetary rewards,
+contracts and bankruptcy remain planned. Service, repairs, refuelling and dispatch
+remain free.
 
 All company UI and career ownership are desktop-only. Companions can operate the
 host plant through existing validated commands, including selected/all fuel
 replacement. They do not display an inbox/mission/finance summary yet, create
 career saves, tick objectives, or manage the host's game. Pool dispatch remains
-desktop-only.
+desktop-only. Condition records, work orders and water controls/sampling are also
+desktop-owned. Companions hydrate water/work state and obey host isolation and
+Hard restrictions through their existing plant controls.
 
 ## Code map
 
 | File | Responsibility |
 | --- | --- |
-| `src/simulation/nuclear-power-missions.js` | Two definitions, catalogue validation, capability prerequisites, inbox records, hold evaluation and reports |
+| `src/simulation/nuclear-power-missions.js` | Eight definitions, catalogue validation, capabilities, pinned evidence and reports |
 | `src/simulation/nuclear-power-game.js` | Entry/return, company UI, lock ownership, autosave, JSON backup and plant switching |
 | `src/simulation/nuclear-power-game-save.js` | Explicit plant/pool serialization, validation/hydration and IndexedDB revision writes |
 | `src/simulation/nuclear-power-game.css` | Company-window and game-status styles |
@@ -83,10 +101,16 @@ advance many steps must evaluate the career after every step. Future electricity
 settlement must consume actual advanced intervals and request boundaries, never
 UI calls, animation frames, wall-clock absence or requested MW.
 
+The new model/UI modules are `nuclear-power-work.js` (derived condition readings,
+inspections and isolation/service/test orders), `nuclear-power-water.js` (powered
+treatment, samples and cooling inventories), and `nuclear-power-maintenance-work.js`
+(desktop controls). `test/nuclear-power-work.test.mjs` covers command guards,
+water behavior, Manual progress, migrations and exact hydration.
+
 ## Saved-state contract and known gaps
 
-- Save schema: `CAREER_SAVE_VERSION = 1`; content metadata:
-  `MISSION_CONTENT_VERSION = 1`. There is no economy rules version yet.
+- Save schema: `CAREER_SAVE_VERSION = 2`; content metadata:
+  `MISSION_CONTENT_VERSION = 2`. There is no economy rules version yet.
 - IndexedDB: `porssiohjain-nuclear-career`, database version 1, object store
   `career`, keys `current` and `previous`. Keep this namespace when changing
   repository/UI names, or provide an explicit migration. Saves belong to the
@@ -106,11 +130,15 @@ UI calls, animation frames, wall-clock absence or requested MW.
 - Hydration restores class getters, shared references, heat, damage, trips,
   pump/shaft inertia, fuel, dispatch and pool/transfer records. Existing sampled
   rotor strength/grace are preserved. Do not regenerate them during restore.
-- JSON export/import is available. Import validates the complete bundle and
-  replaces the career. Unknown save versions are rejected; there is no version
-  migration runner or automatic fallback/recovery UI for the previous revision.
+- JSON export/import validates the complete bundle before replacing the career.
+  `migrateCareerBundle` adds healthy water, empty work records, evidence baselines
+  and Easy difficulty to schema 1, preserving old plant state, issued terms and
+  achievements. Schema 2 validates water bounds, order IDs/stage timestamps,
+  evidence types and difficulty/Auto consistency. Manual trend samples can have
+  null electrical targets. Continue commits the migrated revision. Unknown
+  versions are rejected; previous-revision recovery UI remains planned.
 - Career history contains mission reports and achievements. Separate archived
-  bankrupt/finished companies, profiles, company naming, difficulty choices and
+  bankrupt/finished companies, profiles, company naming and
   restart checkpoints are not implemented. Starting another career replaces the
   one local slot after the explicit replacement action in its introduction.
 - Reset demo is blocked in Career. A melted career can be inspected/exported and
@@ -139,15 +167,14 @@ For an extension:
 
 1. Add a definition and reachable prerequisites; validate missing dependencies,
    duplicate IDs and cycles. Preserve completed/ready/active instances.
-2. When adding an objective other than `generation-hold`, extend evaluation,
+2. When adding an objective kind, extend evaluation,
    catalogue validation, saved-assignment validation and UI progress rendering
    together. Retain support for the saved version-1 hold definitions.
 3. Add any new plant/economy/receipt fields to the explicit serializer and a
-   tested version-1-to-new-schema migration. The current loader does not fill
-   missing fields or migrate them automatically.
-4. Update commissioning-specific UI copy, including the fixed two-assignment
-   introduction and “Both reports” completion wording. Adding a definition alone
-   does not make pump tests, paid contracts or fuel goals operational.
+   tested migration from existing versions. Never silently fill missing required
+   schema-2 fields; legacy additions belong only in explicit migrations.
+4. Update the introduction, progression copy and actual-state checklist. Adding
+   a definition alone does not implement new objective behavior or paid contracts.
 5. Test insertion before issuance, during active/ready work and after completion;
    require old goals/capabilities to survive and rewards/receipts to occur once.
 
@@ -170,9 +197,9 @@ dispatch response envelopes and economic balance have not yet been calibrated.
    bounded premium and duplicate-payment protection.
 3. Implement grid-contract objective evidence and the next company assignment,
    preserving existing careers through a tested migration.
-4. Extend to pump acceptance tests, assigned mechanical defects, priced work
-   orders and return-to-service evidence. Apply one host-side guard/event path
-   to desktop, component and companion commands.
+4. Extend current preventive work orders to assigned mechanical defects and
+   priced work, retaining actual tests and one host-side guard/event path
+   for desktop, component and companion commands.
 5. Add due invoices, limited credit, visible warnings and terminal bankruptcy/
    plant-loss closeout. Preserve heat, trips, damage and explicit operator control.
 6. Add fuel tasks using authoritative representative business batches; full
@@ -187,7 +214,7 @@ handling just to deliver this first financial/mission loop.
 For game work, from the root:
 
 ```sh
-node --test test/nuclear-power-game.test.mjs test/nuclear-power-grid.test.mjs
+node --test test/nuclear-power-game.test.mjs test/nuclear-power-grid.test.mjs test/nuclear-power-work.test.mjs
 npm run build
 npm run test:browser:game
 ```
@@ -201,6 +228,14 @@ The previous implementation baseline (2026-11-12) passed 141 unit/model/session
 tests, the full browser regression, focused game and companion checks, the build,
 both Docker image builds and container smoke checks. Historical counts in older
 feature plans describe those earlier tasks rather than the current test total.
+
+The operations/maintenance extension (2026-11-14) passed 153 unit/model/session
+tests, the production build, the full browser regression and the focused companion
+check against the final build. Focused game and layout checks also passed during
+iteration. Browser coverage runs all eight assignments, Hard save/Continue,
+Manual success retention, real isolation tests and desktop/mobile maintenance fit.
+Companion coverage rejects remote Auto and isolated-pump starts at the host.
+No image publishing or deployment was performed for this extension.
 
 | Workflow source | Result |
 | --- | --- |

@@ -144,9 +144,12 @@ export class ReactorCondition {
 
     canRepair(sim) { return this.repairReadiness(sim).ready; }
 
-    repair(sim) {
+    repair(sim, excludedPumps = []) {
         if (!this.canRepair(sim)) return false;
-        for (const component of Object.values(this.components)) { component.damage = 0; component.stress = 0; for (const part of PUMP_PARTS) component.parts[part] = 0; }
+        for (const [key, component] of Object.entries(this.components)) {
+            if (excludedPumps.includes(key)) continue;
+            component.damage = 0; component.stress = 0; for (const part of PUMP_PARTS) component.parts[part] = 0;
+        }
         for (const zone of this.zones) { zone.damage = 0; zone.exposure = 0; }
         this.stage = sim.tripped ? 'PROTECTIVE SHUTDOWN' : 'NORMAL';
         sim.record('Simulated components repaired after cooldown. Stored heat and operating settings preserved.', 'success', 'operator');
