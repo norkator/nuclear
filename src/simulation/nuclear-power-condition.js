@@ -73,7 +73,7 @@ export class ReactorCondition {
     }
 
     advance(sim, dt, previousTemperature) {
-        this.heatReserve = approach(this.heatReserve, sim.power * 1.5, dt, sim.running ? 40 : 240);
+        this.heatReserve = approach(this.heatReserve, sim.power * 1.5, dt, sim.reacting ? 40 : 240);
         const averageDamage = this.zones.reduce((sum, zone) => sum + zone.damage, 0) / this.zones.length;
         const cooling = Math.min(sim.primaryFlow, sim.secondaryFlow) / 100 * sim.components.coolingFactor * (1 - averageDamage * 0.005);
         this.coolingMargin = 1200 * cooling - sim.power * 12 - this.heatReserve * 1.5;
@@ -125,7 +125,7 @@ export class ReactorCondition {
 
     repairReadiness(sim) {
         const checks = [
-            { id: 'stopped', label: 'Reactor stopped', ready: !sim.running },
+            { id: 'stopped', label: 'Reactor stopped with rods inserted', ready: !sim.reacting && sim.controlRods.every(rod => rod.target === 100 && rod.position >= 99.5) },
             { id: 'faults', label: 'Active faults cleared', ready: this.fault === 'none' && !sim.components?.hasFaults },
             { id: 'coolant', label: 'Coolant below 150 °C', ready: sim.temperature < 150 },
             { id: 'fuel', label: 'Peak fuel below 200 °C', ready: this.peakTemperature < 200 },

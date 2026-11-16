@@ -18,6 +18,8 @@ import { checkCoolingTower } from './cooling-tower.browser.mjs';
 import { waitForChrome } from './chrome-startup.mjs';
 import { checkCompanyGame } from './company-game.browser.mjs';
 import { checkEquipmentStations } from './equipment-stations.browser.mjs';
+import { checkElectricalGrid } from './electrical-grid.browser.mjs';
+import { commissionPlant } from './plant-fixtures.mjs';
 import { checkPlantAudio } from './plant-audio.browser.mjs';
 import { checkComputerSystems } from './computer-systems.browser.mjs';
 import { captureConsoleLayout, checkConsoleLayout, checkBatchedConsoleVisibility } from './console-layout.browser.mjs';
@@ -124,13 +126,15 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         const advanceFuelTransfer = seconds => consoleCode(`for(let i=0;i<${Math.ceil(seconds * 10)};i++)c.fuelTransfer.advance(.1);c.update();`);
         // Fixed-target scenarios explicitly opt out after checking the new reset default.
         const stopFollowingGrid = () => consoleCode('const box=s.querySelector("#follow-grid");box.checked=false;box.dispatchEvent(new Event("change",{bubbles:true}));');
+        const commission = () => consoleCode(`(${commissionPlant.toString()})(c.simulation);c.update();`);
         const resetWithoutDispatch = async () => {
             await action('reset');
             assert.equal(await consoleCode('return s.querySelector("#follow-grid").checked;'), true);
             await stopFollowingGrid();
+            await commission();
         };
         const advance = seconds => consoleCode(`for(let i=0;i<${seconds * 4};i++)c.simulation.tick(.25);c.update();`);
-        const warmOperatingPoint = () => consoleCode(`if(!c.simulation.pumpA)c.simulation.togglePump('A');if(!c.simulation.pumpB)c.simulation.togglePump('B');c.simulation.primaryFlow=100;c.simulation.secondaryFlow=100;for(const id of ['pumpA','pumpB'])Object.assign(c.simulation.components.items[id].actual,{speed:100,flow:100,available:true});c.simulation.start(); Object.assign(c.simulation,{power:64,temperature:286,returnTemperature:258,secondaryTemperature:184}); c.simulation.controlRods.forEach(r=>{r.position=36;}); Object.assign(c.simulation.condition,{fuelTemperature:323.3,heatReserve:96,coolingMargin:288}); c.simulation.condition.zones.forEach(z=>{z.temperature=323.3;}); c.simulation.history=[];c.simulation.sample();c.update();`);
+        const warmOperatingPoint = () => consoleCode(`(${commissionPlant.toString()})(c.simulation);if(!c.simulation.pumpA)c.simulation.togglePump('A');if(!c.simulation.pumpB)c.simulation.togglePump('B');c.simulation.primaryFlow=100;c.simulation.secondaryFlow=100;for(const id of ['pumpA','pumpB'])Object.assign(c.simulation.components.items[id].actual,{speed:100,flow:100,available:true});c.simulation.start(); Object.assign(c.simulation,{power:64,temperature:286,returnTemperature:258,secondaryTemperature:184}); c.simulation.controlRods.forEach(r=>{r.position=36;}); Object.assign(c.simulation.condition,{fuelTemperature:323.3,heatReserve:96,coolingMargin:288}); c.simulation.condition.zones.forEach(z=>{z.temperature=323.3;}); c.simulation.history=[];c.simulation.sample();c.update();`);
         const screenshot = async name => {
             await wait(200); // Let palette/hover transitions settle before capturing.
             // Keep simulator captures focused on the console, without the guide below it.
@@ -150,9 +154,10 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         const focusedGame = process.env.NUCLEAR_BROWSER_FOCUS === 'game';
         const focusedLayout = process.env.NUCLEAR_BROWSER_FOCUS === 'layout';
         const focusedStations = process.env.NUCLEAR_BROWSER_FOCUS === 'stations';
+        const focusedGrid = process.env.NUCLEAR_BROWSER_FOCUS === 'grid';
         const focusedAudio = process.env.NUCLEAR_BROWSER_FOCUS === 'audio';
         const focusedComputers = process.env.NUCLEAR_BROWSER_FOCUS === 'computers';
-        if (!focusedEquipment && !focusedCooling && !focusedGame && !focusedLayout && !focusedComputers && !focusedStations && !focusedAudio) {
+        if (!focusedEquipment && !focusedCooling && !focusedGame && !focusedLayout && !focusedComputers && !focusedStations && !focusedAudio && !focusedGrid) {
             // Check the actual shipped HTML with JavaScript disabled, as a crawler sees it.
             await page('Emulation.setScriptExecutionDisabled', { value: true });
             for (const entry of pages) {
@@ -200,6 +205,7 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         }
         await page('Page.navigate', { url: new URL('/reactor/', baseUrl).href });
         await until(`!!document.querySelector('nuclear-power-console')?.shadowRoot?.querySelector('.console')`, 'Control room did not render');
+        assert.equal(await consoleCode('return c.equipmentStations.scenes.size;'), 0, 'Station renderers remain lazy at initial load');
         if (focusedAudio) {
             await checkPlantAudio({ consoleCode, action, page, advance, until, resetWithoutDispatch, warmOperatingPoint, send });
             assert.deepEqual(exceptions, []);
@@ -231,6 +237,14 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
                 console.log(`Equipment station browser checks passed; artifacts: ${artifacts}`);
                 await send('Browser.close');
                 return;
+            }
+        }
+        if (focusedGrid || !process.env.NUCLEAR_BROWSER_FOCUS) {
+            await checkElectricalGrid({ consoleCode, action, page, until, screenshot, advance });
+            if (focusedGrid) {
+                assert.deepEqual(exceptions, []);
+                console.log(`Electrical grid browser checks passed; artifacts: ${artifacts}`);
+                await send('Browser.close'); return;
             }
         }
         if (!focusedEquipment && !focusedCooling) {
@@ -321,6 +335,7 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         await input('#scene-labels', 'compact');
         await screenshot('equipment-labels-compact');
         // Every pump has an independent main-view speed rail, including the two backups.
+        await commission();
         await action('manual'); await action('pause');
         for (const [key, target] of [['A2', 63], ['B2', 47]]) {
             assert.equal(await consoleCode(`return s.querySelector('#pump-${key}-speed').disabled;`), false);
@@ -356,6 +371,7 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         await action('reset');
         assert.ok(await consoleCode('return [...s.querySelectorAll("[data-pump-speed]")].every(range=>range.value==="100"&&!range.disabled);'));
         // Both delivered-flow cards show the hydraulic damage limit and independent pressure severity.
+        await commission();
         assert.equal(await consoleCode('return s.querySelectorAll(".metrics .metric").length;'), 6);
         assert.ok(await consoleCode('return [...s.querySelectorAll(".metric-flow-limit")].every(label=>label.textContent.includes("5,780 m³/h"));'));
         await consoleCode('c.simulation.setFluctuations(false);'); await stopFollowingGrid(); await action('manual');
@@ -391,6 +407,7 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         await action('reset');
         assert.ok(await consoleCode('return [...s.querySelectorAll(".flow-metric")].every(card=>card.dataset.pressureLevel==="normal");'));
         // Pump controls use a compact cutaway and ranges, with requested and actual positions separate.
+        await commission();
         await consoleCode('c.simulation.setFluctuations(false);c.inspect("pumpA");');
         assert.equal(await consoleCode('return [...s.querySelectorAll("[data-component-dialog^=pump]")].reduce((sum,root)=>sum+root.querySelectorAll("input[type=number]").length,0);'), 0);
         const pumpLayout = await consoleCode('const root=s.querySelector("[data-component-dialog=pumpA]");return {cutaway:root.querySelector(".pump-console").getBoundingClientRect().right,trends:root.querySelector(".component-trends").getBoundingClientRect().left,body:root.querySelector(".equipment-dialog-body").clientHeight,content:root.querySelector(".equipment-dialog-body").scrollHeight};');
@@ -488,6 +505,7 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         await page('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1120, deviceScaleFactor: 1, mobile: false });
         await consoleCode('c.setTheme("dark");c.scrollIntoView({block:"start"});');
         // Four independently enabled pumps, shared-header overpressure and actual water leaks.
+        await commission();
         assert.equal(await consoleCode('return Object.keys(c.overviewScene.pumps).length;'), 4);
         assert.equal(await consoleCode('return s.querySelectorAll(".schematic .pump").length;'), 4);
         for (const key of ['A2', 'B2']) {
@@ -785,6 +803,7 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         await action('pause');
         await advance(10);
         assert.equal(await consoleCode('return c.simulation.running;'), false);
+        await commission();
         await action('pumpA'); await action('pumpB'); await advance(6);
         assert.equal(await value('startIndication'), 'READY');
         assert.equal(await consoleCode('return s.querySelector("[data-action=pumpA]").dataset.lamp;'), 'running');
@@ -944,6 +963,7 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         await consoleCode('s.querySelector("[data-component-close=exchanger]").click();');
         await checkPlantAudio({ consoleCode, action, page, advance, until, resetWithoutDispatch, warmOperatingPoint, send });
         await resetWithoutDispatch();
+        await commission();
         await action('pumpA'); await action('pumpB'); await advance(6);
         await action('start');
         await action('manual');
@@ -1052,7 +1072,7 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         assert.equal(await consoleCode("return s.querySelector('.trends-dialog').matches(':popover-open');"), true);
         await consoleCode("s.querySelector('.trends-dialog .core-dialog-titlebar').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));");
         assert.equal(await consoleCode("return s.querySelector('.trends-dialog').matches(':popover-open');"), false);
-        await action('fluctuations');
+        await consoleCode('c.simulation.setFluctuations(false);c.update();');
 
         // A rotated local origin must coincide exactly with the stationary hub center.
         for (let frame = 0; frame < 5; frame++) {
@@ -1162,7 +1182,7 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         await input('#auto-flow', 80);
         await input('#auto-objective', 'temperature');
         await advance(180);
-        await action('fluctuations');
+        await consoleCode('c.simulation.setFluctuations(false);c.update();');
         await advance(60);
         assert.equal(await consoleCode(`return c.simulation.fluctuationsEnabled;`), false);
         await action('trip-cover');
@@ -1395,7 +1415,9 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         await wait(150);
         await action('core-view');
         await action('power-supply');
-        assert.equal(await consoleCode('return c.plantTab;'), 'reactor');
+        assert.equal(await consoleCode('return c.plantTab;'), 'electrical');
+        await consoleCode('s.querySelector("#electrical-panel [data-station-part=grid]").click();');
+        await tab('reactor');
         assert.equal(await consoleCode('return s.querySelector(".electrical-supply-dialog").matches(":popover-open");'), true);
         assert.equal(await consoleCode('return s.querySelector(".core-dialog").matches(":popover-open");'), true);
         assert.equal(await consoleCode('s.querySelector("#auto-flow").focus();return s.activeElement.id;'), 'auto-flow');
@@ -1569,6 +1591,8 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         assert.equal(await consoleCode('return s.querySelector("[data-action=replace-all-fuel]").disabled;'), false);
         await action('close-core');
         await consoleCode('s.querySelector("#maintenance-tab").dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowRight",bubbles:true}));');
+        assert.equal(await consoleCode('return c.plantTab;'), 'electrical');
+        await consoleCode('s.querySelector("#electrical-tab").dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowRight",bubbles:true}));');
         assert.equal(await consoleCode('return c.plantTab;'), 'computers');
         await consoleCode('s.querySelector("#computers-tab").dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowRight",bubbles:true}));');
         assert.equal(await consoleCode('return c.plantTab;'), 'pumps');

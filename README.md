@@ -95,6 +95,11 @@ cooling drive the sound. Only the active visible room plays; offscreen views,
 mute, pause and hiding stop it. Room sounds load locally on demand. Maintenance
 stays quiet. Focused sound checks: `npm run test:browser:audio`.
 
+The yellow **Alert silence** pushbutton above ESD mutes only alerts, with a
+pressed cap and amber lamp. Machinery and UI sounds continue; alarms remain
+visible and unacknowledged. The header retains the clock; Pause/Reset sit at the
+footer's left, with PÖRSSIOHJAIN at right.
+
 ## Computer systems
 
 The **Computer systems** tab contains a clickable 3D server rack with two
@@ -102,6 +107,16 @@ redundant process servers, a control-network switch, rack UPS and cooling tray.
 Drag or use arrow keys to orbit, wheel or +/− to zoom, and Home/Reset view to
 restore the camera. The rack uses only the 3D presentation. Native unit buttons
 also open the same inspection window and remain usable if 3D is unavailable.
+
+New/reset plants have grid and turbine feed disconnected, both diesels OFF with
+standby disabled, and every rack unit OFF. Connect the grid or manually start a
+diesel first. Use the ON/OFF switches beside the computer cards to power rack
+cooling, the network and a server, then wait five plant seconds for boot before
+reactor Start in both Auto and Manual. Restoring AC never switches computers on.
+Startup requires an online server and control network, plus AC and circulation.
+Once running, independent Manual controls and emergency shutdown remain usable
+during computing loss. Existing saves restore their
+recorded power state, including partial boot; legacy migrations remain unchanged.
 
 Inspect actual power/online state, boot countdown, temperature, operating hours,
 UPS charge/battery health and cooling airflow/filter load. Run diagnostics,
@@ -457,7 +472,9 @@ changing the plant. New sessions and **Reset demo** close the cover. Automatic
 trips work with either cover position, and pause/reduced motion skip the lid animation.
 The trip lamp and button stay visible through the lid: the button stays depressed
 and reads **TRIP LATCHED** for any latched reactor
-trip, and releases only after a successful **Reset trip**. Repeated presses cannot
+trip, and releases only after a successful **Reset trip**. After ESD, the core-map insertion slider permits manual withdrawal and renewed
+core heat while the latch stays engaged and Auto stays suspended. Stop or another
+ESD command reinserts the rods. Repeated presses cannot
 reset it; clearing the latch leaves the reactor stopped. The controls retain their
 existing interlocks, keyboard access and both themes. These are simulated controls.
 The button faces have restrained illumination: green Start during running, red Stop
@@ -562,14 +579,18 @@ actual bus load. Clicking either diesel opens its own movable dialog, with a
 pump-style ON/OFF rocker, automatic standby, startup countdown, fuel/load and
 manual refuelling. OFF disables standby as before. The two dialogs can coexist.
 
-The **Pump power source** panel sits above Grid controller on the left, with source,
-requested/available load and buttons to open each diesel. Its ↗ button (or the 3D
-grid/bus) opens **Electrical supply & connections**, retaining the 2D route and
-native grid/feed switches styled as the same ON/OFF rockers. Their keyboard and
-requested/actual behavior remain. There is no Auxiliary power tab or header grid
-button. Sidebar controls remain available in the schematic/WebGL fallback.
-Maintenance suspends rendering; all dialogs retain the shared movement, clamping,
-closing/focus and detach cleanup. No power/supply model behavior has changed.
+The **Electrical grid** tab sits immediately after Maintenance. Its independent
+3D cutaway shows the grid transformer/switchgear, turbine feed, AC bus, two diesels
+and outgoing pump circuits. The Pump power source arrow and overview grid/bus
+navigate here. Native grid/feed rockers allow quick switching; select 3D equipment
+or a part button to open the existing connections or diesel controls. Source,
+load, fuel and electrical markers follow actual state. Direct inspection and
+companion screens retain their electrical windows. The 3D station builds on first
+visit, draws only while visible, shares the console frame clock and disposes on
+detach. Pause/reduced motion freeze motion; WebGL failure retains native controls.
+Actual diesel sounds play only while the electrical viewport is visible. See
+[ELECTRICAL-GRID-PLAN.md](ELECTRICAL-GRID-PLAN.md) and run
+`npm run test:browser:grid` for focused coverage.
 
 The **Maintenance** tab shows a live count and list of components with retained
 damage, wear or exchanger fouling, including affected core channels. **Inspect**

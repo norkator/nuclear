@@ -543,13 +543,13 @@ export class PlantOverviewScene {
             fuel.material.color.setHSL(.1 - heat * .09, .28 + heat * .6, .36 + heat * .14);
             fuel.material.emissive.setHSL(.05 - heat * .04, 1, .5);
             const channel = motion.reactionChannels?.[fuel.userData.zoneIndex];
-            const reaction = sim.running && !sim.tripped && !sim.condition.meltdown ? channel?.activity || 0 : 0;
+            const reaction = sim.reacting ? channel?.activity || 0 : 0;
             const pulse = .5 + .5 * Math.sin(((channel?.phase ?? motion.reactionPhase) + index / this.fuel.length) * TAU);
             fuel.material.emissiveIntensity = heat * (.6 + .1 * Math.sin(motion.thermalPhase * TAU)) + reaction * (.25 + pulse * .55);
             fuel.scale.y = 1 - sim.condition.meltProgress * .55;
             fuel.position.y = 1.78 + 1.225 * fuel.scale.y;
         }
-        const reactionActivity = sim.running && !sim.tripped && !sim.condition.meltdown ? motion.reactionActivity || 0 : 0;
+        const reactionActivity = sim.reacting ? motion.reactionActivity || 0 : 0;
         this.reactionMaterial.opacity = reactionActivity * .9;
         for (const [index, particle] of this.reactorReactions.entries()) {
             const channel = motion.reactionChannels?.[this.fuel[index % this.fuel.length].userData.zoneIndex];

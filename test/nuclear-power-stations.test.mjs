@@ -8,13 +8,14 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { NuclearPowerSimulation } from '../src/simulation/nuclear-power-model.js';
 import { EquipmentStationScene } from '../src/simulation/nuclear-power-stations-scene.js';
+import { ElectricalGridScene } from '../src/simulation/nuclear-power-grid-scene.js';
 import { EQUIPMENT_STATIONS } from '../src/simulation/nuclear-power-stations-config.js';
 import { advanceProcessMotion } from '../src/simulation/nuclear-power-motion.js';
 import { PUMPS } from '../src/simulation/nuclear-power-pumps.js';
 
 // Exercise the real shared geometry and adapters without creating a browser/GPU.
 function cutaway(id) {
-    const view = Object.assign(Object.create(EquipmentStationScene.prototype), {
+    const view = Object.assign(Object.create((id === 'electrical' ? ElectricalGridScene : EquipmentStationScene).prototype), {
         host: { dataset: { stationEquipment: id }, replaceChildren() {} },
         scene: new THREE.Scene(), target: new THREE.Vector3(),
         geometries: new Set(), materials: new Set(), groups: new Map(), labels: new Map(), featureLabels: [],
@@ -32,9 +33,32 @@ test('every batched station keeps separately pickable parts and builds only the 
         const id = definition.id === 'pumps' ? 'pumpB2' : definition.id, view = cutaway(id);
         const parts = new Set(); view.scene.traverse(object => { if (object.userData.equipment) parts.add(object.userData.equipment); });
         for (const [part] of definition.parts) assert.ok(parts.has(part), `${id}: ${part} remains pickable after batching`);
-        assert.deepEqual([...view.groups.keys()], [id], 'No hidden plant or unrelated pumps are built');
+        if (id === 'electrical') {
+            assert.ok(!view.groups.has('reactor') && !view.groups.has('turbine'), 'Grid scene builds electrical equipment only');
+            assert.equal(view.engines.size, 2); assert.equal(view.electricalPaths.length, 8);
+        } else assert.deepEqual([...view.groups.keys()], [id], 'No hidden plant or unrelated pumps are built');
         view.dispose(); assert.equal(view.disposed, true);
     }
+});
+
+test('grid cutaway follows actual source, contacts, fuel and engine phases; hidden updates stop and never tick the plant', () => {
+    const sim = new NuclearPowerSimulation(), view = cutaway('electrical');
+    view.update(sim, { supplyPhase: 0 }, { A: 0, B: 0 }, 'dark');
+    assert.equal(view.busLamp.emissiveIntensity, 0);
+    assert.ok(view.electricalPaths.every(route => route.markers.every(marker => !marker.visible)));
+    sim.supply.setGrid(sim, true);
+    const before = sim.snapshot(); view.update(sim, { supplyPhase: .2 }, { A: 90, B: 0 }, 'light');
+    assert.deepEqual(sim.snapshot(), before); assert.equal(sim.elapsed, 0);
+    assert.equal(view.gridContact.rotation.z, 0); assert.ok(view.gridLamp.emissiveIntensity > 0);
+    assert.ok(view.electricalPaths.find(route => route.source === 'grid').markers.every(marker => marker.visible));
+    assert.ok(view.electricalPaths.find(route => route.source === 'dieselA').markers.every(marker => !marker.visible));
+    assert.equal(view.engines.get('A').fan.rotation.z, -Math.PI / 2);
+    assert.equal(view.engines.get('B').fan.rotation.z, 0);
+    assert.equal(view.engines.get('A').fill.scale.y, sim.supply.generators[0].fuel / 100);
+    view.setVisible(false); const draws = view.draws;
+    view.update(sim, { supplyPhase: .5 }, { A: 180, B: 0 }, 'dark');
+    assert.equal(view.draws, draws); assert.equal(view.engines.get('A').fan.rotation.z, -Math.PI / 2);
+    view.dispose(); assert.equal(view.disposed, true);
 });
 
 test('station poses follow actual motor/valves, retain requests separately, skip hidden draws and never advance the plant', () => {

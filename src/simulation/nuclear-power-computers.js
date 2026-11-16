@@ -12,8 +12,8 @@ export const computerPanel = `<section id="computers-panel" class="computer-pane
   <div class="computer-heading"><div><span class="eyebrow">I&amp;C / OPERATIONS RACK</span><h2>Computer systems</h2></div></div>
   <div class="computer-health" role="status"><strong data-rack-status></strong><span data-rack-readings></span></div>
   <div class="computer-workspace"><div class="computer-rack-viewport"><div class="computer-rack-scene" aria-label="Interactive 3D computer server rack"></div><p class="computer-view-status" role="status" hidden></p><div class="computer-camera-tools"><button class="small-button" data-computer-camera="out" aria-label="Zoom server rack out">−</button><button class="small-button" data-computer-camera="in" aria-label="Zoom server rack in">+</button><button class="small-button" data-computer-camera="home">Reset view</button></div></div>
-  <nav class="computer-unit-list" aria-label="Inspect rack units">${COMPUTER_UNITS.map(unit => `<button data-computer-open="${unit.id}" aria-haspopup="dialog" aria-controls="computer-window" aria-expanded="false"><small>${unit.tag}</small><strong>${unit.name}</strong><span data-computer-state="${unit.id}"></span></button>`).join('')}</nav></div>
-  <p class="computer-note">Select a unit to inspect or maintain. Either process server can support Auto. Manual controls, plant instruments and emergency shutdown remain independent of this rack. All equipment is simulated.</p>
+  <nav class="computer-unit-list" aria-label="Inspect rack units">${COMPUTER_UNITS.map(unit => `<div class="computer-unit-card"><button data-computer-open="${unit.id}" aria-haspopup="dialog" aria-controls="computer-window" aria-expanded="false"><small>${unit.tag}</small><strong>${unit.name}</strong><span data-computer-state="${unit.id}"></span></button><button class="computer-quick-power" data-computer-power="${unit.id}" role="switch" aria-checked="false" aria-label="${unit.name} power">OFF</button></div>`).join('')}</nav></div>
+  <p class="computer-note">Establish auxiliary AC, then switch units ON beside each card. Servers and network boot for five plant seconds. Either process server plus the network can support Auto. Select a card to inspect or maintain. Manual controls, plant instruments and emergency shutdown remain independent of this rack. All equipment is simulated.</p>
 </section>`;
 
 export const computerDialog = `<section id="computer-window" class="computer-dialog equipment-dialog floating-dialog" popover="manual" role="dialog" aria-modal="false" aria-labelledby="computer-title"><div class="core-dialog-titlebar" tabindex="0" aria-label="Move computer inspection window with arrow keys or drag"><span aria-hidden="true">⠿</span><h2 id="computer-title">Computer inspection</h2><button class="small-button" data-computer-close aria-label="Close computer inspection">×</button></div><div class="equipment-dialog-body"><p class="computer-description"></p><div class="computer-run"><button class="pump-rocker" data-computer-toggle role="switch" aria-checked="true" aria-label="Selected computer power switch"><span class="pump-rocker-face" aria-hidden="true"><span class="rocker-on">I <small>ON</small></span><span class="rocker-off">O <small>OFF</small></span></span></button><strong class="computer-unit-status"></strong><button class="small-button" data-computer-prefer>Make active server</button></div><dl class="computer-readings">${['temperature', 'hours', 'boot', 'source', 'charge', 'battery', 'airflow', 'filter', 'services'].map(key => `<div data-computer-row="${key}"><dt></dt><dd></dd></div>`).join('')}</dl><div class="computer-inspection-actions"><button class="small-button" data-computer-diagnose>Run diagnostics</button><button class="small-button" data-computer-order>Create work order</button></div><p class="computer-diagnostic"></p><section class="computer-work-order"><h3>Hardware maintenance</h3><p class="computer-order-status"></p><progress max="10" value="0" aria-label="Computer functional test qualifying time"></progress><ul class="computer-service-checks"></ul><div class="computer-inspection-actions">${Object.entries(workActions).map(([action, label]) => `<button class="small-button" data-computer-work="${action}">${label}</button>`).join('')}</div><p>Switch the selected unit OFF, establish the checks, then isolate and service it. Release for test, switch it ON and prove ten continuous seconds of actual operation before returning it to service. Service preserves plant heat, fuel and trip latches.</p></section><p class="computer-result" role="status" aria-live="polite"></p></div></section>`;
@@ -23,6 +23,11 @@ export class ComputerConsole {
         this.host = host; this.root = host.shadowRoot; this.selected = 'serverA'; this.phase = 0; this.visible = false;
         this.root.addEventListener('click', event => {
             if (host.companion) return;
+            const quick = event.target.closest('[data-computer-power]');
+            if (quick) {
+                if (!quick.disabled) this.power(quick.dataset.computerPower);
+                return;
+            }
             const open = event.target.closest('[data-computer-open]');
             if (open) { this.open(open.dataset.computerOpen); return; }
             const button = event.target.closest('[data-computer-camera], [data-computer-close], [data-computer-toggle], [data-computer-prefer], [data-computer-diagnose], [data-computer-order], [data-computer-work]');
@@ -43,6 +48,13 @@ export class ComputerConsole {
             }
             host.update();
         });
+    }
+    power(id) {
+        if (!isComputer(id) || this.host.companion) return;
+        const sim = this.host.simulation;
+        const accepted = sim.setComputerEnabled(id, !sim.computers.units[id].enabled);
+        this.message = accepted ? 'Power request recorded. Check actual status and boot countdown.' : 'Power request blocked. Establish auxiliary AC and release maintenance isolation.';
+        this.host.update();
     }
     get dialog() { return this.root.querySelector('.computer-dialog'); }
     connect() {
@@ -103,6 +115,11 @@ export class ComputerConsole {
             text(this.root.querySelector('[data-rack-status]'), computers.automationAvailable ? `Process computing ready · ${computers.activeServer === 'serverA' ? 'Server A' : 'Server B'} active` : 'Auto unavailable · Manual controls remain available');
             text(this.root.querySelector('[data-rack-readings]'), `${computers.source === 'UPS' ? 'UPS battery' : computers.source === 'AC' ? 'Auxiliary AC' : 'Rack unpowered'} · ${computers.rackTemperature.toFixed(1)} °C · UPS ${computers.charge.toFixed(0)}%`);
             for (const unit of COMPUTER_UNITS) {
+                const control = this.root.querySelector(`[data-computer-power="${unit.id}"]`), actual = computers.units[unit.id];
+                control.setAttribute('aria-checked', String(actual.enabled));
+                control.textContent = actual.enabled ? 'ON' : 'OFF';
+                control.disabled = !actual.enabled && (sim.work.locked(unit.id) || !computers.canPowerOn(sim));
+                control.title = control.disabled ? 'Auxiliary AC or a live UPS and released isolation are required to switch ON.' : `${actual.enabled ? 'Switch OFF' : 'Switch ON'} ${unit.name}`;
                 text(this.root.querySelector(`[data-computer-state="${unit.id}"]`), computers.status(unit.id));
             }
         }
@@ -112,7 +129,7 @@ export class ComputerConsole {
             text(this.dialog.querySelector('.computer-description'), definition.description);
             text(this.dialog.querySelector('.computer-unit-status'), computers.status(id));
             const toggle = this.dialog.querySelector('[data-computer-toggle]'); toggle.setAttribute('aria-checked', String(unit.enabled));
-            toggle.setAttribute('aria-label', `${definition.name} power switch`); toggle.disabled = sim.work.locked(id);
+            toggle.setAttribute('aria-label', `${definition.name} power switch`); toggle.disabled = !unit.enabled && (sim.work.locked(id) || !computers.canPowerOn(sim));
             const prefer = this.dialog.querySelector('[data-computer-prefer]'); prefer.hidden = !id.startsWith('server');
             prefer.disabled = !unit.online || !computers.units.rackSwitch.online || computers.preferredServer === id;
             const fields = { temperature: ['Unit temperature', `${unit.temperature.toFixed(1)} °C`], hours: ['Operating hours', unit.hours.toFixed(2)],

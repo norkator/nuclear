@@ -3,13 +3,14 @@
  * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
+import { poweredSimulation } from './plant-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NuclearPowerSimulation } from '../src/simulation/nuclear-power-model.js';
 
 // These scenarios explicitly exercise manual operation or opt into temperature Auto.
 const manualSimulation = () => {
-    const sim = new NuclearPowerSimulation();
+    const sim = poweredSimulation();
     sim.setAutoMode(false);
     sim.setAutoObjective('temperature');
     // Explicitly prime circulation for this established operating-point fixture.

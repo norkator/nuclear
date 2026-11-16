@@ -53,6 +53,9 @@ export class PlantAudio {
         if (scene === 'reactor') {
             this.updatePlant(plantSoundState(sim));
             this.updateDiesels(sim.supply.generators);
+        } else if (scene === 'electrical') {
+            if (visible) this.updateDiesels(sim.supply.generators);
+            else this.stopDiesels();
         } else if (STATION_SOUNDS.includes(scene)) {
             if (!visible || this.context.state !== 'running') { this.stopStation(); return; }
             // Only the opted-in active room loads. Resolution never starts a voice;
@@ -78,6 +81,11 @@ export class PlantAudio {
     }
 
     stopStation() { for (const voice of this.nodes) if (voice.station) this.halt(voice); }
+
+    stopDiesels() {
+        for (const voice of this.nodes) if (voice.diesel) this.halt(voice);
+        this.dieselStates.clear(); this.completedStarts.clear();
+    }
 
     updateStation(state) {
         if (!state || state.sound !== this.scene || this.context.state !== 'running'
@@ -117,12 +125,7 @@ export class PlantAudio {
     }
 
     updateDiesels(generators) {
-        if (this.scene !== 'reactor' || this.context.state !== 'running') {
-            for (const voice of this.nodes) if (voice.diesel) this.halt(voice);
-            this.dieselStates.clear();
-            this.completedStarts.clear();
-            return;
-        }
+        if (!['reactor', 'electrical'].includes(this.scene) || this.context.state !== 'running') { this.stopDiesels(); return; }
         for (const generator of generators) {
             const { id, state, startRemaining, load, capacity } = generator;
             const previous = this.dieselStates.get(id);

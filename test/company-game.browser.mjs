@@ -4,6 +4,7 @@
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
 import assert from 'node:assert/strict';
+import { commissionPlant } from './plant-fixtures.mjs';
 import { waitForConsoleLayout } from './console-layout.browser.mjs';
 
 export async function checkCompanyGame({ consoleCode, action, input, page, evaluate, until, screenshot, send, baseUrl }) {
@@ -39,6 +40,7 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
     const pendingColor = await consoleCode('return getComputedStyle(s.querySelector(".game-task-list li")).color;');
     await gameAction('resume');
     await ready('!c.game.busy', 'Shift resumed');
+    await consoleCode(`(${commissionPlant.toString()})(c.simulation);c.update();`);
     await consoleCode('s.querySelector("#follow-grid").checked=false;s.querySelector("#follow-grid").dispatchEvent(new Event("change",{bubbles:true}));');
     await action('pumpA'); await action('pumpB');
     assert.equal((await steps()).circulation, false, 'Switch requests alone do not complete the circulation step');
@@ -198,9 +200,18 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
     assert.equal(await consoleCode('return c.simulation.autoMode;'), false);
     assert.equal(await consoleCode('return s.querySelector("[data-action=auto]").disabled;'), true);
     await acceptNext(); await gameAction('resume'); await ready('!c.game.busy', 'Hard shift resumed');
+    await consoleCode('c.simulation.supply.setGrid(c.simulation,true);c.update();');
     await consoleCode('c.simulation.setAutoMode(true);c.simulation.setGridDispatchEnabled(false);c.simulation.setLoad(49);c.update();');
     assert.equal(await consoleCode('return c.simulation.autoMode;'), false);
-    await action('pumpA'); await action('pumpB'); await advance(8); await action('start'); await advance(120);
+    await action('pumpA'); await action('pumpB'); await advance(8);
+    assert.equal(await consoleCode('return s.querySelector("[data-action=start]").disabled;'), true, 'Hard Manual startup needs actual computing readiness');
+    await consoleCode('c.simulation.start();c.update();');
+    assert.equal(await consoleCode('return c.simulation.running;'), false, 'The host model also blocks Start with computers OFF');
+    await consoleCode('c.setPlantTab("computers");for(const id of ["rackCooling","rackSwitch","serverA"])s.querySelector(`[data-computer-power="${id}"]`).click();');
+    await advance(6);
+    assert.equal(await consoleCode('return c.simulation.autoMode;'), false, 'Computer boot never enables Auto in Hard');
+    await consoleCode('c.setPlantTab("reactor");');
+    await action('start'); await advance(120);
     assert.equal(await consoleCode('return c.game.career.current.status;'), 'ready');
     await action('stop'); await advance(10);
     assert.ok(Object.values(await steps()).every(Boolean), 'Manual success remains verified after leaving the target');

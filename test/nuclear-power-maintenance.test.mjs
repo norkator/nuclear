@@ -3,13 +3,14 @@
  * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
+import { poweredSimulation } from './plant-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NuclearPowerSimulation } from '../src/simulation/nuclear-power-model.js';
 import { maintenanceItems } from '../src/simulation/nuclear-power-maintenance.js';
 
 test('maintenance consolidates damage, wear and fouling without counting temporary stress or fuel depletion', () => {
-    const sim = new NuclearPowerSimulation();
+    const sim = poweredSimulation();
     assert.deepEqual(maintenanceItems(sim), []);
     sim.condition.components.B.stress = 80;
     sim.fuel.assemblies[0].remaining = 0;
@@ -38,7 +39,7 @@ test('maintenance readiness and repair share running, fault, temperature and mel
         ['meltdown', sim => { sim.condition.meltdown = true; }]
     ];
     for (const [id, change] of cases) {
-        const sim = new NuclearPowerSimulation();
+        const sim = poweredSimulation();
         sim.components.items.pumpA.wear = 20;
         change(sim);
         const readiness = sim.condition.repairReadiness(sim);
@@ -50,7 +51,7 @@ test('maintenance readiness and repair share running, fault, temperature and mel
 });
 
 test('repairing the maintenance list clears every retained issue while preserving heat, fuel, settings and trips', () => {
-    const sim = new NuclearPowerSimulation();
+    const sim = poweredSimulation();
     sim.trip();
     sim.condition.heatReserve = 12;
     sim.condition.components.A.damage = 5;
@@ -79,7 +80,7 @@ test('repairing the maintenance list clears every retained issue while preservin
 
 test('any number of cooled, non-melted damaged core channels can be repaired before fuel replacement', () => {
     for (const count of [1, 6, 12]) {
-        const sim = new NuclearPowerSimulation();
+        const sim = poweredSimulation();
         sim.trip();
         for (const [index, zone] of sim.condition.zones.slice(0, count).entries()) zone.damage = 10 + index;
         assert.equal(maintenanceItems(sim).find(item => item.id === 'reactor').zones, count);

@@ -29,11 +29,11 @@ import { initializeDesktopLayout, layoutControls } from './nuclear-power-layout.
 import layoutStyles from './nuclear-power-layout.css?inline';
 import { computerPanel, computerDialog, ComputerConsole } from './nuclear-power-computers.js';
 import computerStyles from './nuclear-power-computers.css?inline';
-import { EquipmentStations, stationTabs, stationPanels } from './nuclear-power-stations.js';
+import { EquipmentStations, electricalTab, stationTabs, stationPanels } from './nuclear-power-stations.js';
 import { EQUIPMENT_STATIONS, equipmentStation } from './nuclear-power-stations-config.js';
 import stationStyles from './nuclear-power-stations.css?inline';
 
-const PLANT_TABS = ['reactor', 'maintenance', 'computers', ...EQUIPMENT_STATIONS.map(station => station.id)];
+const PLANT_TABS = ['reactor', 'maintenance', 'electrical', 'computers', ...EQUIPMENT_STATIONS.filter(station => station.id !== 'electrical').map(station => station.id)];
 const STEAM_PATH = createPolylinePath([[610, 160], [790, 160], [790, 210]]);
 
 const radiation = `<svg viewBox="0 0 40 40" fill="currentColor" aria-hidden="true"><circle cx="20" cy="20" r="3.4"/><path d="M16 13.1 12 6.2a16 16 0 0 1 16 0l-4 6.9a8 8 0 0 0-8 0ZM12 20H4a16 16 0 0 0 8 13.9l4-6.9a8 8 0 0 1-4-7Zm12 7 4 6.9A16 16 0 0 0 36 20h-8a8 8 0 0 1-4 7Z"/></svg>`;
@@ -251,6 +251,7 @@ export class NuclearPowerConsole extends HTMLElement {
         this.sceneLabelMode = 'compact';
         this.plantTab = 'reactor';
         this.tripCoverOpen = false;
+        this.alertSoundsMuted = false;
         this.reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
         this.intersecting = true;
         this.overviewIntersecting = true;
@@ -331,9 +332,9 @@ export class NuclearPowerConsole extends HTMLElement {
             <label for="auto-electrical" class="electrical-target" hidden>Output target <span><input id="auto-electrical" type="number" min="0" max="${ELECTRICAL_TARGET_MAX_MW}" step="1" value="200"/> MW<span class="subscript">e</span></span></label>
             <label for="auto-temperature"><span data-value="temperatureLabel">Core target</span><span><input id="auto-temperature" type="number" min="40" step="1" value="286"/> °C</span></label>
             <label for="auto-flow">Circulation target <span><input id="auto-flow" type="number" min="25" max="100" step="1" value="85"/> %</span></label>
-            <div class="regulation-status"><strong data-value="regulation">MANUAL CONTROL</strong><span data-value="regulationDetail">Individual rods and pump speeds available.</span><button class="small-button" data-action="fluctuations" aria-pressed="true">Fluctuations: On</button></div>
+            <div class="regulation-status"><strong data-value="regulation">MANUAL CONTROL</strong><span data-value="regulationDetail">Individual rods and pump speeds available.</span></div>
           </section>
-              <div class="header-settings">${sessionControls}<div class="header-sound"><button class="small-button" data-action="sound" aria-pressed="false">Enable plant sounds</button><span class="ui-sound-status" role="status"></span></div><label class="theme-toggle"><input id="light-theme" type="checkbox" role="switch"/> Light theme</label><div class="session"><span class="simulation-badge"><i></i> SIMULATION</span><div class="session-clock" data-value="clock">T+00:00:00</div></div></div>
+              <div class="header-settings">${sessionControls}<div class="header-sound"><button class="small-button" data-action="sound" aria-pressed="false">Enable plant sounds</button><span class="ui-sound-status" role="status"></span></div><label class="theme-toggle"><input id="light-theme" type="checkbox" role="switch"/> Light theme</label><div class="session"><div class="session-clock" data-value="clock">T+00:00:00</div></div></div>
             </section>
           </header>
 
@@ -358,7 +359,7 @@ export class NuclearPowerConsole extends HTMLElement {
 
           <div class="workspace">
             <section class="panel process-panel" aria-label="Plant overview">
-              <div class="plant-tabs" role="tablist" aria-label="Plant overview"><button id="reactor-tab" role="tab" data-plant-tab="reactor" aria-controls="reactor-panel" aria-selected="true" tabindex="0">Reactor overview</button><button id="maintenance-tab" role="tab" data-plant-tab="maintenance" aria-controls="maintenance-panel" aria-selected="false" tabindex="-1">Maintenance <span class="maintenance-count">0</span></button><button id="computers-tab" role="tab" data-plant-tab="computers" aria-controls="computers-panel" aria-selected="false" tabindex="-1">Computer systems</button>${stationTabs}</div>
+              <div class="plant-tabs" role="tablist" aria-label="Plant overview"><button id="reactor-tab" role="tab" data-plant-tab="reactor" aria-controls="reactor-panel" aria-selected="true" tabindex="0">Reactor overview</button><button id="maintenance-tab" role="tab" data-plant-tab="maintenance" aria-controls="maintenance-panel" aria-selected="false" tabindex="-1">Maintenance <span class="maintenance-count">0</span></button>${electricalTab}<button id="computers-tab" role="tab" data-plant-tab="computers" aria-controls="computers-panel" aria-selected="false" tabindex="-1">Computer systems</button>${stationTabs}</div>
               <div id="reactor-panel" role="tabpanel" aria-labelledby="reactor-tab">
               <div class="panel-heading"><div><span class="section-index">01</span><h2>Process view</h2></div><div class="diagram-tools"><button class="small-button" data-action="exercises" aria-controls="exercises-window" aria-expanded="false">Objectives &amp; scenarios</button><button class="small-button" data-action="core-view" aria-haspopup="dialog" aria-controls="core-map-window" aria-expanded="false">Core map ↗</button><button class="small-button" data-action="zoom" aria-label="Zoom process diagram" aria-pressed="false">Zoom +</button></div></div>
               <div class="annunciator" role="status"><span class="annunciator-icon">●</span><span data-value="annunciator">ALL SYSTEMS NORMAL</span><span class="plant-state" data-value="status">RUNNING</span></div>
@@ -382,6 +383,7 @@ export class NuclearPowerConsole extends HTMLElement {
                   <div class="setpoint"><label for="load"><span class="regulator-caption"><small>LR-01 / REACTOR LOAD</small><span>Load setpoint</span></span><strong class="regulator-display" data-value="demand">64%</strong></label><div class="regulator-rail" style="--regulator-position:64%"><input id="load" type="range" min="0" max="100" value="64" aria-label="Load setpoint" aria-describedby="load-owner"/><div class="regulator-scale" aria-hidden="true"><span>0</span><span>25</span><span>50</span><span>75</span><span>100%</span></div></div><div class="load-trim-label"><span>FINE ADJUST</span><span id="load-owner" data-value="loadOwner">AUTO</span></div><div class="button-pair"><button class="control-button compact load-trim-button" data-action="load-down">− Decrease</button><button class="control-button compact load-trim-button" data-action="load-up">+ Increase</button></div></div>
                   <div class="rod-control"><div class="control-label">CONTROL RODS <span>IN <span data-value="rodTarget">36%</span></span></div><div class="button-pair"><button class="control-button compact" data-action="insert">↓ Insert</button><button class="control-button compact" data-action="withdraw">↑ Withdraw</button></div></div>
                   <div class="pump-controls">${pumpControls()}</div>
+                  <button type="button" id="mute-alert-sounds" class="control-button hardware-button alert-mute-button" data-action="mute-alerts" aria-label="Mute alert sounds" aria-pressed="false" aria-describedby="alert-sound-indication"><span class="hardware-face" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 16h14l-2-3V9a5 5 0 0 0-10 0v4Zm5 3a2 2 0 0 0 4 0M12 2v2"/><path class="alert-silence-slash" d="m3 3 18 18"/></svg></span><span class="hardware-label"><strong>Alert silence</strong><span class="hardware-indication" id="alert-sound-indication"><i class="pilot-lamp" aria-hidden="true"></i><span data-value="alertSoundIndication">ALERT SOUND ON</span></span></span></button>
                   <section class="emergency-station" aria-label="Operator emergency shutdown" data-cover-open="false">
                     <div class="emergency-station-heading"><span>ESD-01 / REACTOR TRIP</span><span class="trip-latch-indicator"><i class="pilot-lamp" aria-hidden="true"></i><b data-value="tripLatch">ARMED</b></span></div>
                     <div class="emergency-guard">
@@ -411,7 +413,7 @@ export class NuclearPowerConsole extends HTMLElement {
             <section class="panel events-panel" aria-label="Simulation event log"><div class="panel-heading"><div><span class="section-index">04</span><h2>Event journal</h2></div><span class="event-count">0 EVENTS</span></div><div class="log-toolbar"><label for="log-filter">Show <select id="log-filter"><option value="all">All events</option><option value="operator">Operator</option><option value="automation">Automation</option><option value="process">Process readings</option><option value="alarm">Alarms</option><option value="system">System</option></select></label><span>Latest 200 events · this session</span><button class="small-button" data-action="export-log">↓ Export CSV</button></div><div class="alarm-list" aria-live="polite"></div><ol class="event-list" aria-label="Recent simulation events"></ol><button class="ack-button" data-action="acknowledge" disabled>✓ Acknowledge alarms</button></section>
           </aside>
           </div>
-          <footer class="console-footer"><span><i class="status-dot"></i> <span data-value="sessionState">SIMULATION ACTIVE</span><span class="footer-divider">/</span> ALL SIGNALS SIMULATED</span><div><button data-action="meltdown-view" hidden class="footer-button" aria-controls="meltdown-window" aria-expanded="false">Meltdown incident ↗</button><button data-action="pause" class="footer-button">Ⅱ Pause</button><button data-action="reset" class="footer-button">↺ Reset demo</button></div><span class="footer-signature">PÖRSSIOHJAIN <span>NUCLEAR DIVISION</span></span></footer>
+          <footer class="console-footer"><div><button data-action="meltdown-view" hidden class="footer-button" aria-controls="meltdown-window" aria-expanded="false">Meltdown incident ↗</button><button data-action="pause" class="footer-button">Ⅱ Pause</button><button data-action="reset" class="footer-button">↺ Reset demo</button></div><span class="footer-signature">PÖRSSIOHJAIN</span></footer>
           <div id="core-map-window" class="core-dialog floating-dialog" popover="manual" role="dialog" aria-modal="false" aria-labelledby="core-map-title">
             <div class="core-dialog-titlebar" tabindex="0" aria-label="Move core map with arrow keys or drag this title bar"><span aria-hidden="true">⠿</span><h2 id="core-map-title">Reactor core map</h2><span class="local-tag">DRAG TO MOVE</span><button class="small-button" data-action="close-core" aria-label="Close core map">×</button></div>
             ${coreMap}
@@ -453,6 +455,12 @@ export class NuclearPowerConsole extends HTMLElement {
         initializeMaintenance(this);
         this.computerConsole = new ComputerConsole(this);
         this.equipmentStations = new EquipmentStations(this);
+        if (!this.companion) {
+            const button = this.shadowRoot.querySelector('[data-action="power-supply"]');
+            button.setAttribute('aria-controls', 'electrical-panel');
+            button.setAttribute('aria-label', 'Open Electrical grid station');
+            button.removeAttribute('aria-haspopup'); button.removeAttribute('aria-expanded');
+        }
         this.shadowRoot.querySelector('#scene-labels').addEventListener('change', event => this.setSceneLabels(event.target.value));
         for (const trigger of this.shadowRoot.querySelectorAll('[data-equipment]:not([data-equipment="reactor"])')) {
             const station = !trigger.closest('.maintenance-panel') && equipmentStation(trigger.dataset.equipment);
@@ -621,7 +629,6 @@ export class NuclearPowerConsole extends HTMLElement {
             if (['start','stop','trip','sound','pause','reset'].includes(action)) return;
             if (pumpDefinition(action)) this.playUiSound(this.simulation[action] ? 'on' : 'off');
             else if (action === 'manual' || action === 'auto') this.playUiSound(this.simulation.autoMode ? 'on' : 'off');
-            else if (action === 'fluctuations') this.playUiSound(this.simulation.fluctuationsEnabled ? 'on' : 'off');
             else if (button.classList.contains('diesel-run-switch')) this.playUiSound(button.getAttribute('aria-checked') === 'true' ? 'on' : 'off');
             else if (button.dataset.componentAction === 'toggle') this.playUiSound(this.simulation[button.dataset.component] ? 'on' : 'off');
             else this.playUiSound('adjust');
@@ -831,6 +838,7 @@ export class NuclearPowerConsole extends HTMLElement {
 
     openElectricalSupply() {
         const dialog = this.shadowRoot.querySelector('.electrical-supply-dialog');
+        delete dialog.dataset.stationControls;
         this.openFloatingDialog(dialog);
         dialog.querySelector('.core-dialog-titlebar').focus({ preventScroll: true });
     }
@@ -956,6 +964,7 @@ export class NuclearPowerConsole extends HTMLElement {
         const sim = this.simulation;
         if (this.alarmAudio && this.soundEnabled) this.alarmAudio.resume().catch(() => {});
         const actions = {
+            'mute-alerts': () => { this.alertSoundsMuted = !this.alertSoundsMuted; this.stopAlarmSound(false); },
             sound: () => {
                 this.soundEnabled = !this.soundEnabled;
                 if (this.soundEnabled) {
@@ -988,7 +997,7 @@ export class NuclearPowerConsole extends HTMLElement {
             'replace-fuel': () => this.replaceFuelSelection(false),
             'replace-all-fuel': () => this.replaceFuelSelection(true),
             'select-control-rod': () => this.selectRod(this.selectedRod),
-            'power-supply': () => this.openElectricalSupply(),
+            'power-supply': () => this.companion ? this.openElectricalSupply() : this.equipmentStations.navigate('grid'),
             'spent-fuel': () => this.openSpentFuel(),
             'trends-view': () => {
                 this.openFloatingDialog(this.shadowRoot.querySelector('.trends-dialog'));
@@ -998,7 +1007,6 @@ export class NuclearPowerConsole extends HTMLElement {
             'close-meltdown': () => this.closeFloatingDialog(this.shadowRoot.querySelector('.meltdown-banner')),
             'meltdown-view': () => this.openFloatingDialog(this.shadowRoot.querySelector('.meltdown-banner')),
             manual: () => sim.setAutoMode(false), auto: () => sim.setAutoMode(true),
-            fluctuations: () => sim.setFluctuations(!sim.fluctuationsEnabled),
             'export-log': () => this.exportLog(),
             'clear-fault': () => sim.injectFault('none'), repair: () => sim.repairComponents(),
             'export-incident': () => this.exportIncident(),
@@ -1038,7 +1046,10 @@ export class NuclearPowerConsole extends HTMLElement {
             && (!this.game?.career || this.game.owner);
         this.computerConsole?.scene?.setVisible(this.computerConsole.canDraw());
         this.equipmentStations?.syncVisibility();
-        if (!this.stationAudioVisible()) this.plantAudio?.stopStation();
+        if (!this.stationAudioVisible()) {
+            this.plantAudio?.stopStation();
+            if (this.plantTab === 'electrical') this.plantAudio?.stopDiesels();
+        }
         if (this.reducedMotion.matches && this.fuelTransfer.job) {
             this.fuelTransfer.finish();
             this.updateOverview();
@@ -1090,6 +1101,7 @@ export class NuclearPowerConsole extends HTMLElement {
     hasVisualMotion() {
         const sim = this.simulation;
         if (this.computerConsole?.hasMotion()) return true;
+        if (this.plantTab === 'electrical' && this.equipmentStations?.canDraw() && sim.supply.factor > 0) return true;
         if (this.processMotion.turbineFragments?.some(fragment => fragment.age < 2.2)) return true;
         if (sim.power > .01 || sim.electricalOutput > .1 || sim.primaryFlow > .1 || sim.secondaryFlow > .1) return true;
         const processVisible = this.plantTab === 'reactor' || this.equipmentStations?.canDraw() || this.shadowRoot.querySelector('.equipment-dialog:popover-open');
@@ -1156,8 +1168,8 @@ export class NuclearPowerConsole extends HTMLElement {
             temperature: sim.temperature, secondaryTemperature: sim.secondaryTemperature,
             primaryFlow: sim.primaryFlow, secondaryFlow: sim.secondaryFlow,
             fuelTemperature: sim.condition.peakTemperature,
-            reactorPower: sim.running && !sim.tripped && !sim.condition.meltdown ? sim.power : 0,
-            reactorActive: sim.running && !sim.tripped && !sim.condition.meltdown,
+            reactorPower: sim.reacting ? sim.power : 0,
+            reactorActive: sim.reacting,
             reactorRods: sim.controlRods,
             reactorFuelCapability: sim.fuel.capability,
             shaftSpeed: sim.components?.items.turbine.actual.shaftSpeed,
@@ -1373,6 +1385,8 @@ export class NuclearPowerConsole extends HTMLElement {
         const button = this.shadowRoot.querySelector('[data-action="sound"]');
         button.textContent = this.soundEnabled ? 'Mute plant sounds' : 'Enable plant sounds';
         button.setAttribute('aria-pressed', String(!!this.soundEnabled));
+        this.shadowRoot.querySelector('#mute-alert-sounds').setAttribute('aria-pressed', String(this.alertSoundsMuted));
+        this.shadowRoot.querySelector('[data-value=alertSoundIndication]').textContent = this.alertSoundsMuted ? 'ALERTS SILENCED' : 'ALERT SOUND ON';
         const audioStates = [this.plantAudio?.uiState, this.plantAudio?.plantState, this.plantAudio?.dieselState,
             this.plantAudio?.stationStates.get(this.plantTab)].filter(Boolean);
         this.shadowRoot.querySelector('.ui-sound-status').textContent = !this.soundEnabled ? ''
@@ -1384,7 +1398,7 @@ export class NuclearPowerConsole extends HTMLElement {
         if (context.state === 'suspended') { context.resume().catch(() => {}); return; }
         const loading = this.plantAudio?.updateScene(sim, this.plantTab, { visible: this.stationAudioVisible(), pumpId: this.equipmentStations?.selectedPump });
         loading?.then(() => this.update());
-        if (!pending && severity < 2) { this.stopAlarmSound(false); return; }
+        if (this.alertSoundsMuted || !pending && severity < 2) { this.stopAlarmSound(false); return; }
         const now = context.currentTime;
         const mode = meltdown ? 'meltdown' : ['quiet', 'attention', 'overheating', 'core-damage', 'critical'][severity];
         if (this.alarmMode !== mode) { this.nextAlarmAt = 0; this.alarmMode = mode; }
@@ -1456,7 +1470,7 @@ export class NuclearPowerConsole extends HTMLElement {
         const fuel = sim.fuel.assemblies.find(a => a.id === this.selectedFuel) || sim.fuel.assemblies[0];
         const fuelReadiness = sim.fuel.replacementReadiness(sim);
         const fuelPoolHasCapacity = this.companion ? this.remoteFuelService?.hasCapacity === true : this.fuelTransfer.hasCapacity;
-        const rodBlocked = sim.tripped || !sim.running || (sim.autoMode && !selectedRod.manualOverride);
+        const rodBlocked = !sim.canAdjustRod(selectedRod.id);
         const pumpState = (enabled, target, actual) => actual < 0.5 ? 'STOPPED' : !enabled || target === 0 || sim.supply.factor === 0 ? 'COASTING' : 'RUNNING';
         const values = {
             core: `${n(signals.coreTemperature.value, 1)} °C`, coreNumber: n(signals.coreTemperature.value, 1),
@@ -1486,7 +1500,7 @@ export class NuclearPowerConsole extends HTMLElement {
             pumpAActual: `${n(sim.primaryFlow, 1)}%`, pumpBActual: `${n(sim.secondaryFlow, 1)}%`,
             selectedRodActual: `${n(selectedRod.position, 1)}%`, selectedRodTarget: percent(selectedRod.target),
             selectedRodMotion: Math.abs(selectedRod.target - selectedRod.position) < 0.5 ? 'AT TARGET' : selectedRod.target > selectedRod.position ? 'INSERTING' : 'WITHDRAWING',
-            rodOwner: sim.autoMode ? selectedRod.manualOverride ? 'MANUAL OVERRIDE · Auto controls other rods' : 'AUTO OWNED · enable override to disturb regulation' : 'MANUAL CONTROL',
+            rodOwner: sim.tripped ? 'POST-TRIP MANUAL · Withdrawal produces core heat; ESD stays latched' : sim.autoMode ? selectedRod.manualOverride ? 'MANUAL OVERRIDE · Auto controls other rods' : 'AUTO OWNED · enable override to disturb regulation' : 'MANUAL CONTROL',
             selectedFuelId: fuel.id, selectedFuelReserve: `${n(fuel.remaining, 1)}%`,
             selectedFuelState: fuel.remaining <= 0 ? 'DEPLETED' : fuel.remaining <= 20 ? 'LOW RESERVE' : 'IN SERVICE',
             selectedFuelEffectiveness: percent(sim.fuel.effectiveness(fuel) * 100),
@@ -1518,7 +1532,6 @@ export class NuclearPowerConsole extends HTMLElement {
                 ? sim.autoObjective === 'power' ? `AUTO / ${n(signals.electricalOutput.value, 1)} / ${n(sim.autoElectricalTarget)} MW ELECTRIC` : `AUTO / ERROR ${n(sim.autoTemperature - sim.temperature, 1)} °C` : 'MANUAL CONTROL',
             regulationDetail: sim.autoMode ? sim.regulationLimit || (sim.autoObjective === 'power' ? 'Tracking electrical output; core setting limits temperature.' : 'Rods and pump speeds adjust to hold your targets.') : 'Manual protection: use Emergency shutdown. Temperature and flow alarms remain active.',
             clock: `T+${this.time(sim.elapsed)}`,
-            sessionState: sim.paused ? 'SIMULATION PAUSED' : 'SIMULATION ACTIVE',
             temperatureState: sim.temperature > 335 ? 'HIGH TEMPERATURE' : sim.running ? 'WITHIN DEMO RANGE' : status === 'STOPPED' ? 'STOPPED' : 'COOLING DOWN',
             primaryState: sim.primaryFlow > 20 ? 'CIRCULATING' : 'LOW FLOW',
             annunciator: condition.meltdown ? 'CORE MELTDOWN · INCIDENT RECORDED · RESET DEMO REQUIRED' : sim.alarms.length ? `${sim.alarms.length} ACTIVE ${sim.alarms.length === 1 ? 'CONDITION' : 'CONDITIONS'} · ${sim.alarms[0].message.toUpperCase()}` : 'ALL SYSTEMS NORMAL'
@@ -1592,7 +1605,7 @@ export class NuclearPowerConsole extends HTMLElement {
         const disabled = {
             auto: !sim.autoAllowed || !sim.computers.automationAvailable,
             ...Object.fromEntries(PUMPS.map(pump => [pump.id, !sim[pump.id] && sim.pumpIsolated(pump.id)])),
-            start: !sim.startupReadiness().ready, stop: !sim.running, trip: sim.tripped || !this.tripCoverOpen,
+            start: !sim.startupReadiness().ready, stop: !sim.running && !sim.manualTripWithdrawal, trip: sim.tripped && !sim.manualTripWithdrawal || !this.tripCoverOpen,
             insert: sim.autoMode || !sim.running || sim.tripped || sim.rodTarget >= 100,
             withdraw: sim.autoMode || !sim.running || sim.tripped || sim.rodTarget <= 0,
             'rod-insert': rodBlocked || selectedRod.target >= 100,
@@ -1641,9 +1654,6 @@ export class NuclearPowerConsole extends HTMLElement {
         this.shadowRoot.querySelector('.electrical-target').hidden = sim.autoObjective !== 'power';
         for (const mode of ['manual', 'auto']) this.shadowRoot.querySelector(`[data-action="${mode}"]`).setAttribute('aria-pressed', String(sim.autoMode === (mode === 'auto')));
         this.shadowRoot.querySelector('[data-action="auto"]').title = !sim.autoAllowed ? 'Hard career: Manual operation only' : !sim.computers.automationAvailable ? 'Process computing unavailable; Manual controls remain available' : 'Automatic operation';
-        const fluctuations = this.shadowRoot.querySelector('[data-action="fluctuations"]');
-        fluctuations.textContent = `Fluctuations: ${sim.fluctuationsEnabled ? 'On' : 'Off'}`;
-        fluctuations.setAttribute('aria-pressed', String(sim.fluctuationsEnabled));
         const recovery = this.shadowRoot.querySelector('.trip-recovery');
         recovery.hidden = !sim.tripped;
         const checks = sim.tripRecovery().checks;
@@ -1722,7 +1732,7 @@ export class NuclearPowerConsole extends HTMLElement {
         const supply = this.simulation.supply;
         this.shadowRoot.querySelector('#grid-supply').checked = supply.gridAvailable;
         this.shadowRoot.querySelector('#turbine-supply').checked = supply.turbineConnected;
-        this.shadowRoot.querySelector('.power-source-panel').dataset.supply = supply.factor === 0 ? 'lost' : supply.source.startsWith('BACKUP') ? 'backup' : 'normal';
+        this.shadowRoot.querySelector('.power-source-panel').dataset.supply = supply.factor === 0 ? this.simulation.auxiliaryPowerRequired ? 'lost' : 'off' : supply.source.startsWith('BACKUP') ? 'backup' : 'normal';
         for (const item of this.shadowRoot.querySelectorAll('[data-supply]')) item.classList.toggle('energized', supply.source.includes(item.dataset.supply === 'turbine' ? 'TURBINE' : item.dataset.supply === 'grid' ? 'GRID' : 'DIESEL'));
         for (const g of supply.generators) {
             setText(this.shadowRoot.querySelector(`[data-diesel-summary="${g.id}"]`), `${g.state} · ${g.fuel.toFixed(0)}%`);

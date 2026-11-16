@@ -76,7 +76,7 @@ state follows plant time, saves explicitly and hydrates companion prototypes;
 companions cannot manage orders/samples. Service remains free. Focused coverage:
 `node --test test/nuclear-power-work.test.mjs`.
 
-The third desktop tab, Computer systems, has a lazy 3D rack with no diagram or
+The fourth desktop tab, Computer systems, has a lazy 3D rack with no diagram or
 presentation selector. If 3D is unavailable, keep native unit inspection and
 maintenance buttons usable alongside a status message.
 `nuclear-power-computers-model.js` owns redundant process servers, network, UPS,
@@ -227,6 +227,22 @@ sounds. Reactor cues must not interrupt diesel voices. Maintenance silences all
 machinery immediately; UI clicks/alarms remain shared. Returning resumes actual
 state without replay. Preserve automatic starts, fuel exhaustion, bounded gain,
 opt-in loading and Reset cleanup.
+New/reset sessions have no AC: grid/turbine feed disconnected, diesels OFF with
+standby disabled, all computer units OFF. Operator establishes AC, then uses quick
+card ON/OFF switches to boot rack cooling/network/server (five plant seconds).
+Reactor Start requires an online process server and control network in both Auto
+and Manual, including Hard. Manual controls and ESD remain live during an outage. Power restoration never enables computers;
+legacy save migrations retain their old healthy defaults. Cold OFF states are not
+loss-of-power/computing alarms; requested pumps, retained heat or active rack units
+still raise actual unavailability alerts. Yellow mechanical Alert silence before
+ESD mutes only alerts, retains visual alarms and machinery/UI audio; screen-local,
+no saved/transport fields. Header badge/fluctuations toggle/footer simulation text
+and Nuclear Division sublabel are removed; clock and PÖRSSIOHJAIN remain.
+After ESD, core-map individual rod adjustment permits renewed heat without clearing
+the latch or running flag; Auto/dispatch stay suspended. Stop/repeated ESD inserts
+all rods. Reset needs actual and requested full insertion. Meltdown and work
+isolation still block adjustment. Derived from existing saved targets/latch.
+
 New/reset sessions select Auto with Electrical output regulation (200 MW), but
 the reactor starts stopped/cold with fully inserted rods and all four pumps disabled
 (zero actual motor speed/flow, retained 100% speed targets). Explicitly start at least
@@ -341,14 +357,24 @@ fuel capability and regulates only rods without an explicit manual override. Sto
 release overrides and insert every rod. `nuclear-power-supply.js` models the auxiliary
 AC bus: turbine, external grid, then two armed standby diesels. Pumps must coast down
 without AC; restoring power must never reset trips or restart the reactor.
-The separate Auxiliary power view is removed. Two small 3D diesel cutaways behind
+Electrical grid is the third desktop tab, immediately after Maintenance. Its
+lazy 3D transformer/switchgear, turbine feed, AC bus, diesels and four outgoing
+pump circuits reuse electrical geometry and the station lifecycle. Native
+source switches and part buttons stay usable after WebGL loss. Overview grid/bus
+and the Pump power source arrow navigate here; direct/companion inspection keeps
+its existing electrical/diesel windows. Preserve independent camera, keyboard
+picking, focus return, actual supply/engine animation, shared frame ownership,
+offscreen/pause/reduced-motion cleanup and GPU disposal/reconnect. Electrical-grid
+audio reuses actual diesel voices only while its viewport is visible. Read
+ELECTRICAL-GRID-PLAN.md; focused check: npm run test:browser:grid. Two small 3D diesel cutaways behind
 the turbine/generator, grid, AC bus and source-to-pump electrical routes share the
 main plant renderer/camera/disposal. Actual engine/fuel/load drive pistons/fans,
 tank fill, lamps and markers; preserve pause/hide/reduced-motion/maintenance stops.
 Each diesel opens its own movable, nonmodal control dialog with a pump-style ON/OFF
 rocker, standby, countdown, load/fuel and explicit refuelling. OFF disables standby.
-The Pump power source panel is above Grid controller at left; its button and the
-3D grid/bus open Electrical supply & connections. Native grid-available and
+The Pump power source panel is above Grid controller at left; its arrow and the
+3D grid/bus open Electrical grid. Station parts open Electrical supply & connections
+or their diesel window, hiding the duplicate 2D route when opened from the station. Native grid-available and
 turbine-feed switches use the same rocker styling, preserving keyboard behavior.
 The old top-right EXTERNAL GRID/source button is removed. Controls remain usable
 in the SVG/WebGL fallback. Core/component/pool/electrical windows share dragging,

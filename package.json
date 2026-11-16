@@ -17,6 +17,7 @@
     "test:browser:game": "node --test test/game-browser.mjs",
     "test:browser:computers": "node --test test/computers-browser.mjs",
     "test:browser:stations": "node --test test/stations-browser.mjs",
+    "test:browser:grid": "node --test test/grid-browser.mjs",
     "test:browser:audio": "node --test test/audio-browser.mjs"
   },
   "dependencies": {

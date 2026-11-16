@@ -87,9 +87,9 @@ export class NuclearPowerSimulation {
         this.components = new ComponentProcesses(this);
         this.water = new WaterSystems();
         this.work = new PlantWork();
-        this.computers = new PlantComputers();
+        this.computers = new PlantComputers({ cold: true });
         this.gridDispatch = new GridDispatcher();
-        this.record('Simulation initialized. Reactor stopped; start a pump in each circuit before reactor Start. Backup pumps require manual enable. Auto electrical output control; process fluctuations enabled.', 'info', 'system');
+        this.record('Cold plant initialized. Connect external grid or manually start a diesel, switch on the computer rack for Auto, then start a pump in each circuit before reactor Start. All power sources and computers start OFF.', 'info', 'system');
         this.sample();
     }
 
@@ -120,6 +120,8 @@ export class NuclearPowerSimulation {
             { id: 'trip', label: 'Reactor trip reset', ready: !this.tripped },
             { id: 'stopped', label: 'Reactor stopped', ready: !this.running },
             { id: 'work', label: 'Maintenance isolations released for testing', ready: !this.work.hasIsolation },
+            { id: 'supply', label: 'Auxiliary AC source available', ready: this.supply.factor > 0 },
+            { id: 'computing', label: 'Process server and control network online', ready: this.computers.automationAvailable },
             { id: 'circulation', label: 'Both coolant circuits circulating with AC', ready: this.circulationReady() },
             { id: 'temperature', label: 'Core below startup temperature limit', ready: this.temperature < 335 },
             { id: 'fuel', label: 'Usable fuel available', ready: this.fuel.capability > 0 },
@@ -136,6 +138,25 @@ export class NuclearPowerSimulation {
 
     get rodTarget() {
         return this.controlRods.reduce((sum, rod) => sum + rod.target, 0) / this.controlRods.length;
+    }
+
+    get manualTripWithdrawal() {
+        return this.tripped && this.controlRods.some(rod => rod.target < 100);
+    }
+
+    get reacting() {
+        return !this.condition.meltdown && (this.running || this.manualTripWithdrawal);
+    }
+
+    get auxiliaryPowerRequired() {
+        return this.reacting || this.power > .1 || this.temperature > 40
+            || PUMPS.some(pump => this[pump.id] || this.components.items[pump.id].actual.speed >= .5);
+    }
+
+    canAdjustRod(id) {
+        const rod = this.controlRods.find(candidate => candidate.id === id);
+        return !!rod && !this.condition.meltdown && !this.work.hasIsolation &&
+            (this.tripped || this.running && (!this.autoMode || rod.manualOverride));
     }
 
     rememberRodTargets() {
@@ -169,7 +190,7 @@ export class NuclearPowerSimulation {
     }
 
     stop(reason = 'Normal shutdown. Coolant circulation maintained.') {
-        if (!this.running) return;
+        if (!this.running && !this.manualTripWithdrawal) return;
         this.running = false;
         this.clearRodOverrides();
         this.controlRods.forEach(rod => { rod.target = 100; });
@@ -195,10 +216,10 @@ export class NuclearPowerSimulation {
 
     setRod(id, value) {
         const rod = this.controlRods.find(candidate => candidate.id === id);
-        if (!rod || this.tripped || (this.autoMode && !rod.manualOverride) || !this.running || !Number.isFinite(value)) return;
+        if (!this.canAdjustRod(id) || !Number.isFinite(value)) return;
         rod.target = clamp(Math.round(value), 0, 100);
         this.rememberRodTargets();
-        this.record(`${id} insertion target set to ${rod.target}%.`);
+        this.record(`${id} insertion target set to ${rod.target}%.${this.tripped ? ' Manual post-trip movement; emergency latch remains engaged.' : ''}`);
     }
 
     setRodOverride(id, enabled) {
@@ -259,7 +280,7 @@ export class NuclearPowerSimulation {
     }
 
     trip(reason = 'Operator emergency shutdown') {
-        if (this.tripped) return;
+        if (this.tripped && !this.manualTripWithdrawal) return;
         this.tripped = true;
         this.running = false;
         this.clearRodOverrides();
@@ -271,7 +292,7 @@ export class NuclearPowerSimulation {
 
     tripRecovery() {
         const checks = [
-            { id: 'rods', label: 'All rods fully inserted', ready: this.controlRods.every(rod => rod.position >= 99.5) },
+            { id: 'rods', label: 'All rods fully inserted', ready: this.controlRods.every(rod => rod.position >= 99.5 && rod.target === 100) },
             { id: 'flow', label: 'Both circuits circulating', ready: this.circulationReady() },
             { id: 'temperature', label: 'Temperature below demo reset limit', ready: this.temperature < 335 },
             { id: 'fuel', label: 'Fuel hot spots cooled below warning level', ready: this.condition.peakTemperature < 410 },
@@ -465,13 +486,13 @@ export class NuclearPowerSimulation {
             ['damage', this.condition.damaged, 'Component damage retained: cooldown and repair required', 'alarm'],
             ['meltdown', this.condition.meltdown, 'Core meltdown: reset demo required', 'alarm'],
             ['fuel-reserve', this.fuel.assemblies.some(a => a.remaining <= 20), 'Low or depleted fuel: manual replacement after cooldown', 'warning'],
-            ['ac-supply', this.supply.factor === 0, 'Auxiliary AC lost: pumps coasting down', 'alarm'],
+            ['ac-supply', this.supply.factor === 0 && this.auxiliaryPowerRequired, 'Auxiliary AC unavailable: check supply and pump read-backs', 'alarm'],
             ['diesel', this.supply.source.startsWith('BACKUP'), 'Backup diesel supplying coolant pumps', 'warning'],
             ['diesel-fuel', this.supply.generators.some(g => g.fuel < 15), 'Backup diesel fuel reserve low', 'warning'],
             ['water-quality', this.water.conductivity > 2, 'Water conductivity high: check purification and sample water', 'warning'],
             ['water-filter', this.water.filterLoad >= 80, 'Purification filter loaded: plan cooled service', 'warning'],
             ['cooling-water', this.water.intakeDebris > 20 || this.water.basinLevel < 25, 'Cooling-water capacity restricted: inspect intake and basin', 'warning'],
-            ['computer-control', !this.computers.automationAvailable, 'Process computing unavailable: Auto suspended; Manual controls remain available', 'warning'],
+            ['computer-control', !this.computers.automationAvailable && (this.running || Object.values(this.computers.units).some(unit => unit.enabled)), 'Process computing unavailable: Auto suspended; Manual controls remain available', 'warning'],
             ['computer-temperature', this.computers.rackTemperature > 50 || Object.values(this.computers.units).some(unit => unit.fault), 'Computer rack hot or hardware fault retained: inspect Computer systems', 'warning'],
             ['computer-ups', this.computers.charge < 20 || this.computers.batteryHealth < 50, 'Computer UPS reserve or battery health low', 'warning']
         ];
@@ -504,7 +525,7 @@ export class NuclearPowerSimulation {
         for (const rod of this.controlRods) {
             rod.position = approach(rod.position, rod.target, dt, this.tripped ? 0.5 : 2.5);
         }
-        this.power = approach(this.power, this.running ? clamp((100 - this.rods) * this.fuel.capability * (1 + fluctuation.power / 100), 0, 100) : 0, dt, this.tripped ? 2 : 5);
+        this.power = approach(this.power, this.reacting ? clamp((100 - this.rods) * this.fuel.capability * (1 + fluctuation.power / 100), 0, 100) : 0, dt, this.tripped ? 2 : 5);
         this.hydraulics.advance(this, dt, fluctuation);
         this.fuel.advance(this, dt);
         const coolingLoss = (1 - this.primaryFlow / 100) * 1.2 + (1 - this.secondaryFlow / 100) * 0.6 + (1 - this.components.coolingFactor) * 4;

@@ -23,6 +23,10 @@
 .station-part-list strong { font-size: 11px; }
 .station-part-list span { font-size: 10px; line-height: 1.5; color: var(--cool); overflow-wrap: anywhere; }
 .station-part-list button:is(:hover, :focus-visible, [aria-expanded="true"]) { border-color: var(--cool); background: #69b9b810; }
+#electrical-panel .station-workspace { grid-template-columns: minmax(0, 1fr) 230px; }
+#electrical-panel .supply-switches { display: grid; gap: 8px; }
+#electrical-panel .supply-feed-row { font-size: 10px; }
+.electrical-supply-dialog[data-station-controls] .auxiliary-power-diagram { display: none; }
 .station-note, .station-view-status { color: var(--muted); font-size: 10px; line-height: 1.6; margin: 0; }
 .station-view-status { position: absolute; inset: 0; display: grid; place-content: center; padding: 24px; text-align: center; }
 .equipment-dialog[data-station-controls] :is(.pump-model-scroll, .hx-model-scroll, .generation-model-scroll, .pump-console-help, .hx-help, .generation-help) { display: none; }
@@ -35,6 +39,8 @@
 @media (max-width: 850px) {
     .equipment-station { padding: 10px; }
     .station-workspace { grid-template-columns: minmax(0, 1fr); }
+    #electrical-panel .station-workspace { grid-template-columns: minmax(0, 1fr); }
+    #electrical-panel .supply-switches { grid-column: 1 / -1; }
     .station-viewport { height: 340px; }
     .station-part-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

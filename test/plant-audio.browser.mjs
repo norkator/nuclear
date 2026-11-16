@@ -4,6 +4,7 @@
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
 import assert from 'node:assert/strict';
+import { commissionPlant } from './plant-fixtures.mjs';
 import { waitForConsoleLayout } from './console-layout.browser.mjs';
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -122,6 +123,16 @@ async function checkStationAudio({ consoleCode, action, page, advance, until, re
     const serverVoice = (await voices())[0];
     assert.equal(serverVoice.duration, 8); assert.equal(serverVoice.channels, 2);
     assert.ok(serverVoice.target > 0 && serverVoice.target <= .08);
+    await consoleCode('c.stopAlarmSound(false);c.simulation.trip();c.update();');
+    assert.ok(await consoleCode('return c.alarmNodes.length>0;'), 'An actual ESD sounds an alert');
+    const unacknowledged = await consoleCode('return c.simulation.alarms.filter(a=>!a.acknowledged).length;');
+    await consoleCode('s.querySelector("#mute-alert-sounds").click();');
+    assert.equal(await consoleCode('return c.alarmNodes.length;'), 0, 'Alert mute stops the current alert immediately');
+    assert.ok(await consoleCode('return c.soundEnabled && [...c.plantAudio.nodes].some(v=>v.station==="computers");'), 'Server ambience stays audible with alerts muted');
+    assert.equal(await consoleCode('return c.simulation.alarms.filter(a=>!a.acknowledged).length;'), unacknowledged, 'Muting never acknowledges alarms');
+    assert.equal(await consoleCode('return c.simulation.tripped;'), true);
+    await consoleCode('s.querySelector("#mute-alert-sounds").click();');
+    assert.ok(await consoleCode('return c.alarmNodes.length>0;'), 'Unmuting resumes pending alerts');
     await consoleCode('for(const id of Object.keys(c.simulation.computers.units))c.simulation.setComputerEnabled(id,false);');
     await advance(12);
     assert.equal(await silent(), 0, 'Stopped rack fans/electronics are silent');
@@ -150,8 +161,10 @@ async function checkStationAudio({ consoleCode, action, page, advance, until, re
     assert.ok(await consoleCode('return c.simulation.components.items.turbine.actual.shaftSpeed>0 && [...c.plantAudio.nodes].some(v=>v.station==="turbine");'), 'Actual shaft coast-down remains audible after Stop');
     await tab('computers'); await station('computers');
     await action('pause'); assert.equal(await silent(), 0); await action('pause'); await station('computers');
-    await action('reset'); await station('computers');
-    assert.equal((await voices()).length, 1, 'Reset resumes only current powered rack ambience');
+    await action('reset');
+    assert.equal(await silent(), 0, 'Reset switches all rack hardware OFF');
+    await consoleCode(`(${commissionPlant.toString()})(c.simulation);c.update();`);
+    await station('computers');
     await action('sound'); assert.equal(await consoleCode('return c.plantAudio.nodes.size;'), 0);
     await action('sound'); await station('computers');
     // Real viewport intersection: whole console stays visible while its rack is offscreen.

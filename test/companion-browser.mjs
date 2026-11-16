@@ -5,6 +5,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { commissionPlant } from './plant-fixtures.mjs';
 import { spawn } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdtempSync, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
@@ -240,8 +241,15 @@ test('desktop and companion share controls, grid/core readings and lifecycle acr
         await tablet.until('!s.querySelector("[data-action=replace-fuel]").disabled', 'Capacity returning on the host unlocks companion replacement');
         await tablet.action('select-control-rod');
         await tablet.code('s.querySelector("[data-companion-view=grid]").click();');
+        await host.code(`(${commissionPlant.toString()})(c.simulation);c.update();`);
         await tablet.action('pumpA'); await tablet.action('pumpB');
         await host.until('c.simulation.pumpA && c.simulation.pumpB', 'Remote pump switches reach desktop');
+        await host.code('c.simulation.setAutoMode(false);for(const id of Object.keys(c.simulation.computers.units))c.simulation.setComputerEnabled(id,false);for(let i=0;i<32;i++)c.simulation.tick(.25);c.update();');
+        await tablet.until('!c.simulation.autoMode && c.simulation.primaryFlow>=20 && !c.simulation.computers.automationAvailable && s.querySelector("[data-action=start]").disabled', 'Manual companion Start stays interlocked with computers OFF');
+        await tablet.code('c.sendSessionCommand({method:"start",args:[]});');
+        await tablet.until('!c.pendingSessionCommands.size', 'Host handles the interlocked Start request');
+        assert.equal(await host.code('return c.simulation.running;'), false);
+        await host.code(`(${commissionPlant.toString()})(c.simulation);c.simulation.setAutoMode(true);c.update();`);
         await tablet.until('!s.querySelector("[data-action=start]").disabled', 'Circulation permits Start');
         await tablet.action('start');
         await host.until('c.simulation.running', 'Remote Start reaches desktop');
@@ -291,6 +299,15 @@ test('desktop and companion share controls, grid/core readings and lifecycle acr
         await tablet.action('trip-cover'); await tablet.action('trip');
         await host.until('c.simulation.tripped && !c.simulation.running', 'Covered remote emergency trip latches on desktop');
         await tablet.until('c.simulation.tripped', 'Latched trip read-back arrives');
+        await tablet.action('select-control-rod');
+        await tablet.input('#individual-rod', 0);
+        await host.until('c.simulation.controlRods[0].target===0 && c.simulation.tripped && !c.simulation.running', 'Remote core-map withdrawal retains ESD latch');
+        await tablet.until('!s.querySelector("[data-action=stop]").disabled', 'Post-trip manual movement enables rod insertion through Stop');
+        await tablet.action('stop');
+        await host.until('c.simulation.controlRods.every(r=>r.target===100) && c.simulation.tripped', 'Remote Stop reinserts rods without clearing ESD');
+        await tablet.action('mute-alerts');
+        assert.equal(await tablet.code('return c.alertSoundsMuted;'), true);
+        assert.equal(await host.code('return c.alertSoundsMuted;'), false, 'Alert silence is local to each screen');
         await tablet.action('auto'); await host.until('c.simulation.autoMode', 'Mode command reaches host');
         assert.equal(await host.code('return c.simulation.tripped;'), true);
         await host.code('c.sessionConnection.disconnect();');
@@ -320,7 +337,7 @@ test('desktop and companion share controls, grid/core readings and lifecycle acr
         await tablet.until('c.pendingSessionCommands.size===0', 'Host rejects Auto through a rack outage');
         await tablet.action('manual'); await host.until('!c.simulation.autoMode', 'Independent Manual mode remains available remotely');
         await host.action('reset');
-        await tablet.until('c.simulation.computers.automationAvailable && c.simulation.autoMode', 'Rack defaults and Auto restore with a free-operation Reset');
+        await tablet.until('!c.simulation.computers.automationAvailable && c.simulation.autoMode && c.simulation.supply.factor===0', 'Reset restores selected Auto with rack and power sources OFF');
         await host.action('disconnect-screens');
         await tablet.until('!c.remoteReady && s.querySelector(".companion-pairing-dialog").open', 'Revoked screen requires pairing again');
         await tablet.screenshot('companion-pairing-light');

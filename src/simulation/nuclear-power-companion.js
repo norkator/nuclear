@@ -159,7 +159,7 @@ function initializeCompanionLayout(host) {
         '.automation-strip': 'regulation', '.setpoint': 'load', '.rod-control': 'rods', '.pump-controls': 'pumps',
         '.grid-dispatch-panel': 'grid', '.metrics': 'readings', '.power-source-panel': 'power',
         '.core-map': 'core', '.reactor-equipment-detail': 'core', '.trend-panel': 'trends', '.events-panel': 'events',
-        '.emergency-station': 'reactor',
+        '.emergency-station': 'reactor', '.alert-mute-button': 'reactor',
     })) mark(selector, section);
     const run = document.createElement('div');
     run.dataset.companionSection = 'reactor';

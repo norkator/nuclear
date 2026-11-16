@@ -59,19 +59,22 @@ export const pages = [
         path: '/guides/startup/',
         title: 'How to Start the Reactor | Nuclear Power Simulator',
         heading: 'How to start the nuclear reactor simulator',
-        description: 'Start a cold reactor in Nuclear Power: enable both pumps, establish coolant flow and generate your first megawatts. Includes startup checks and camera controls.',
+        description: 'Start a cold reactor in Nuclear Power: establish AC and computing power, enable cooling pumps and generate your first megawatts. Includes startup checks and camera controls.',
         body: `
           <p class="site-lead">Your first goal is to establish cooling, start the reactor and observe electrical generation. This guide follows the initial settings of the browser simulator.</p>
           <h2>1. Check the cold plant</h2>
           <p>A new session starts with the reactor stopped, control rods fully inserted, pumps switched off and no generated power. Pump speed targets are retained at 100%, but actual motor speed and flow are zero until you enable the pumps.</p>
           <p>Leave <strong>Auto</strong> selected with <strong>Electrical output</strong> regulation. The initial request is 200 MW. That number is a target, not electricity already being generated.</p>
-          <h2>2. Start both cooling pumps</h2>
+          <h2>2. Establish auxiliary power and computing</h2>
+          <p>External grid and turbine feed start disconnected. Both diesels are stopped with standby disabled. Open <strong>Pump power source</strong> to connect the external grid, or manually start a diesel and wait eight simulated seconds for AC.</p>
+          <p>Open <strong>Computer systems</strong> using the tab or server building. Use the ON/OFF buttons beside the cards to power the cooling tray, network switch and at least one process server. Wait five simulated seconds for boot. Power restoration alone never switches computers on. Reactor Start requires an online process server and control network in both Auto and Manual. Emergency shutdown remains available with the rack off.</p>
+          <h2>3. Start both cooling pumps</h2>
           <p>Switch the primary and secondary pump rockers to ON. Check their actual motor lamps, speed and flow readings as circulation builds. An ON request alone does not prove a pump is moving coolant: the pump also needs auxiliary AC power and available equipment.</p>
-          <p>The external grid normally supplies the pumps before generation begins. Open <strong>Pump power source</strong> if the motors fail to accelerate. A disconnected source or unavailable cooling circuit can keep the reactor Start button interlocked.</p>
-          <h2>3. Start the reactor</h2>
+          <p>The connected grid or ready diesel supplies the pumps before generation begins. Open <strong>Pump power source</strong> if the motors fail to accelerate. A disconnected source or unavailable cooling circuit can keep the reactor Start button interlocked.</p>
+          <h2>4. Start the reactor</h2>
           <p>When both circuits are circulating and the startup readiness checks are satisfied, press the reactor's green <strong>Start</strong> button. Rods begin moving toward their operating targets. Core temperature and turbine output build over time rather than jumping to the request.</p>
           <p>Read the actual thermal, electrical and flow instruments. Open <strong>Live trends</strong> to compare the recent output curve with the target. Automatic control can limit output when cooling, fuel or equipment capacity cannot support the requested megawatts.</p>
-          <h2>4. Choose who sets the operating targets</h2>
+          <h2>5. Choose who sets the operating targets</h2>
           <p><strong>Follow simulated Grid controller requests</strong> is enabled initially. Its first countdown waits until dispatch is ready, then counts 45 active seconds before the first request; later requests arrive every 60 active seconds. The controller coordinates electrical output, circulation and the operating core-temperature target.</p>
           <p>Disable following to keep your chosen operating targets. It does not stop the reactor or clear existing settings. Grid following is suspended while stopped, tripped, paused, in Manual, using temperature regulation or without the required circulation and generation capacity.</p>
           <h2>Why is Start disabled?</h2>
@@ -82,7 +85,7 @@ export const pages = [
           <p>In the 3D view, drag to orbit, use the mouse wheel to zoom, and use middle-button drag or Shift+drag to pan. With the canvas focused, arrow keys orbit, Shift+arrow keys pan, and Home resets the camera. Select <strong>Schematic</strong> for the SVG process view.</p>
           <h2>Stop, pause and finish</h2>
           <p><strong>Stop</strong> inserts the rods while cooling continues if powered pumps remain enabled. Retained heat does not disappear immediately. <strong>Pause</strong> freezes plant time. Hiding the browser tab also suspends the simulation without fast-forwarding when you return.</p>
-          <p>Enable plant sounds only if you want operating audio and alarms. Export free-operation logs before Reset demo, reload or closing the page. In a company career, use Save or Save &amp; return to free operation; Continue game restores the local career paused after reload. Continue with the <a href="/guides/reactor-controls/">control rods, cooling and output guide</a> to explore manual operation.</p>
+          <p>Enable plant sounds for operating audio and alarms. The yellow <strong>Alert silence</strong> pushbutton above emergency shutdown mutes alerts independently; machinery and button sounds continue. Visual alarms remain active. Export free-operation logs before Reset demo, reload or closing the page. In a company career, use Save or Save &amp; return to free operation; Continue game restores the local career paused after reload. Continue with the <a href="/guides/reactor-controls/">control rods, cooling and output guide</a> to explore manual operation.</p>
         `,
     },
     {
@@ -140,7 +143,7 @@ export const pages = [
           <p><strong>Repair all</strong> preserves heat, fuel, settings, operating hours and reactor and turbine trip latches. It does not refuel the plant, restart machinery or close a breaker. Fuel replacement has its own explicit checks and cannot substitute for repair.</p>
           <h2>Reset the reactor trip</h2>
           <p>Check that all rods have inserted, both circuits are circulating, coolant is below the demo reset limit, local fuel hot spots have cooled, and active faults and retained damage have been addressed. The recovery checklist explains which condition still blocks Reset trip.</p>
-          <p>A successful <strong>Reset trip</strong> releases the latch while leaving the reactor stopped. Then complete startup readiness and press Start yourself. The turbine has separate readiness and trip handling; restoring the reactor latch alone does not restore generation.</p>
+          <p>The core-map insertion slider also permits explicit manual withdrawal after ESD, producing core heat while the latch remains engaged and Auto stays suspended. Stop or another ESD command reinserts every rod. A successful <strong>Reset trip</strong> releases the latch while leaving the reactor stopped. Then complete startup readiness and press Start yourself. The turbine has separate readiness and trip handling; restoring the reactor latch alone does not restore generation.</p>
           <h2>Alarms, acknowledgement and meltdown</h2>
           <p>Acknowledging an alarm records that you have seen it. It does not fix its cause, clear damage or remove the red high-temperature indication while the core remains above 335 °C.</p>
           <p>A sustained severe incident can lead to a latched simulated meltdown. That session remains available for inspection, but repair and trip reset cannot restore it. Export the incident report. In free operation, use <strong>Reset demo</strong> for a new cold session. In Career, use Save &amp; return, then Start game to explicitly replace the saved career if desired; no bankruptcy or financial closeout is implemented yet.</p>

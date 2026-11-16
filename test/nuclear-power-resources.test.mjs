@@ -3,13 +3,14 @@
  * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
+import { poweredSimulation } from './plant-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NuclearPowerSimulation } from '../src/simulation/nuclear-power-model.js';
 
 // These scenarios explicitly exercise manual operation or opt into temperature Auto.
 const manualSimulation = () => {
-    const sim = new NuclearPowerSimulation();
+    const sim = poweredSimulation();
     sim.setAutoMode(false);
     sim.setAutoObjective('temperature');
     // Explicitly prime circulation for this established operating-point fixture.
@@ -119,7 +120,8 @@ test('individual Auto override is held while remaining rods compensate; release,
     sim.setRodOverride('CR-02', true); sim.setRod('CR-02', 0); sim.trip();
     assert.ok(sim.controlRods.every(r => !r.manualOverride && r.target === 100));
     sim.setRodOverride('CR-02', true); sim.setRod('CR-02', 0);
-    assert.equal(sim.controlRods[1].target, 100);
+    assert.equal(sim.controlRods[1].target, 0, 'Explicit core-map commands can withdraw rods after trip');
+    assert.equal(sim.tripped, true);
 });
 
 test('zero generation transfers pump power to grid, backup starts on loss of normal supply and does not restart reactor', () => {
@@ -159,7 +161,7 @@ test('manual diesel stop persists, refuelling requires stopped engine and blacko
     assert.equal(sim.supply.source, 'NO AC SUPPLY');
     assert.equal(sim.tripped, false, 'Blackout leaves emergency shutdown to the operator');
     assert.equal(sim.supply.generators[0].state, 'STOPPED');
-    assert.equal(sim.supply.generators[1].state, 'STANDBY');
+    assert.equal(sim.supply.generators[1].state, 'STOPPED', 'Disabling automatic standby leaves the engine explicitly OFF');
     assert.equal(sim.condition.incident.cause, 'Auxiliary AC power lost');
     assert.ok(sim.alarms.some(a => a.id === 'ac-supply'));
     sim.supply.command(sim, 'B', 'start'); advance(sim, 20);

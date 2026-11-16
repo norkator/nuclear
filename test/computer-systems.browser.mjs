@@ -4,6 +4,7 @@
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
 import assert from 'node:assert/strict';
+import { commissionPlant } from './plant-fixtures.mjs';
 import { waitForConsoleLayout } from './console-layout.browser.mjs';
 
 export async function checkComputerSystems({ consoleCode, action, input, page, until, screenshot }) {
@@ -13,9 +14,11 @@ export async function checkComputerSystems({ consoleCode, action, input, page, u
     const advance = seconds => consoleCode(`for(let i=0;i<${seconds * 4};i++)c.simulation.tick(.25);c.update();`);
     const open = id => click(`.computer-unit-list [data-computer-open="${id}"]`);
     assert.equal(await consoleCode('return !!c.computerConsole.scene;'), false, 'Rack renderer is lazy');
+    await ready('c.overviewScene?.width>0', 'Overview ready before independent camera check');
+    await checkColdRack({ consoleCode, action, tab, click, advance });
     const mainCamera = await consoleCode('return [c.overviewScene.yaw,c.overviewScene.pitch,c.overviewScene.zoom];');
     await tab('maintenance');
-    await consoleCode('s.querySelector("#maintenance-tab").focus();s.querySelector("#maintenance-tab").dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowRight",bubbles:true}));');
+    await consoleCode('s.querySelector("#maintenance-tab").focus();s.querySelector("#maintenance-tab").dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowRight",bubbles:true}));s.querySelector("#electrical-tab").dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowRight",bubbles:true}));');
     assert.equal(await consoleCode('return c.plantTab;'), 'computers');
     assert.equal(await consoleCode('return s.activeElement.id;'), 'computers-tab');
     assert.equal(await consoleCode('return s.querySelector("[data-computer-view], .computer-rack-diagram");'), null, 'Rack has only the 3D presentation');
@@ -120,4 +123,27 @@ export async function checkComputerSystems({ consoleCode, action, input, page, u
     await page('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1120, deviceScaleFactor: 1, mobile: false });
     await consoleCode('c.setTheme("dark");'); await tab('reactor'); await action('reset');
     await waitForConsoleLayout(consoleCode, 'Plant restored after rack checks');
+}
+
+async function checkColdRack({ consoleCode, action, tab, click, advance }) {
+    assert.equal(await consoleCode('return c.simulation.supply.factor;'), 0, JSON.stringify(await consoleCode('return {supply:c.simulation.supply,events:c.simulation.events.slice(-8)};')));
+    assert.ok(await consoleCode('return c.simulation.supply.generators.every(g=>g.state==="STOPPED"&&!g.automatic) && Object.values(c.simulation.computers.units).every(u=>!u.enabled&&!u.online);'));
+    assert.equal(await consoleCode('return c.simulation.alarms.length;'), 0, 'Cold OFF systems are not failed systems');
+    await action('pause');
+    await tab('computers');
+    assert.equal(await consoleCode('return s.querySelectorAll(".computer-quick-power:disabled").length;'), 5, 'Cold rack switches wait for an actual power source');
+    await consoleCode('c.simulation.supply.setGrid(c.simulation,true);c.update();');
+    assert.equal(await consoleCode('return s.querySelectorAll(".computer-quick-power:disabled").length;'), 0);
+    assert.equal(await consoleCode('return s.querySelectorAll(".computer-quick-power[aria-checked=true]").length;'), 0, 'Restoring AC never starts computers');
+    for (const id of ['rackCooling', 'rackSwitch', 'serverA', 'serverB', 'rackUps']) await click(`[data-computer-power="${id}"]`);
+    assert.equal(await consoleCode('return s.querySelector(".computer-dialog").matches(":popover-open");'), false, 'Quick power does not open a dialog');
+    assert.equal(await consoleCode('return s.querySelectorAll(".computer-quick-power[aria-checked=true]").length;'), 5);
+    assert.equal(await consoleCode('return c.simulation.computers.automationAvailable;'), false);
+    await action('pause'); await advance(6);
+    assert.equal(await consoleCode('return c.simulation.computers.automationAvailable;'), true, 'Native card switches boot real hardware on plant time');
+    await click('[data-computer-power=serverA]');
+    assert.equal(await consoleCode('return c.simulation.computers.units.serverA.enabled;'), false);
+    assert.equal(await consoleCode('return c.simulation.computers.activeServer;'), 'serverB');
+    await click('[data-computer-power=serverA]'); await advance(6);
+    await tab('reactor');
 }

@@ -3,6 +3,7 @@
  * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
+import { poweredSimulation } from './plant-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { TurbineIntegrity, TURBINE_RATING_MW, advanceTurbineFragments } from '../src/simulation/nuclear-power-turbine.js';
@@ -41,7 +42,7 @@ test('overload accelerates wear and samples a different fracture point without p
 });
 
 test('blade loss progressively reduces actual MW to destruction without an automatic trip', () => {
-    const sim = new NuclearPowerSimulation();
+    const sim = poweredSimulation();
     const rotor = sim.components.turbineIntegrity, turbine = sim.components.items.turbine;
     Object.assign(sim, { running: true, power: 100, secondaryFlow: 100 });
     turbine.actual.shaftSpeed = 100; turbine.actual.generatorLoading = 160;
@@ -62,7 +63,7 @@ test('blade loss progressively reduces actual MW to destruction without an autom
 });
 
 test('wear/damage persist across unloading and Stop, and service preserves heat, fuel, settings, hours and trips', () => {
-    const sim = new NuclearPowerSimulation(), rotor = sim.components.turbineIntegrity;
+    const sim = poweredSimulation(), rotor = sim.components.turbineIntegrity;
     const turbine = sim.components.items.turbine;
     run(rotor, 620, 30);
     const damage = rotor.damage, wear = rotor.wear;

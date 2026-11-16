@@ -84,7 +84,7 @@ export const ELECTRICAL_LABELS = [
     ['bus', 'AC BUS', 'Pump supply', [.2, 2.5, -3.9]],
 ];
 
-export function buildElectricalScene(view) {
+export function buildElectricalScene(view, { loads = PUMP_LAYOUT, turbine = [9.1, 2.8, -1.5] } = {}) {
     view.engines = new Map();
     view.electricalPaths = [];
     view.rubber = view.material('#192b33');
@@ -121,8 +121,8 @@ export function buildElectricalScene(view) {
         Object.assign(view.engines.get(id), { markers: route.markers, path: route.path, wireMaterial: route.material });
     }
     wire('grid', [[.5, .8, -6.7], [.5, .28, -5.2], [.2, .28, -5.2], [.2, .9, -3.9]]);
-    wire('turbine', [[9.1, 2.8, -1.5], [10.6, 2.8, -1.5], [10.6, .28, -3.4], [.2, .28, -3.4], [.2, .9, -3.9]]);
-    for (const pump of PUMP_LAYOUT) wire('bus', [[.2, .28, -3.9], [pump.x, .28, -3.9], [pump.x, .28, pump.z], [pump.x, .9, pump.z]], pump.id);
+    wire('turbine', [turbine, [turbine[0] + 1.5, turbine[1], turbine[2]], [turbine[0] + 1.5, .28, -3.4], [.2, .28, -3.4], [.2, .9, -3.9]]);
+    for (const pump of loads) wire('bus', [[.2, .28, -3.9], [pump.x, .28, -3.9], [pump.x, .28, pump.z], [pump.x, .9, pump.z]], pump.id);
 }
 
 export function updateElectricalScene(view, supply, phases, busPhase, sim) {
@@ -138,13 +138,15 @@ export function updateElectricalScene(view, supply, phases, busPhase, sim) {
         engine.terminalMaterial.emissiveIntensity = loaded ? .9 : 0;
         const state = generator.state === 'RUNNING' ? loaded ? 'SUPPLYING' : 'RUNNING / UNLOADED' : generator.state;
         const label = view.labels.get(`diesel${generator.id}`);
-        setText(label.reading, `${state} · ${generator.fuel.toFixed(0)}% fuel`);
-        label.button.classList.toggle('selected', loaded);
+        if (label) {
+            setText(label.reading, `${state} · ${generator.fuel.toFixed(0)}% fuel`);
+            label.button.classList.toggle('selected', loaded);
+        }
     }
     view.busLamp.emissiveIntensity = supply.factor > 0 ? .8 : 0;
     view.gridLamp.emissiveIntensity = supply.source.includes('GRID') ? .8 : 0;
-    setText(view.labels.get('grid').reading, supply.source.includes('GRID') ? 'SUPPLYING' : supply.gridAvailable ? 'AVAILABLE' : 'ISOLATED');
-    setText(view.labels.get('bus').reading, supply.factor > 0 ? `${supply.demand.toFixed(2)} MW` : 'NO AC SUPPLY');
+    if (view.labels.has('grid')) setText(view.labels.get('grid').reading, supply.source.includes('GRID') ? 'SUPPLYING' : supply.gridAvailable ? 'AVAILABLE' : 'ISOLATED');
+    if (view.labels.has('bus')) setText(view.labels.get('bus').reading, supply.factor > 0 ? `${supply.demand.toFixed(2)} MW` : 'NO AC SUPPLY');
     for (const route of view.electricalPaths) {
         const loaded = route.source === 'bus' ? supply.factor > 0 && (!route.pumpId || sim[route.pumpId]) : route.source.startsWith('diesel')
             ? supply.generators.find(generator => generator.id === route.source.slice(-1)).load > 0

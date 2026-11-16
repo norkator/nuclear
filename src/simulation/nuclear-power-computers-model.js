@@ -17,18 +17,20 @@ const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
 const approach = (value, target, dt, tau) => target + (value - target) * Math.exp(-dt / tau);
 
 export class PlantComputers {
-    constructor() {
-        this.units = Object.fromEntries(COMPUTER_IDS.map(id => [id, { enabled: true, online: true, bootRemaining: 0,
+    constructor({ cold = false } = {}) {
+        // Legacy save migration retains healthy powered rack defaults. New plants
+        // explicitly request a cold rack without altering old saved operation.
+        this.units = Object.fromEntries(COMPUTER_IDS.map(id => [id, { enabled: !cold, online: !cold, bootRemaining: 0,
             temperature: 28, fault: false, hours: 0, services: 0 }]));
         this.preferredServer = 'serverA';
-        this.source = 'AC';
-        this.acAvailable = true;
+        this.source = cold ? 'OFF' : 'AC';
+        this.acAvailable = !cold;
         this.rackTemperature = 28;
         this.charge = 100;
         this.batteryHealth = 100;
         this.filterLoad = 0;
         this.fanHealth = 100;
-        this.fanSpeed = 100;
+        this.fanSpeed = cold ? 0 : 100;
         this.diagnosticSequence = 0;
         this.diagnostics = [];
     }
@@ -40,6 +42,12 @@ export class PlantComputers {
     }
     get automationAvailable() { return this.powered && this.units.rackSwitch.online && Boolean(this.activeServer); }
     get airflow() { return this.fanSpeed / 100 * this.fanHealth / 100 * clamp(1 - this.filterLoad / 100, 0, 1); }
+
+    canPowerOn(sim) {
+        const ups = this.units.rackUps;
+        return sim.supply.factor >= .1 || this.source === 'UPS' && ups.enabled && !ups.fault
+            && this.charge > 0 && this.batteryHealth > 0 && !sim.work.locked('rackUps');
+    }
 
     status(id) {
         const unit = this.units[id];
@@ -57,6 +65,7 @@ export class PlantComputers {
         const unit = this.units[id];
         if (!isComputer(id) || typeof enabled !== 'boolean' || enabled && sim.work.locked(id)) return false;
         if (unit.enabled === enabled) return true;
+        if (enabled && !this.canPowerOn(sim)) return false;
         unit.enabled = enabled;
         unit.online = false;
         unit.bootRemaining = enabled && ['serverA', 'serverB', 'rackSwitch'].includes(id) ? 5 : 0;

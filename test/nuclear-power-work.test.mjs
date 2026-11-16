@@ -3,6 +3,7 @@
  * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
+import { poweredSimulation } from './plant-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NuclearPowerSimulation, CORE_CHANNELS } from '../src/simulation/nuclear-power-model.js';
@@ -16,7 +17,7 @@ import { captureSessionState, restoreSessionState, remoteSimulation } from '../s
 function advance(sim, seconds, career) {
     for (let i = 0; i < seconds * 4; i++) { sim.tick(.25); career?.advance(sim); }
 }
-function careerAt(id, sim = new NuclearPowerSimulation(), difficulty = 'easy') {
+function careerAt(id, sim = poweredSimulation(), difficulty = 'easy') {
     const career = new CompanyCareer(null, MISSIONS, difficulty);
     const index = MISSIONS.findIndex(mission => mission.id === id);
     career.state.assignments = MISSIONS.slice(0, index).map(definition => ({ definition: structuredClone(definition), status: 'completed' }));
@@ -33,7 +34,7 @@ function service(sim, equipment) {
 const capture = (sim, career) => captureCareer(sim, new FuelTransferAnimation(CORE_CHANNELS), career);
 
 test('condition readings follow actual motion and retained condition; inspections do not repair equipment', () => {
-    const sim = new NuclearPowerSimulation();
+    const sim = poweredSimulation();
     const idle = sim.work.reading(sim, 'pumpA');
     assert.equal(idle.vibration, 0); assert.equal(idle.bearingTemperature, 30);
     sim.togglePump('A');
@@ -52,7 +53,7 @@ test('condition readings follow actual motion and retained condition; inspection
 });
 
 test('work orders enforce real isolation, preserve state and block desktop/component/companion bypasses', () => {
-    const sim = new NuclearPowerSimulation();
+    const sim = poweredSimulation();
     sim.togglePump('A'); advance(sim, 10);
     const order = sim.createWorkOrder('pumpA');
     assert.equal(sim.createWorkOrder('pumpA'), false);
@@ -83,7 +84,7 @@ test('work orders enforce real isolation, preserve state and block desktop/compo
 });
 
 test('functional proof requires actual valid time, resets interrupted tests and freezes on pause', () => {
-    const sim = new NuclearPowerSimulation(), order = service(sim, 'pumpA');
+    const sim = poweredSimulation(), order = service(sim, 'pumpA');
     advance(sim, 20); assert.equal(order.held, 0);
     sim.togglePump('A'); advance(sim, 7);
     assert.ok(order.held > 0 && order.held < 10);
@@ -98,7 +99,7 @@ test('functional proof requires actual valid time, resets interrupted tests and 
 });
 
 test('unrelated core repairs remain possible while a work order owns pump service', () => {
-    const sim = new NuclearPowerSimulation();
+    const sim = poweredSimulation();
     sim.condition.zones[0].damage = 10;
     sim.condition.components.A.parts.bearings = 8; sim.condition.components.A.damage = 8;
     sim.createWorkOrder('pumpA'); sim.trip();
@@ -114,7 +115,7 @@ test('unrelated core repairs remain possible while a work order owns pump servic
 });
 
 test('water treatment needs actual AC, recovers impurities without cleaning retained fouling and affects cooling', () => {
-    const sim = new NuclearPowerSimulation();
+    const sim = poweredSimulation();
     sim.water.conductivity = 10; sim.water.filterLoad = 10;
     sim.power = 20; sim.condition.heatReserve = 10;
     sim.components.items.exchanger.settings.fouling = 7;
@@ -135,7 +136,7 @@ test('water treatment needs actual AC, recovers impurities without cleaning reta
 });
 
 test('filter and intake work require switched-off controls, keep isolation and prove actual restored operation', () => {
-    const sim = new NuclearPowerSimulation();
+    const sim = poweredSimulation();
     sim.water.filterLoad = 90;
     const filter = sim.createWorkOrder('waterFilter');
     assert.equal(sim.workOrderAction(filter.id, 'isolate'), false);
@@ -155,7 +156,7 @@ test('filter and intake work require switched-off controls, keep isolation and p
 });
 
 test('new mission kinds require post-acceptance inspection, sample and completed-order evidence', () => {
-    const sim = new NuclearPowerSimulation();
+    const sim = poweredSimulation();
     MONITORED_EQUIPMENT.forEach(id => sim.inspectEquipment(id));
     const career = careerAt('monitoring.condition-rounds', sim);
     advance(sim, 2, career); assert.equal(career.current.held, 0);
@@ -173,7 +174,7 @@ test('new mission kinds require post-acceptance inspection, sample and completed
 });
 
 test('hard Manual objectives accumulate qualifying actual output without losing progress or verified success', () => {
-    const sim = new NuclearPowerSimulation(); sim.autoAllowed = false; sim.setAutoMode(false);
+    const sim = poweredSimulation(); sim.autoAllowed = false; sim.setAutoMode(false);
     const career = new CompanyCareer(null, MISSIONS, 'hard'); career.accept(sim);
     assert.equal(career.current.definition.objective.manualOnly, true);
     assert.equal(sim.setAutoMode(true), false);
@@ -199,7 +200,7 @@ test('hard Manual objectives accumulate qualifying actual output without losing 
 });
 
 test('version-1 migration preserves pinned terms, heat, damage, latches and achievements; later missions catch up', () => {
-    const sim = new NuclearPowerSimulation(), career = new CompanyCareer();
+    const sim = poweredSimulation(), career = new CompanyCareer();
     sim.condition.heatReserve = 15; sim.condition.zones[0].damage = 7; sim.trip();
     const source = capture(sim, career);
     source.schemaVersion = 1; delete source.plant.water; delete source.plant.work; delete source.plant.autoAllowed;
@@ -226,7 +227,7 @@ test('version-1 migration preserves pinned terms, heat, damage, latches and achi
 });
 
 test('partial work tests, water samples and Hard policy survive exact career and companion hydration', () => {
-    const sim = new NuclearPowerSimulation(); sim.autoAllowed = false; sim.setAutoMode(false);
+    const sim = poweredSimulation(); sim.autoAllowed = false; sim.setAutoMode(false);
     const career = new CompanyCareer(null, MISSIONS, 'hard');
     const order = service(sim, 'pumpA'); sim.togglePump('A'); advance(sim, 6);
     sim.sampleWater(); sim.inspectEquipment('pumpA');

@@ -53,6 +53,15 @@ export async function waitForConsoleLayout(consoleCode, label = 'Console layout'
 }
 
 export async function checkConsoleLayout({ consoleCode, page, screenshot }) {
+    assert.equal(await consoleCode('return s.querySelector(".simulation-badge, [data-action=fluctuations], [data-value=sessionState]");'), null);
+    assert.equal(await consoleCode('return s.querySelector(".footer-signature").textContent;'), 'PÖRSSIOHJAIN');
+    assert.ok(await consoleCode('return !!(s.querySelector(".alert-mute-button").compareDocumentPosition(s.querySelector(".emergency-station")) & Node.DOCUMENT_POSITION_FOLLOWING);'), 'Mechanical alert button precedes ESD');
+    const raised = await consoleCode('return getComputedStyle(s.querySelector(".alert-mute-button .hardware-face")).transform;');
+    await consoleCode('s.querySelector(".alert-mute-button").click();');
+    assert.equal(await consoleCode('return s.querySelector(".alert-mute-button").getAttribute("aria-pressed");'), 'true');
+    await waitForConsoleLayout(consoleCode, 'Alert pushbutton pressed');
+    assert.notEqual(await consoleCode('return getComputedStyle(s.querySelector(".alert-mute-button .hardware-face")).transform;'), raised);
+    await consoleCode('s.querySelector(".alert-mute-button").click();');
     // This scenario needs both panels, independently of other tests/preferences.
     await consoleCode(`for (const button of s.querySelectorAll('.workspace-tools [data-workspace-panel]')) {
         if (button.getAttribute('aria-expanded') !== 'true') button.click();

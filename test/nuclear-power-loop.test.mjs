@@ -3,6 +3,7 @@
  * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
+import { poweredSimulation } from './plant-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NuclearPowerSimulation } from '../src/simulation/nuclear-power-model.js';
@@ -11,7 +12,7 @@ import { advanceProcessMotion, flowMarkerDistance, valveHandleAngle } from '../s
 
 const advance = (sim, seconds) => { for (let i = 0; i < seconds * 4; i++) sim.tick(.25); };
 const operating = () => {
-    const sim = new NuclearPowerSimulation();
+    const sim = poweredSimulation();
     sim.setGridDispatchEnabled(false); // Compare cooling at one fixed operating point.
     sim.setFluctuations(false);
     sim.togglePump('A'); sim.togglePump('B'); advance(sim, 6);

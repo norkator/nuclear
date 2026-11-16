@@ -3,6 +3,7 @@
  * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
+import { poweredSimulation } from './plant-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NuclearPowerSimulation } from '../src/simulation/nuclear-power-model.js';
@@ -11,14 +12,14 @@ import { ComponentProcesses, COMPONENT_SETTINGS, COMPONENT_ACTIONS, COMPONENT_OB
 const advance = (s, seconds) => { for (let n = 0; n < seconds * 4; n++) s.tick(0.25); };
 const startPumps = s => { s.togglePump('A'); s.togglePump('B'); advance(s, 6); };
 const manual = () => {
-    const s = new NuclearPowerSimulation();
+    const s = poweredSimulation();
     s.setFluctuations(false); s.setAutoMode(false); startPumps(s); s.start(); advance(s, 60);
     return s;
 };
 const near = (actual, expected, tolerance = 0.01) => assert.ok(Math.abs(actual - expected) < tolerance, `${actual} expected near ${expected}`);
 
 test('schema and independent cold sessions expose a usable default checklist and unchanged transfer', () => {
-    const a = new NuclearPowerSimulation(), b = new NuclearPowerSimulation();
+    const a = poweredSimulation(), b = poweredSimulation();
     assert.ok(a.components instanceof ComponentProcesses);
     assert.deepEqual(Object.keys(COMPONENT_SETTINGS).sort(), ['condenser', 'exchanger', 'primaryPipes', 'pumpA', 'pumpA2', 'pumpB', 'pumpB2', 'secondaryPipes', 'turbine']);
     for (const [id, fields] of Object.entries(COMPONENT_SETTINGS)) {
@@ -57,7 +58,7 @@ test('pump discharge controls flow independently from speed, while AC remains au
 });
 
 test('Auto pump override holds a speed target, trim changes actuation, legacy guard stays intact', () => {
-    const s = new NuclearPowerSimulation(); s.setFluctuations(false); startPumps(s); s.start(); advance(s, 80);
+    const s = poweredSimulation(); s.setFluctuations(false); startPumps(s); s.start(); advance(s, 80);
     assert.equal(s.setComponentSetting('pumpA', 'speed', 60), false);
     const before = s.pumpASpeed; s.setPumpSpeed('A', 40); assert.equal(s.pumpASpeed, before);
     assert.equal(s.setComponentOverride('pumpA', true), true);
@@ -114,7 +115,7 @@ test('authoritative electrical output feeds supply, snapshot, history and incide
 });
 
 test('Auto can establish shaft readiness with an open breaker, but never closes it', () => {
-    const s = new NuclearPowerSimulation();
+    const s = poweredSimulation();
     s.setGridDispatchEnabled(false); // Isolate breaker readiness at the fixed target.
     assert.equal(s.setComponentSetting('turbine', 'breaker', false), true);
     assert.equal(s.setComponentSetting('turbine', 'breaker', true), false);
@@ -193,7 +194,7 @@ test('progressive fault clearing preserves wear, cooldown service preserves heat
 });
 
 test('pause freezes components, lifetime hours accumulate, histories and maintenance stay bounded', () => {
-    const s = new NuclearPowerSimulation();
+    const s = poweredSimulation();
     assert.equal(s.components.items.pumpA.hours, 0);
     advance(s, 20);
     assert.equal(s.components.items.pumpA.hours, 0);
@@ -208,7 +209,7 @@ test('pause freezes components, lifetime hours accumulate, histories and mainten
 });
 
 test('scenario choices show symptoms; launching does not diagnose the fault in the journal', () => {
-    const s = new NuclearPowerSimulation();
+    const s = poweredSimulation();
     assert.equal(COMPONENT_SCENARIOS.length, 4);
     startPumps(s);
     assert.equal(s.startupReadiness().ready, true);
@@ -226,7 +227,7 @@ test('scenario choices show symptoms; launching does not diagnose the fault in t
 });
 
 test('objectives need sustained actual success and cannot reset trips or start the reactor', () => {
-    const s = new NuclearPowerSimulation(); s.setFluctuations(false);
+    const s = poweredSimulation(); s.setFluctuations(false);
     assert.equal(COMPONENT_OBJECTIVES.length, 3);
     assert.equal(s.startObjective('reachMW'), true); advance(s, 30);
     assert.equal(s.components.objective.progress, 0); assert.equal(s.running, false);
@@ -242,7 +243,7 @@ test('objectives need sustained actual success and cannot reset trips or start t
 
 
 test('component conditions also guard fuel renewal and the global cooled repair path', () => {
-    const s = new NuclearPowerSimulation();
+    const s = poweredSimulation();
     s.componentAction('exchanger', 'fault');
     assert.equal(s.replaceAllFuel(), false);
     s.componentAction('exchanger', 'clear');

@@ -110,3 +110,9 @@ Audio verification: all 172 unit checks, production build and the focused shared
 audio browser checks pass (86.8 seconds). This audio-only follow-up did not rerun
 the full browser suite; its reactor/diesel assertions and new station assertions
 share the same helper with the full harness.
+
+The Electrical grid follow-up adds a third desktop tab after Maintenance, reusing
+the station lifecycle and electrical geometry/actual-state adapters. See
+[ELECTRICAL-GRID-PLAN.md](ELECTRICAL-GRID-PLAN.md). Its final verification passes
+182 unit/model/session checks, build, focused grid/layout checks, the full browser
+regression and the companion check; this supersedes the older timeout result above.

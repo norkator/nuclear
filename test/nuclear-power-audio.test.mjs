@@ -3,6 +3,7 @@
  * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
+import { poweredSimulation } from './plant-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -48,8 +49,8 @@ class Context {
 const loadStation = (audio, scene) => audio.preloadStation(scene, async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(4) }));
 
 test('station sounds use actual selected equipment, circulation and rack fans without advancing the plant', () => {
-    const sim = new NuclearPowerSimulation();
-    assert.equal(stationSoundState(sim, 'computers').activity, 1);
+    const sim = poweredSimulation();
+    assert.equal(stationSoundState(sim, 'computers').activity, sim.computers.fanSpeed / 100);
     for (const scene of ['pumps', 'exchanger', 'turbine', 'condenser']) assert.equal(stationSoundState(sim, scene).activity, 0);
     sim.autoElectricalTarget = 650; sim.pumpB2Speed = 100;
     sim.components.items.exchanger.settings.secondaryValve = 100;
@@ -92,7 +93,7 @@ test('station assets load once per selected room and cannot play on decode compl
 });
 
 test('one station voice follows tab/pump selection, bounded actual speed, and cleans all filter nodes', async () => {
-    const context = new Context(), audio = new PlantAudio(context), sim = new NuclearPowerSimulation();
+    const context = new Context(), audio = new PlantAudio(context), sim = poweredSimulation();
     for (const scene of STATION_SOUNDS) await loadStation(audio, scene);
     Object.assign(sim, { primaryFlow: 100, secondaryFlow: 100, secondaryTemperature: 190 });
     sim.components.items.turbine.actual.shaftSpeed = 100;
@@ -127,7 +128,7 @@ test('one station voice follows tab/pump selection, bounded actual speed, and cl
 });
 
 test('station ambience stops offscreen, on pause/mute cleanup and suspension while shared UI stays independent', async () => {
-    const context = new Context(), audio = new PlantAudio(context), sim = new NuclearPowerSimulation();
+    const context = new Context(), audio = new PlantAudio(context), sim = poweredSimulation();
     await loadStation(audio, 'pumps'); await loadStation(audio, 'computers');
     await audio.preloadUi(async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(4) }));
     sim.components.items.pumpA.actual.speed = 90;
@@ -148,7 +149,7 @@ test('station ambience stops offscreen, on pause/mute cleanup and suspension whi
 });
 
 test('late or failed station loading never plays outgoing-room audio or blocks controls', async () => {
-    const audio = new PlantAudio(new Context()), sim = new NuclearPowerSimulation();
+    const audio = new PlantAudio(new Context()), sim = poweredSimulation();
     let release; const gate = new Promise(resolve => { release = resolve; });
     const loading = audio.preloadStation('computers', async () => { await gate; return { ok: true, arrayBuffer: async () => new ArrayBuffer(4) }; });
     audio.updateScene(sim, 'computers'); audio.updateScene(sim, 'maintenance'); audio.stop();
@@ -234,7 +235,7 @@ const loadDiesels = async audio => {
 };
 
 test('diesels follow actual startup, load, independent stops and fuel exhaustion', async () => {
-    const audio = new PlantAudio(new Context()), sim = new NuclearPowerSimulation();
+    const audio = new PlantAudio(new Context()), sim = poweredSimulation();
     await loadDiesels(audio);
     audio.updateScene(sim, 'reactor');
     assert.equal(audio.nodes.size, 0);
@@ -275,7 +276,7 @@ test('diesels follow actual startup, load, independent stops and fuel exhaustion
 });
 
 test('the unified plant mixes reactor and diesel voices, and maintenance silences both without replay', async () => {
-    const audio = new PlantAudio(new Context()), sim = new NuclearPowerSimulation();
+    const audio = new PlantAudio(new Context()), sim = poweredSimulation();
     await loadDiesels(audio); await loadPlant(audio);
     sim.components.items.turbine.actual.shaftSpeed = 90;
     sim.supply.command(sim, 'A', 'start'); sim.supply.advance(sim, 3);
@@ -302,8 +303,25 @@ test('the unified plant mixes reactor and diesel voices, and maintenance silence
     assert.equal([...audio.nodes].filter(v => v.diesel).length, 0, 'Off-tab shutdown must not replay');
 });
 
+test('electrical grid plays actual diesel voices only while visible and leaves UI sound available offscreen', async () => {
+    const audio = new PlantAudio(new Context()), sim = poweredSimulation();
+    await loadDiesels(audio); await loadPlant(audio);
+    sim.supply.command(sim, 'A', 'start');
+    audio.updateScene(sim, 'electrical');
+    assert.equal([...audio.nodes].find(voice => voice.diesel === 'A').kind, 'startup');
+    assert.ok([...audio.nodes].every(voice => !voice.plant && !voice.station));
+    sim.supply.advance(sim, 8); audio.updateScene(sim, 'electrical');
+    const running = [...audio.nodes].find(voice => voice.diesel === 'A');
+    assert.equal(running.kind, 'running-loop');
+    audio.updateScene(sim, 'electrical', { visible: false });
+    assert.equal(audio.nodes.size, 0); assert.ok(running.oscillator.disconnected && running.gain.disconnected);
+    audio.updateScene(sim, 'electrical');
+    assert.equal([...audio.nodes].find(voice => voice.diesel === 'A').kind, 'running-loop');
+    audio.updateScene(sim, 'maintenance'); assert.equal(audio.nodes.size, 0);
+});
+
 test('diesel shutdown is interrupted by restart; suspension clears all state without deferred cues', async () => {
-    const context = new Context(), audio = new PlantAudio(context), sim = new NuclearPowerSimulation();
+    const context = new Context(), audio = new PlantAudio(context), sim = poweredSimulation();
     await loadDiesels(audio);
     sim.supply.command(sim, 'A', 'start');
     audio.updateScene(sim, 'reactor');
@@ -324,7 +342,7 @@ test('diesel shutdown is interrupted by restart; suspension clears all state wit
 });
 
 test('late or failed diesel loads never replay shutdown or create voices by themselves', async () => {
-    const audio = new PlantAudio(new Context()), sim = new NuclearPowerSimulation();
+    const audio = new PlantAudio(new Context()), sim = poweredSimulation();
     let release;
     const gate = new Promise(resolve => { release = resolve; });
     const loading = audio.preloadDiesels(async () => {
@@ -367,7 +385,7 @@ test('bundled diesel PCM assets have expected durations, bounded peaks and smoot
 });
 
 test('plant audio follows actual operation and coast-down, with faults independent of acknowledgement', () => {
-    const sim = new NuclearPowerSimulation();
+    const sim = poweredSimulation();
     assert.deepEqual(plantSoundState(sim), {activity:0, fault:false});
     sim.autoElectricalTarget = 400;
     assert.equal(plantSoundState(sim).activity, 0);

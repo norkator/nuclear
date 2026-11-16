@@ -35,7 +35,7 @@ export class FuelInventory {
     }
 
     advance(sim, dt) {
-        if (!sim.running || sim.power <= 0) return;
+        if (!sim.reacting || sim.power <= 0) return;
         const openMean = Math.max(1, 100 - sim.rods);
         for (const a of this.assemblies) {
             let open = 0, weights = 0;

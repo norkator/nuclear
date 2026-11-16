@@ -4,6 +4,7 @@
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
 import assert from 'node:assert/strict';
+import { commissionPlant } from './plant-fixtures.mjs';
 import { waitForConsoleLayout } from './console-layout.browser.mjs';
 
 export async function checkEquipmentStations({ consoleCode, page, action, input, until, screenshot }) {
@@ -22,7 +23,7 @@ export async function checkEquipmentStations({ consoleCode, page, action, input,
     await tab('reactor'); await action('reset'); await action('pause');
     await waitForConsoleLayout(consoleCode, 'Station navigation overview');
     await ready('c.overviewIntersecting', 'Overview actually visible');
-    assert.equal(await consoleCode('return c.equipmentStations.scenes.size;'), 0, 'Equipment renderers are lazy');
+    assert.equal(await consoleCode('return [...c.equipmentStations.scenes.keys()].filter(id=>id!=="electrical").length;'), 0, 'Unvisited process equipment renderers are lazy');
     const original = await consoleCode('return c.simulation.snapshot();');
     const camera = await consoleCode('return [c.overviewScene.yaw,c.overviewScene.pitch,c.overviewScene.zoom,...c.overviewScene.target.toArray()];');
     assert.ok(await consoleCode('return c.overviewScene.groups.get("computers").position.x < c.overviewScene.coolingTower.group.position.x;'), 'Server warehouse sits left of the tower');
@@ -78,6 +79,7 @@ export async function checkEquipmentStations({ consoleCode, page, action, input,
     assert.equal(await consoleCode('return c.simulation.components.items.pumpA2.actual.dischargeValve;'), 100, 'Requested and actual valve positions remain separate');
     assert.ok(await consoleCode('const v=c.equipmentStations.scenes.get("pumps").valves[0];return v.handle.rotation.y!==v.request.rotation.y;'));
     await click('[data-component-close="pumpA2"]');
+    await consoleCode(`(${commissionPlant.toString()})(c.simulation);c.update();`);
     await action('pause'); await action('pumpA2');
     await ready('c.equipmentStations.scenes.get("pumps").pumps.pumpA2.rotation.z!==0', 'Actual motor motion drives the station');
     await action('pause');

@@ -10,7 +10,7 @@ export const MISSIONS = [
     {
         id: 'startup.first-shift', version: 2, order: 10, requires: [], grants: ['commissioned'],
         title: 'First shift', sender: 'Elena Ward · Plant manager', achievement: 'First generation',
-        brief: 'Welcome to Unit 01. Accept before starting. Turn off Follow requests. In Auto, select Electrical output at 200 MW. In Manual, adjust load and pump speeds to reach the same actual output. Start at least one pump in each circuit, establish circulation, then press reactor Start. Qualify at 200 ± 5 MW for 30 seconds with healthy cooling and equipment. Auto requires a continuous hold; in Manual, time outside the requirements pauses progress. There is no failure deadline.',
+        brief: 'Welcome to Unit 01. Accept before starting. Establish auxiliary AC using the external grid or a manually started diesel. In either mode, switch on the computer rack and wait for its process server and network to boot before reactor Start. Turn off Follow requests. In Auto, select Electrical output at 200 MW. In Manual, adjust load and pump speeds to reach the same actual output. Start at least one pump in each circuit, establish circulation, then press reactor Start. Qualify at 200 ± 5 MW for 30 seconds with healthy cooling and equipment. Auto requires a continuous hold; in Manual, time outside the requirements pauses progress. There is no failure deadline.',
         objective: { kind: 'generation-hold', seconds: 30, targetMw: 200, toleranceMw: 5, needsStart: true, manualAllowed: true },
         completion: 'Unit 01 has demonstrated its first generation. Your next assignment is to prove reliable operation.',
     },

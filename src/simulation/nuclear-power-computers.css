@@ -18,6 +18,11 @@
 .computer-rack-canvas:focus-visible { outline: 2px solid var(--cool); outline-offset: -3px; }
 .computer-camera-tools { position: absolute; display: flex; gap: 5px; left: 10px; bottom: 10px; }
 .computer-unit-list { display: grid; align-content: start; gap: 9px; min-width: 0; }
+.computer-unit-card { display: grid; grid-template-columns: minmax(0, 1fr) 42px; gap: 4px; min-width: 0; }
+.computer-unit-card > button { min-width: 0; }
+.computer-unit-list .computer-quick-power { padding: 8px 3px; place-content: center; text-align: center; font: bold 10px Consolas, monospace; }
+.computer-quick-power[aria-checked="true"] { color: var(--cool); border-color: var(--cool); background: #69b9b810; }
+.computer-quick-power:disabled { opacity: .6; cursor: not-allowed; }
 .computer-unit-list button { display: grid; gap: 7px; text-align: left; border: 1px solid var(--border); background: transparent; color: inherit; padding: 12px; border-radius: 5px; }
 .computer-unit-list small { color: var(--muted); font: 9px Consolas, monospace; }
 .computer-unit-list strong { font-size: 12px; }

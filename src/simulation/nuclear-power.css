@@ -48,8 +48,6 @@ h1 { font-size: clamp(25px, 2.5vw, 34px); font-weight: 600; letter-spacing: -1.2
 .theme-toggle input::before { content: ''; position: absolute; left: 3px; top: 3px; width: 9px; height: 9px; border-radius: 50%; background: #cfddd9; }
 .theme-toggle input:checked::before { transform: translateX(13px); }
 .theme-toggle input:checked { background: #087a70; border-color: #087a70; }
-.simulation-badge { display: inline-flex; gap: 8px; align-items: center; background: #302a20; border: 1px solid #6f5633; border-radius: 5px; color: #f0c27e; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; padding: 6px 10px; }
-.simulation-badge i { width: 5px; height: 5px; background: #f0c27e; border-radius: 50%; }
 .session-clock { font: 11px Consolas, "Courier New", monospace; color: var(--muted); margin-top: 8px; letter-spacing: 1px; }
 .metrics { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .metric { background: linear-gradient(120deg, #1b2936, #17222e); border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; overflow: hidden; }
@@ -230,6 +228,18 @@ h2 { font-size: 13px; font-weight: 500; letter-spacing: .1px; white-space: nowra
 .hardware-button:is([data-lamp="running"], [data-lamp="stopped"]) .hardware-face::after { opacity: .45; }
 .operator-panel .hardware-button:not(:disabled):active { transform: none; }
 .hardware-button:not(:disabled):active .hardware-face { transform: translateY(2px); box-shadow: 0 0 0 1px #7a8889, 0 1px 0 1px #0c1918, inset 0 1px 4px #0006; }
+/* Maintained yellow annunciator-silence pushbutton. */
+.operator-panel .alert-mute-button { width: 100%; margin-block-end: 8px; justify-content: flex-start; gap: 16px; padding-inline: 18px; }
+.alert-mute-button .hardware-face { --button-glow: #ffda53; background: radial-gradient(circle at 35% 25%, #f4d77c, #c9972b 65%, #805819); color: #35270a; text-shadow: 0 1px #ffe9a0; }
+.alert-mute-button .hardware-face svg { width: 20px; height: 20px; }
+.alert-silence-slash { visibility: hidden; }
+.alert-mute-button[aria-pressed="true"] .alert-silence-slash { visibility: visible; }
+.alert-mute-button[aria-pressed="true"] .hardware-face { transform: translateY(2px); background: radial-gradient(circle at 35% 25%, #fff3b7, #ffd653 45%, #ca921d); box-shadow: 0 0 0 1px #e6c367, 0 1px 0 1px #4c3817, inset 0 1px 4px #8c570a80, 0 0 11px #ffd45170; }
+.alert-mute-button[aria-pressed="true"] .hardware-face::before { opacity: .4; }
+.alert-mute-button[aria-pressed="true"] .hardware-face::after { opacity: .5; }
+.alert-mute-button[aria-pressed="true"] .pilot-lamp { background: radial-gradient(circle at 35% 25%, #fff5c4, #e8b737 65%, #8f6716); box-shadow: 0 0 6px #ffd45190; }
+.alert-mute-button[aria-pressed="true"] .hardware-indication { color: var(--warm); }
+:host(:not([data-animating="true"])) .alert-mute-button .hardware-face { transition: none; }
 .hardware-label { display: grid; gap: 6px; min-width: 0; }
 .hardware-label > strong { font-size: 10px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; text-shadow: 0 1px #0009; }
 .hardware-indication { display: flex; align-items: center; gap: 5px; white-space: nowrap; font: 7px Consolas, monospace; letter-spacing: .1px; color: var(--muted); }
@@ -406,8 +416,6 @@ select { background: #1b2c38; color: #cadddf; border: 1px solid #47606c; padding
 .ack-button { display: block; margin: 10px 18px 14px auto; color: #ddc4a7; background: #39332b; border: 1px solid #69583f; border-radius: 4px; padding: 6px 11px; font-size: 10px; }
 .ack-button:not(:disabled):hover { background: #4c4031; }
 .console-footer { display: flex; align-items: center; gap: 18px; padding: 12px 0; color: #92a4b4; font: 8px Consolas, monospace; letter-spacing: .6px; }
-.console-footer > span:first-child { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
-.footer-divider { color: #455b6a; padding: 0 3px; }
 .console-footer > div { display: flex; gap: 8px; }
 .footer-button { background: transparent; color: #b1c2d0; font-size: 10px; border: 1px solid #3b4e5f; border-radius: 4px; padding: 5px 10px; white-space: nowrap; }
 .footer-button:hover { background: #233442; }
@@ -701,7 +709,6 @@ select { background: #1b2c38; color: #cadddf; border: 1px solid #47606c; padding
     .eyebrow { font-size: 7px; letter-spacing: 1.2px; }
     h1 { font-size: 25px; }
     .heading p { font-size: 10px; }
-    .simulation-badge { font-size: 7px; letter-spacing: .5px; padding: 5px 7px; gap: 5px; }
     .session-clock { font-size: 8px; letter-spacing: .2px; }
     .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
     .metric-label { font-size: 10px; }
@@ -725,7 +732,6 @@ select { background: #1b2c38; color: #cadddf; border: 1px solid #47606c; padding
     .trend-chart { width: calc(100% - 24px); margin: 10px 12px 0; min-height: 120px; }
     .trend-note { padding: 0 12px 12px; font-size: 8px; }
     .console-footer { gap: 12px; font-size: 7px; }
-    .console-footer > span:first-child { width: 100%; }
     .footer-signature { margin-left: auto; font-size: 7px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1065,7 +1071,6 @@ select { background: #1b2c38; color: #cadddf; border: 1px solid #47606c; padding
 .header-settings .power-supply-button small { font-size: 8px; }
 .header-settings .theme-toggle { grid-column: 2; grid-row: 1; justify-self: end; }
 .header-settings .session { grid-column: 2; grid-row: 2; display: grid; grid-template-columns: auto auto; align-items: center; gap: 2px 7px; }
-.header-settings .simulation-badge { padding: 3px 6px; font-size: 8px; letter-spacing: 1px; }
 .header-settings .session-clock { margin-top: 0; font-size: 10px; letter-spacing: .3px; }
 .header-settings .session small { grid-column: 1 / -1; display: block; font-size: 8px; color: var(--muted); margin-top: 0; }
 .grid-dispatch-panel > .panel-heading { height: 34px; padding: 0 9px; gap: 5px; }

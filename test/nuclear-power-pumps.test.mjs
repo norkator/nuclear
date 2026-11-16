@@ -3,6 +3,7 @@
  * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
+import { poweredSimulation } from './plant-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NuclearPowerSimulation } from '../src/simulation/nuclear-power-model.js';
@@ -12,7 +13,7 @@ import { leakSources, waterJetPoint } from '../src/simulation/nuclear-power-leak
 import { advanceProcessMotion } from '../src/simulation/nuclear-power-motion.js';
 import { gridDispatchCapacity } from '../src/simulation/nuclear-power-grid.js';
 const advance = (sim, seconds) => { for (let i = 0; i < seconds * 4; i++) sim.tick(.25); };
-const cold = () => { const sim = new NuclearPowerSimulation(); sim.setFluctuations(false); sim.setGridDispatchEnabled(false); return sim; };
+const cold = () => { const sim = poweredSimulation(); sim.setFluctuations(false); sim.setGridDispatchEnabled(false); return sim; };
 
 test('all four pumps start cold and independent; either pump in each circuit permits explicit startup', () => {
     const sim = cold();

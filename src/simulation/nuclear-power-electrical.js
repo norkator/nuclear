@@ -5,7 +5,7 @@
  */
 // Shared electrical source panel and independent diesel operator windows.
 const rockerFace = `<span class="pump-rocker-face" aria-hidden="true"><span class="rocker-on">I <small>ON</small></span><span class="rocker-off">O <small>OFF</small></span></span>`;
-const feedSwitch = (id, name) => `<label class="supply-feed-row" for="${id}"><span>${name}</span><span class="pump-rocker feed-rocker"><input id="${id}" type="checkbox" role="switch" checked/>${rockerFace}</span></label>`;
+export const feedSwitch = (id, name) => `<label class="supply-feed-row" for="${id}"><span>${name}</span><span class="pump-rocker feed-rocker"><input id="${id}" type="checkbox" role="switch"/>${rockerFace}</span></label>`;
 export function powerSourcePanel() {
     return `<section class="panel power-source-panel" aria-label="Pump power source"><div class="panel-heading"><h2>Pump power source</h2><button class="small-button" data-action="power-supply" aria-label="Open electrical supply connections" aria-haspopup="dialog" aria-controls="electrical-supply-window" aria-expanded="false">↗</button></div><div class="power-source-content"><strong data-value="powerSource"></strong><small data-value="auxiliaryLoad"></small><div class="power-source-generators">${['A','B'].map(id => `<button class="small-button" data-electrical-open="${id}" aria-haspopup="dialog" aria-controls="diesel${id}-window" aria-expanded="false">Diesel ${id}<small data-diesel-summary="${id}"></small></button>`).join('')}</div></div></section>`;
 }

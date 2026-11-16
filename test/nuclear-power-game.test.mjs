@@ -3,6 +3,7 @@
  * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
+import { poweredSimulation } from './plant-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NuclearPowerSimulation, CORE_CHANNELS } from '../src/simulation/nuclear-power-model.js';
@@ -19,7 +20,7 @@ function startup(sim, career) {
     advance(sim, career, 6); sim.start();
 }
 function firstReport() {
-    const sim = new NuclearPowerSimulation(), career = new CompanyCareer();
+    const sim = poweredSimulation(), career = new CompanyCareer();
     career.accept(sim); startup(sim, career); advance(sim, career, 150);
     assert.equal(career.current.status, 'ready');
     assert.ok(career.report(sim));
@@ -27,7 +28,7 @@ function firstReport() {
 }
 
 test('assignment steps appear after acceptance and use actual circulation and post-acceptance startup evidence', () => {
-    const sim = new NuclearPowerSimulation(), career = new CompanyCareer();
+    const sim = poweredSimulation(), career = new CompanyCareer();
     const steps = () => Object.fromEntries(assignmentSteps(career.current, sim).map(step => [step.id, step.done]));
     assert.deepEqual(assignmentSteps(career.current, sim), []);
     startup(sim, career); advance(sim, career, 120);
@@ -47,7 +48,7 @@ test('assignment steps appear after acceptance and use actual circulation and po
     career.report(sim);
     assert.deepEqual(assignmentSteps(career.current, sim), [], 'New work stays hidden until accepted');
 
-    const cold = new NuclearPowerSimulation(), freshCareer = new CompanyCareer();
+    const cold = poweredSimulation(), freshCareer = new CompanyCareer();
     freshCareer.accept(cold);
     cold.togglePump('A'); cold.togglePump('B');
     assert.equal(assignmentSteps(freshCareer.current, cold).find(step => step.id === 'circulation').done, false,
@@ -73,7 +74,7 @@ test('assignment steps retain pinned terms and restore partial progress without 
 });
 
 test('company issues work without starting equipment and accepts verified reports once', () => {
-    const sim = new NuclearPowerSimulation(), career = new CompanyCareer();
+    const sim = poweredSimulation(), career = new CompanyCareer();
     assert.equal(career.state.messages[0].sender, 'Elena Ward · Plant manager');
     assert.equal(sim.running, false);
     advance(sim, career, 200);
@@ -89,7 +90,7 @@ test('company issues work without starting equipment and accepts verified report
 });
 
 test('startup evidence must follow acceptance and blocked or repeated starts do not count', () => {
-    const sim = new NuclearPowerSimulation(), career = new CompanyCareer();
+    const sim = poweredSimulation(), career = new CompanyCareer();
     sim.start(); assert.equal(sim.startSequence, 0);
     startup(sim, career); advance(sim, career, 120);
     career.accept(sim); sim.start(); advance(sim, career, 90);
@@ -170,7 +171,7 @@ test('saved heat, component damage and trip latches survive hydration', () => {
 });
 
 test('foreign, incomplete and mismatched saves fail before replacing the live plant', () => {
-    const sim = new NuclearPowerSimulation(), career = new CompanyCareer(), transfer = new FuelTransferAnimation(CORE_CHANNELS);
+    const sim = poweredSimulation(), career = new CompanyCareer(), transfer = new FuelTransferAnimation(CORE_CHANNELS);
     const source = captureCareer(sim, transfer, career);
     for (const change of [bundle => { bundle.schemaVersion = 99; }, bundle => { delete bundle.plant.condition; },
         bundle => { bundle.plant.controlRods[0].id = 'wrong'; }, bundle => { bundle.transfer.samples.pop(); },

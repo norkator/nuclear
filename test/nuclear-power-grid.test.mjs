@@ -3,6 +3,7 @@
  * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
+import { poweredSimulation } from './plant-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NuclearPowerSimulation } from '../src/simulation/nuclear-power-model.js';
@@ -10,7 +11,7 @@ import { gridDispatchCapacity } from '../src/simulation/nuclear-power-grid.js';
 
 const advance = (sim, seconds) => { for (let i = 0; i < seconds * 4; i++) sim.tick(.25); };
 const operating = () => {
-    const sim = new NuclearPowerSimulation();
+    const sim = poweredSimulation();
     sim.setGridDispatchEnabled(false); // These scenarios deliver their own requests.
     sim.setFluctuations(false);
     sim.togglePump('A'); sim.togglePump('B');
@@ -50,7 +51,7 @@ test('grid messages raise and lower the requested MW while actual output respond
 });
 
 test('periodic grid requests follow simulated time and suspend during pause, stopped, Manual and temperature regulation', () => {
-    const sim = new NuclearPowerSimulation();
+    const sim = poweredSimulation();
     assert.equal(sim.gridDispatch.enabled, true);
     assert.equal(sim.snapshot().commands.followGridRequests, true);
     advance(sim, 60);

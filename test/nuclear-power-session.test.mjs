@@ -3,6 +3,7 @@
  * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
+import { poweredSimulation } from './plant-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
@@ -13,7 +14,7 @@ import { captureSessionState, restoreSessionState, remoteSimulation } from '../s
 import { applySessionCommand, validSessionCommand, freshSessionCommand } from '../src/simulation/nuclear-power-session-protocol.js';
 
 test('companion state restores readings, interlocks and class getters without running a second clock', () => {
-    const host = new NuclearPowerSimulation();
+    const host = poweredSimulation();
     host.togglePump('A'); host.togglePump('B');
     for (let i = 0; i < 80; i++) host.tick(.25);
     host.start();
@@ -45,16 +46,31 @@ test('companion state restores readings, interlocks and class getters without ru
 });
 
 test('remote commands preserve model ownership, trip latches and absolute pump state', () => {
-    const sim = new NuclearPowerSimulation();
+    const sim = poweredSimulation();
     const apply = (method, ...args) => applySessionCommand(sim, { method, args });
     apply('start'); assert.equal(sim.running, false);
     apply('setPumpEnabled', 'A', true); apply('setPumpEnabled', 'A', true);
     assert.equal(sim.pumpA, true);
     apply('setPumpEnabled', 'B', true);
     for (let i = 0; i < 100; i++) sim.tick(.25);
+    sim.setAutoMode(false); sim.setComputerEnabled('rackSwitch', false);
+    apply('start');
+    assert.equal(sim.running, false); assert.equal(sim.startSequence, 0);
+    const offline = restoreSessionState(captureSessionState(sim));
+    assert.equal(offline.startupReadiness().checks.find(check => check.id === 'computing').ready, false);
+    sim.setComputerEnabled('rackSwitch', true);
+    for (let i = 0; i < 24; i++) sim.tick(.25);
+    sim.setAutoMode(true);
     apply('start'); assert.equal(sim.running, true);
     apply('setRod', 'CR-01', 0); assert.equal(sim.controlRods[0].manualOverride, false);
     apply('trip'); assert.equal(sim.tripped, true);
+    apply('setRod', 'CR-01', 0);
+    assert.equal(sim.controlRods[0].target, 0, 'Host accepts explicit post-trip manual rod movement');
+    assert.equal(sim.tripped, true); assert.equal(sim.running, false);
+    const mirrored = restoreSessionState(captureSessionState(sim));
+    assert.equal(mirrored.manualTripWithdrawal, true);
+    assert.equal(mirrored.canAdjustRod('CR-01'), true);
+    apply('stop'); assert.equal(sim.controlRods[0].target, 100);
     apply('setAutoMode', true); apply('start');
     assert.equal(sim.tripped, true); assert.equal(sim.running, false);
     assert.equal(apply('reset'), false);
@@ -74,7 +90,7 @@ test('the desktop rejects delayed commands after suspension using its own two cl
 });
 
 test('remote fuel replacement requires the desktop console action and never renews the companion copy', () => {
-    const host = new NuclearPowerSimulation();
+    const host = poweredSimulation();
     const copy = restoreSessionState(captureSessionState(host));
     const sent = [];
     const remote = remoteSimulation(copy, command => { sent.push(command); return true; });

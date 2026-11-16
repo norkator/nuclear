@@ -115,12 +115,21 @@ telemetry, access measurement history, send device commands, or implement a phys
 reactor model. Its separate primary/secondary circuits are a fictional two-loop
 layout, not a Chernobyl/RBMK simulation or a validated model of any named reactor
 type. It starts stopped with Auto → Electrical output selected (200 MW target).
-Start at least one primary and one secondary pump explicitly, allow circulation
+Connect external grid or manually start a diesel first; all sources start OFF,
+with diesel standby disabled and turbine feed isolated. Then explicitly switch
+on rack cooling, network and a process server in Computer systems; wait five
+plant seconds for boot. An online server and control network are required for
+reactor Start in both Auto and Manual. Restoring AC never starts the rack.
+During computing loss, independent Manual controls and ESD remain available. Start at least one primary and one secondary
+pump explicitly, allow circulation
 to build, then press reactor Start
 to begin generation. Initial rods are fully inserted, output and
 retained heat are zero, and coolant/fuel start near ambient (30 °C). All four pumps
 start disabled with zero actual motor speed and flow, retaining 100% speed targets;
-small deterministic process fluctuations are enabled.
+small deterministic process fluctuations are enabled, without a UI toggle.
+Cold/off AC and computing raise no failure alarms until equipment requires power.
+Each computer card has a quick ON/OFF switch using the same guarded model command
+as its inspection window; enabling needs live AC or a running rack UPS.
 Reset demo returns to this same stopped state.
 
 The user intends to evolve this into a physical, MQTT-connected scale model and
@@ -227,6 +236,16 @@ show this green operating indication. High coolant temperature, local fuel hot s
 and low primary flow raise alarms and affect damage in both modes, without activating
 emergency shutdown. These are illustrative, not physical safety limits.
 
+After an explicit emergency shutdown, the selected rod's core-map insertion
+slider and fine buttons allow manual withdrawal even with Auto selected. Actual
+withdrawal produces power, fuel exposure and core heat while the emergency latch
+stays engaged, normal running stays false and Auto/dispatch remain suspended.
+The turbine does not restart. Stop or another covered ESD command reinserts all
+rods. Reset trip requires actual insertion and 100% targets, plus existing recovery
+conditions; it never restarts generation. Meltdown and maintenance isolation block
+manual adjustment. This behavior derives from existing saved rod targets/trip state
+and requires no new save fields. Cold sessions still start fully inserted.
+
 ## Progressive stress, damage and meltdown
 
 Failure is driven by a separate fictional condition/heat model, never a random
@@ -260,7 +279,11 @@ pause and hidden-view suspension also pause these effects. Existing damage and
 meltdown thresholds remain unchanged.
 
 **Enable plant sounds** in the header opts into browser-synthesized audio, with an
-explicit mute control. Unacknowledged alarms start with an attention tone every
+explicit mute control. The yellow **Alert silence** mechanical pushbutton above
+emergency shutdown mutes only alert/siren voices, including an active alert.
+Its pressed cap and amber lamp show silence. Machinery/UI sounds and visual
+alarms remain active; this never acknowledges an alarm. The setting is local to
+each screen, retained across tabs/reset/reconnect, and absent from career saves. Unacknowledged alarms start with an attention tone every
 three seconds. Fuel temperature and retained core damage escalate the sound through
 overheating (2 s), core damage (1.3 s), critical (1 s) and meltdown (0.85 s) cadences,
 with wider pitch sweeps, stronger waveform and modestly increasing gain. Critical
@@ -539,7 +562,7 @@ unified 3D plant and SVG selector. Small diesels, grid, bus and electrical route
 share the plant scene. Maintenance stops rendering without changing simulation
 state. The left Pump power source panel sits above Grid controller. Its source
 controls and each diesel's own dialog remain usable in the SVG/WebGL fallback.
-There is no Auxiliary power tab or header EXTERNAL GRID/source button. Component,
+Electrical grid follows Maintenance; the header EXTERNAL GRID/source button remains removed. Component,
 core, pool and electrical windows can coexist and retain the shared lifecycle.
 
 The small open-front server warehouse left of the cooling tower contains visible
@@ -912,8 +935,8 @@ shutdown remain available. During a trip, pump speeds
 can be changed to restore circulation. Returning to Manual holds current settings.
 
 Small, bounded deterministic waveforms disturb heat, output and each loop's flow.
-**Fluctuations: On/Off** lets the user compare disturbance response. The automatic
-controller regulates the drifting process rather than freezing displayed values.
+Fluctuations stay enabled by default without a UI toggle. The automatic controller
+regulates the drifting process rather than freezing displayed values.
 The model is deliberately simplified and does not solve reactor/neutron physics.
 Trips inhibit regulation. Resetting a trip never triggers automatic restart; an
 explicit Start is required even when Auto remains selected.
@@ -1041,7 +1064,7 @@ These are illustrative UI interlocks, not a real refuelling procedure.
 
 ## Computer systems rack
 
-The third desktop plant tab contains a dedicated 3D rack with process servers A/B,
+The fourth desktop plant tab contains a dedicated 3D rack with process servers A/B,
 a control-network switch, UPS and cooling tray. The rack has only a 3D presentation.
 Each unit opens a shared movable inspection window with actual state, boot,
 temperature/hours, diagnostics and explicit work-order actions. Keyboard unit
@@ -1052,8 +1075,9 @@ suspends offscreen rack work. Pause/reduced motion freeze fan poses; hiding and
 detach clean up windows, observer and GPU resources, and reconnect rebuilds them.
 
 The pure model follows plant time across tabs. One server and the network support
-normal regulation; total computing loss holds requested targets and suspends grid
-dispatch, without any reactor Start/Stop/trip/reset. Manual controls, essential
+normal regulation and is required for explicit reactor Start in both modes; total
+computing loss holds automatic targets and suspends grid dispatch, without
+automatically starting, stopping, tripping or resetting the reactor. Manual controls, essential
 instruments and emergency shutdown remain independent. Hard continues to disallow
 Auto. Servers/network boot for five plant seconds after being enabled or restored
 from power loss. The rack UPS bridges AC loss for 120 fictional full-health seconds,
@@ -1087,12 +1111,24 @@ single pump-style ON/OFF rocker with switch semantics. OFF disables standby;
 starting/stopping/refuelling interlocks are unchanged. Actual state remains
 separate from the run switch. Both diesel dialogs can remain open independently.
 
-The compact **Pump power source** panel appears above Grid controller at left,
-showing source/load and buttons for each engine. Its ↗ button, or the 3D grid/bus,
-opens **Electrical supply & connections** with the retained 2D route. External-grid
-availability and turbine-feed connection remain native checkboxes/switches with
-pump-style rocker faces, keyboard activation and existing change handlers. The
-former Auxiliary power view and top-right EXTERNAL GRID button are removed.
+The compact **Pump power source** panel appears above Grid controller at left.
+Its arrow and overview grid/bus navigate to **Electrical grid**, the third desktop
+tab immediately after Maintenance. The station shows a 3D transformer cutaway,
+switchgear, turbine auxiliary feed, AC bus, both diesels and four pump circuits.
+Native grid/feed rockers use the existing guarded supply commands. Select a part
+or pick a mesh to open the existing connections/diesel window; the station's
+connections window hides its duplicate SVG route. Native inspection remains
+available after WebGL loss. Direct and companion inspection keep the normal
+connections window and route.
+
+The scene reuses electrical geometry and actual-state updates, with its own camera
+and the shared station frame lifecycle. Build on first visit, render only in the
+selected intersecting viewport, suspend motion on pause/reduced motion and release
+GPU resources on detach. Electrical markers, switch contacts, fuel tanks and
+engine phases use actual supply/engine state. Its audio reuses diesel voices,
+stopping offscreen while UI feedback/alerts remain independent. There are no new
+saved fields, model clock or supply rules. Read [the implementation plan](../ELECTRICAL-GRID-PLAN.md)
+and run `npm run test:browser:grid` for focused coverage.
 
 The 3D toolbar offers **Labels: Off / Compact / Full**. New sessions default to
 compact equipment tags, revealing full names/readings on hover or keyboard focus.

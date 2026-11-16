@@ -3,6 +3,7 @@
  * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
+import { poweredSimulation } from './plant-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NuclearPowerSimulation, CORE_CHANNELS } from '../src/simulation/nuclear-power-model.js';
@@ -12,10 +13,11 @@ import { captureCareer, restoreCareerBundle } from '../src/simulation/nuclear-po
 import { captureSessionState, restoreSessionState, remoteSimulation } from '../src/simulation/nuclear-power-session-state.js';
 import { applySessionCommand } from '../src/simulation/nuclear-power-session-protocol.js';
 import { ComputerRackScene } from '../src/simulation/nuclear-power-computers-scene.js';
+import { PlantComputers } from '../src/simulation/nuclear-power-computers-model.js';
 
 function advance(sim, seconds) { for (let index = 0; index < seconds * 4; index++) sim.tick(.25); }
 function operating() {
-    const sim = new NuclearPowerSimulation(); sim.setGridDispatchEnabled(false);
+    const sim = poweredSimulation(); sim.setGridDispatchEnabled(false);
     sim.togglePump('A'); sim.togglePump('B'); advance(sim, 8); sim.start(); advance(sim, 140);
     return sim;
 }
@@ -42,7 +44,7 @@ test('redundant servers preserve actual Auto generation; total computing loss ho
 });
 
 test('boot readiness needs actual plant time, and restore never resets trips or overrides Hard policy', () => {
-    const sim = new NuclearPowerSimulation();
+    const sim = poweredSimulation();
     sim.setComputerEnabled('serverA', false); sim.setComputerEnabled('serverB', false);
     assert.equal(sim.setAutoMode(true), false);
     sim.setComputerEnabled('serverA', true);
@@ -57,7 +59,7 @@ test('boot readiness needs actual plant time, and restore never resets trips or 
 });
 
 test('rack UPS bridges AC loss without powering pumps and expires/recharges only on the plant clock', () => {
-    const sim = new NuclearPowerSimulation();
+    const sim = poweredSimulation();
     sim.supply.generators.forEach(generator => { generator.automatic = false; });
     sim.togglePump('A'); advance(sim, 10);
     sim.supply.setGrid(sim, false); advance(sim, 15);
@@ -115,7 +117,7 @@ test('network, UPS and cooling service have separate readiness and cannot bypass
     const network = sim.createWorkOrder('rackSwitch');
     assert.equal(sim.workOrderAction(network.id, 'isolate'), false, 'Network work needs explicit Manual or a stopped plant');
     sim.setAutoMode(false); assert.ok(sim.workOrderAction(network.id, 'isolate'));
-    const cold = new NuclearPowerSimulation(); cold.computers.filterLoad = 85;
+    const cold = poweredSimulation(); cold.computers.filterLoad = 85;
     const cooling = cold.createWorkOrder('rackCooling');
     cold.setComputerEnabled('rackCooling', false);
     assert.equal(cold.workOrderAction(cooling.id, 'isolate'), false, 'Fan request alone is not coast-down');
@@ -138,7 +140,7 @@ test('schema-2 and schema-1 saves migrate without changing old progress, difficu
     assert.deepEqual(restored.state, source.career);
     assert.equal(restored.simulation.condition.heatReserve, sim.condition.heatReserve);
     assert.equal(restored.simulation.components.turbineIntegrity.strength, sim.components.turbineIntegrity.strength);
-    assert.deepEqual(restored.simulation.computers, new NuclearPowerSimulation().computers);
+    assert.deepEqual(restored.simulation.computers, new PlantComputers(), 'Legacy careers retain the original powered healthy rack');
     source.schemaVersion = 1; delete source.plant.autoAllowed; delete source.plant.work; delete source.plant.water;
     delete source.career.difficulty;
     const oldest = restoreCareerBundle(source);
@@ -147,7 +149,7 @@ test('schema-2 and schema-1 saves migrate without changing old progress, difficu
 });
 
 test('partial boot, diagnostics, UPS inventory and work proof hydrate exactly; malformed computer saves are rejected', () => {
-    const sim = new NuclearPowerSimulation(); sim.computers.charge = 42; sim.computers.filterLoad = 30;
+    const sim = poweredSimulation(); sim.computers.charge = 42; sim.computers.filterLoad = 30;
     sim.diagnoseComputer('serverB'); sim.setComputerEnabled('serverB', false);
     const order = sim.createWorkOrder('serverB');
     for (const action of ['isolate', 'service', 'release']) assert.ok(sim.workOrderAction(order.id, action));
@@ -162,7 +164,7 @@ test('partial boot, diagnostics, UPS inventory and work proof hydrate exactly; m
 });
 
 test('companion hydration retains computer methods and status but cannot service or toggle rack equipment', () => {
-    const host = new NuclearPowerSimulation(); host.setComputerEnabled('rackSwitch', false); advance(host, 1);
+    const host = poweredSimulation(); host.setComputerEnabled('rackSwitch', false); advance(host, 1);
     const copy = restoreSessionState(captureSessionState(host));
     assert.equal(copy.computers.automationAvailable, false); assert.equal(typeof copy.computers.status, 'function');
     const sent = [], remote = remoteSimulation(copy, command => sent.push(command));

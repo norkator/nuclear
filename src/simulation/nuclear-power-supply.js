@@ -7,14 +7,14 @@
 import { PUMPS } from './nuclear-power-pumps.js';
 export class AuxiliaryPower {
     constructor() {
-        this.gridAvailable = true;
-        this.turbineConnected = true;
-        this.generators = ['A', 'B'].map(id => ({ id, automatic: true, state: 'STANDBY', startRemaining: 0,
+        this.gridAvailable = false;
+        this.turbineConnected = false;
+        this.generators = ['A', 'B'].map(id => ({ id, automatic: false, state: 'STOPPED', startRemaining: 0,
             fuel: id === 'A' ? 82 : 95, capacity: 8, load: 0 }));
-        this.source = 'TURBINE GENERATOR';
-        this.demand = 6.2;
-        this.capacity = 20;
-        this.factor = 1;
+        this.source = 'NO AC SUPPLY';
+        this.demand = .2;
+        this.capacity = 0;
+        this.factor = 0;
     }
 
     setGrid(sim, available) {
@@ -36,6 +36,7 @@ export class AuxiliaryPower {
         if (!g) return;
         if (action === 'auto') {
             g.automatic = !g.automatic;
+            if (!['RUNNING', 'STARTING'].includes(g.state) && g.fuel > 0) g.state = g.automatic ? 'STANDBY' : 'STOPPED';
             sim.record(`Diesel ${id} automatic standby ${g.automatic ? 'armed' : 'disabled'}.`);
         } else if (action === 'start') this.start(sim, g, false);
         else if (action === 'stop') {

@@ -284,3 +284,32 @@ is included in this extension.
 Images are `ghcr.io/norkator/nuclear:latest` and
 `ghcr.io/norkator/nuclear-backend:latest`. The public origin remains
 `https://nuclear.porssiohjain.fi`. Publishing does not deploy the running service.
+
+
+New careers now start with grid/turbine auxiliary feeds disconnected, both diesels
+OFF/unarmed and all rack units OFF. Startup briefing describes AC commissioning
+and explicit rack power/boot before reactor Start in both Easy and Hard. Manual
+controls and ESD remain available through a computing outage.
+The same eight assignment IDs, objectives and pinned issued terms remain. Schema 3
+continues saving exact supply/rack/rod state; legacy migrations retain their old
+healthy defaults. Post-trip manual core-map rod withdrawal produces heat while ESD
+remains latched and cannot qualify the normal running assignment requirements.
+
+The cold-commissioning and console-control update (2026-11-16) passed 179 unit/
+model/session tests, the production build, focused rack/audio/layout browser checks,
+the full browser regression and the focused companion check against the final
+build. All eight assignments and Hard save/Continue remain covered. The companion
+check includes host-owned post-trip rod withdrawal and cold Reset read-backs.
+
+
+Reactor Start now requires an online process server and control network in both
+Auto and Manual, including Hard. Boot uses actual plant time; a computing outage
+blocks later starts while existing Manual controls, Stop and ESD remain available.
+The Electrical grid station follows Maintenance and uses the same plant/supply
+state and commands, with no save-schema or mission-term changes.
+
+The grid-station/startup-interlock follow-up passed 182 unit/model/session checks,
+build, focused grid/layout checks, the full browser regression and the focused
+companion check. Browser coverage includes all eight assignments and verifies
+Hard startup with the rack OFF, explicit native rack power/boot, generation and
+save/Continue. Companions cannot bypass the host's Manual startup interlock.

@@ -3,6 +3,7 @@
  * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
+import { poweredSimulation } from './plant-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CORE_CHANNELS, NuclearPowerSimulation } from '../src/simulation/nuclear-power-model.js';
@@ -10,7 +11,7 @@ import { advancePumpMotion, advanceProcessMotion, advanceReactorMotion } from '.
 
 // These scenarios explicitly exercise manual operation or opt into temperature Auto.
 const manualSimulation = () => {
-    const sim = new NuclearPowerSimulation();
+    const sim = poweredSimulation();
     sim.setAutoMode(false);
     sim.setAutoObjective('temperature');
     // Explicitly prime circulation for this established operating-point fixture.
@@ -262,7 +263,8 @@ test('automatic control holds changing temperature/flow targets against fluctuat
     assert.ok(sim.rods > 99.9);
     assert.equal(sim.running, false);
     sim.setRod('CR-01', 0);
-    assert.equal(sim.controlRods[0].target, 100);
+    assert.equal(sim.controlRods[0].target, 0, 'Explicit core-map commands can withdraw rods after trip');
+    assert.equal(sim.tripped, true);
     sim.resetTrip();
     assert.equal(sim.running, false);
 });
@@ -341,7 +343,7 @@ test('electrical targets are bounded and selecting temperature regulation remain
 
 
 test('new and reset sessions start in Auto electrical output without bypassing trip recovery', () => {
-    const sim = new NuclearPowerSimulation();
+    const sim = poweredSimulation();
     assert.equal(sim.autoMode, true);
     assert.equal(sim.autoObjective, 'power');
     assert.equal(sim.history[0].electricalTarget, 200);
@@ -402,7 +404,7 @@ test('new and reset sessions start in Auto electrical output without bypassing t
 
 
 test('startup requires actual motor speed, flow and AC independently of retained targets', () => {
-    const sim = new NuclearPowerSimulation();
+    const sim = poweredSimulation();
     sim.togglePump('A'); sim.togglePump('B'); advance(sim, 6);
     assert.equal(sim.startupReadiness().ready, true);
     const speed = sim.components.items.pumpA.actual.speed;
