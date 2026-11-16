@@ -109,7 +109,7 @@ async function checkStationAudio({ consoleCode, action, page, advance, until, re
     const tab = name => consoleCode(`s.querySelector('#${name}-tab').click();`);
     const station = scene => ready(`c.plantAudio?.nodes.size && [...c.plantAudio.nodes].some(v=>v.station==='${scene}')`, `${scene} ambience follows actual operation`);
     const silent = () => consoleCode('return [...c.plantAudio.nodes].filter(v=>!v.ui).length;');
-    const voices = () => consoleCode('return [...c.plantAudio.nodes].filter(v=>v.station).map(v=>({scene:v.station,equipment:v.equipment,target:v.target,rate:v.rate,cutoff:v.cutoff,duration:v.oscillator.buffer.duration,channels:v.oscillator.buffer.numberOfChannels}));');
+    const voices = () => consoleCode('return [...c.plantAudio.nodes].filter(v=>v.station).map(v=>({scene:v.station,equipment:v.equipment,target:v.target,rate:v.rate,cutoff:v.cutoff,frames:v.oscillator.buffer.length,sampleRate:v.oscillator.buffer.sampleRate,channels:v.oscillator.buffer.numberOfChannels}));');
     await resetWithoutDispatch();
     assert.equal(await consoleCode('return c.soundEnabled;'), false);
     assert.equal(await consoleCode('return c.plantAudio.stationBuffers.size;'), 0, 'No room assets were fetched before opt-in/visiting');
@@ -121,7 +121,10 @@ async function checkStationAudio({ consoleCode, action, page, advance, until, re
     assert.equal(await consoleCode('return c.simulation.running;'), false, 'A powered rack has its own ambience in a cold plant');
     assert.deepEqual(await consoleCode('return [...c.plantAudio.stationBuffers.keys()];'), ['computers'], 'Only the visited room downloads');
     const serverVoice = (await voices())[0];
-    assert.equal(serverVoice.duration, 8); assert.equal(serverVoice.channels, 2);
+    // Decoding the 48 kHz WAV at the context's sample rate can round down one frame.
+    assert.ok(Math.abs(serverVoice.frames - 8 * serverVoice.sampleRate) <= 1,
+        `Expected eight seconds within one decoded frame, got ${serverVoice.frames} frames at ${serverVoice.sampleRate} Hz`);
+    assert.equal(serverVoice.channels, 2);
     assert.ok(serverVoice.target > 0 && serverVoice.target <= .08);
     await consoleCode('c.stopAlarmSound(false);c.simulation.trip();c.update();');
     assert.ok(await consoleCode('return c.alarmNodes.length>0;'), 'An actual ESD sounds an alert');
