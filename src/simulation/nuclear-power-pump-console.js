@@ -154,6 +154,7 @@ export function updatePumpConsole(host, root) {
 }
 
 export function drawPumpConsole(host, root) {
+    if (root.dataset.stationControls) return;
     const id = root.dataset.componentDialog, pump = pumpDefinition(id), sim = host.simulation, item = sim.components.items[id];
     const state = host.pumpUI?.[id] || { selected: 'speed', preview: null };
     const target = key => state.selected === key && state.preview !== null ? state.preview : requested(sim, id, key);

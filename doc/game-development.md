@@ -122,6 +122,16 @@ request. Context loss disposes the renderer and shows a status message; native
 unit inspection/maintenance buttons remain available. There is no alternate rack
 diagram. The main reactor's separate schematic is unchanged.
 
+Overview equipment navigation now opens dedicated 3D stations for pumps,
+exchanger, turbine/generator and condenser; the server warehouse left of the
+cooling tower opens Computer systems. `nuclear-power-stations.js`/CSS owns the
+station UI and part-to-control routing; `nuclear-power-stations-scene.js` builds
+only the selected equipment, reusing `nuclear-power-cutaway-scene.js` and pump
+geometry. All controls still pass through the same simulation and work-order
+guards. Stations add no saved fields, missions or plant clock. Their lazy cameras,
+visibility, actual damage/motion and fallback are covered by
+`test/equipment-stations.browser.mjs`, shared by focused equipment and full checks.
+
 ## Saved-state contract and known gaps
 
 - Save schema: `CAREER_SAVE_VERSION = 3`; content metadata:

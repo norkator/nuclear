@@ -29,8 +29,11 @@ import { initializeDesktopLayout, layoutControls } from './nuclear-power-layout.
 import layoutStyles from './nuclear-power-layout.css?inline';
 import { computerPanel, computerDialog, ComputerConsole } from './nuclear-power-computers.js';
 import computerStyles from './nuclear-power-computers.css?inline';
+import { EquipmentStations, stationTabs, stationPanels } from './nuclear-power-stations.js';
+import { EQUIPMENT_STATIONS, equipmentStation } from './nuclear-power-stations-config.js';
+import stationStyles from './nuclear-power-stations.css?inline';
 
-const PLANT_TABS = ['reactor', 'maintenance', 'computers'];
+const PLANT_TABS = ['reactor', 'maintenance', 'computers', ...EQUIPMENT_STATIONS.map(station => station.id)];
 const STEAM_PATH = createPolylinePath([[610, 160], [790, 160], [790, 210]]);
 
 const radiation = `<svg viewBox="0 0 40 40" fill="currentColor" aria-hidden="true"><circle cx="20" cy="20" r="3.4"/><path d="M16 13.1 12 6.2a16 16 0 0 1 16 0l-4 6.9a8 8 0 0 0-8 0ZM12 20H4a16 16 0 0 0 8 13.9l4-6.9a8 8 0 0 1-4-7Zm12 7 4 6.9A16 16 0 0 0 36 20h-8a8 8 0 0 1-4 7Z"/></svg>`;
@@ -260,6 +263,7 @@ export class NuclearPowerConsole extends HTMLElement {
         this.setOverview(this.overviewMode);
         this.setPlantTab(this.plantTab);
         this.computerConsole.connect();
+        this.equipmentStations.connect();
         document.addEventListener('visibilitychange', this.onVisibilityChange);
         this.reducedMotion.addEventListener('change', this.onVisibilityChange);
         window.addEventListener('resize', this.onViewportResize);
@@ -309,12 +313,13 @@ export class NuclearPowerConsole extends HTMLElement {
         this.overviewScene?.dispose();
         this.overviewScene = null;
         this.computerConsole?.disconnect();
+        this.equipmentStations?.disconnect();
     }
 
     initialize() {
         this.initialized = true;
         this.setAttribute('lang', 'en');
-        this.shadowRoot.innerHTML = `<style>${styles}\n${lightStyles}\n${generationStyles}\n${companionStyles}\n${gameStyles}\n${layoutStyles}\n${computerStyles}</style>
+        this.shadowRoot.innerHTML = `<style>${styles}\n${lightStyles}\n${generationStyles}\n${companionStyles}\n${gameStyles}\n${layoutStyles}\n${computerStyles}\n${stationStyles}</style>
         <main class="console">
           <header class="masthead">
             <div class="brand-mark">${radiation}</div>
@@ -353,7 +358,7 @@ export class NuclearPowerConsole extends HTMLElement {
 
           <div class="workspace">
             <section class="panel process-panel" aria-label="Plant overview">
-              <div class="plant-tabs" role="tablist" aria-label="Plant overview"><button id="reactor-tab" role="tab" data-plant-tab="reactor" aria-controls="reactor-panel" aria-selected="true" tabindex="0">Reactor overview</button><button id="maintenance-tab" role="tab" data-plant-tab="maintenance" aria-controls="maintenance-panel" aria-selected="false" tabindex="-1">Maintenance <span class="maintenance-count">0</span></button><button id="computers-tab" role="tab" data-plant-tab="computers" aria-controls="computers-panel" aria-selected="false" tabindex="-1">Computer systems</button></div>
+              <div class="plant-tabs" role="tablist" aria-label="Plant overview"><button id="reactor-tab" role="tab" data-plant-tab="reactor" aria-controls="reactor-panel" aria-selected="true" tabindex="0">Reactor overview</button><button id="maintenance-tab" role="tab" data-plant-tab="maintenance" aria-controls="maintenance-panel" aria-selected="false" tabindex="-1">Maintenance <span class="maintenance-count">0</span></button><button id="computers-tab" role="tab" data-plant-tab="computers" aria-controls="computers-panel" aria-selected="false" tabindex="-1">Computer systems</button>${stationTabs}</div>
               <div id="reactor-panel" role="tabpanel" aria-labelledby="reactor-tab">
               <div class="panel-heading"><div><span class="section-index">01</span><h2>Process view</h2></div><div class="diagram-tools"><button class="small-button" data-action="exercises" aria-controls="exercises-window" aria-expanded="false">Objectives &amp; scenarios</button><button class="small-button" data-action="core-view" aria-haspopup="dialog" aria-controls="core-map-window" aria-expanded="false">Core map ↗</button><button class="small-button" data-action="zoom" aria-label="Zoom process diagram" aria-pressed="false">Zoom +</button></div></div>
               <div class="annunciator" role="status"><span class="annunciator-icon">●</span><span data-value="annunciator">ALL SYSTEMS NORMAL</span><span class="plant-state" data-value="status">RUNNING</span></div>
@@ -365,6 +370,7 @@ export class NuclearPowerConsole extends HTMLElement {
               </div>
               ${maintenancePanel(equipmentDetails)}
               ${computerPanel}
+              ${stationPanels}
             </section>
 
             <aside class="operator-column" aria-label="Operator console">
@@ -446,8 +452,15 @@ export class NuclearPowerConsole extends HTMLElement {
         initializeExercises(this);
         initializeMaintenance(this);
         this.computerConsole = new ComputerConsole(this);
+        this.equipmentStations = new EquipmentStations(this);
         this.shadowRoot.querySelector('#scene-labels').addEventListener('change', event => this.setSceneLabels(event.target.value));
         for (const trigger of this.shadowRoot.querySelectorAll('[data-equipment]:not([data-equipment="reactor"])')) {
+            const station = !trigger.closest('.maintenance-panel') && equipmentStation(trigger.dataset.equipment);
+            if (station) {
+                trigger.setAttribute('aria-controls', `${station}-panel`);
+                trigger.setAttribute('aria-label', `Open ${station === 'pumps' ? 'pump' : station} station`);
+                continue;
+            }
             trigger.setAttribute('aria-haspopup', 'dialog');
             trigger.setAttribute('aria-controls', `equipment-${trigger.dataset.equipment}-window`);
             trigger.setAttribute('aria-expanded', 'false');
@@ -488,7 +501,8 @@ export class NuclearPowerConsole extends HTMLElement {
             if (rod) this.selectRod(rod.dataset.rod);
             const equipment = event.target.closest('[data-equipment]');
             if (equipment) {
-                this.inspect(equipment.dataset.equipment);
+                if (equipment.closest('.maintenance-panel')) this.inspect(equipment.dataset.equipment);
+                else this.navigateEquipment(equipment.dataset.equipment);
             }
             const button = event.target.closest('[data-action]');
             if (button && !button.disabled) this.act(button.dataset.action);
@@ -526,7 +540,8 @@ export class NuclearPowerConsole extends HTMLElement {
             const equipment = event.target.closest('[data-equipment]');
             if (equipment && (event.key === 'Enter' || event.key === ' ')) {
                 event.preventDefault();
-                this.inspect(equipment.dataset.equipment);
+                if (equipment.closest('.maintenance-panel')) this.inspect(equipment.dataset.equipment);
+                else this.navigateEquipment(equipment.dataset.equipment);
             }
         });
         this.shadowRoot.addEventListener('animationend', event => {
@@ -625,6 +640,7 @@ export class NuclearPowerConsole extends HTMLElement {
         }
         this.updateOverview(true);
         this.computerConsole?.update();
+        this.equipmentStations?.update();
     }
 
     setOverview(mode) {
@@ -635,7 +651,7 @@ export class NuclearPowerConsole extends HTMLElement {
         if (this.overviewMode === '3d' && !this.overviewScene && !this.sceneUnavailable) {
             try {
                 this.overviewScene = new PlantOverviewScene(host, {
-                    inspect: key => this.inspect(key),
+                    inspect: key => this.navigateEquipment(key),
                     unavailable: () => this.fallbackOverview(),
                 });
             } catch {
@@ -710,6 +726,7 @@ export class NuclearPowerConsole extends HTMLElement {
                 sim.components.turbineIntegrity.bladesLost, sim.components.turbineIntegrity.wear,
                 sim.supply.source, sim.supply.factor, sim.supply.gridAvailable, sim.supply.demand.toFixed(2),
                 sim.supply.generators.map(generator => [generator.state, generator.fuel.toFixed(0)]),
+                sim.computers.source, sim.computers.automationAvailable,
                 this.fuelTransfer.pose.phase,
                 this.fuelTransfer.samples.map(sample => sample && [sample.reference, this.fuelTransfer.dispatchReadiness(sample.reference).ready]),
             ]);
@@ -721,7 +738,7 @@ export class NuclearPowerConsole extends HTMLElement {
 
     setPlantTab(tab) {
         this.plantTab = PLANT_TABS.includes(tab) ? tab : 'reactor';
-        this.plantAudio?.setScene(this.plantTab);
+        this.plantAudio?.setScene(equipmentStation(this.plantTab) ? 'reactor' : this.plantTab);
         this.dataset.plantTab = this.plantTab;
         for (const name of PLANT_TABS) {
             const selected = this.plantTab === name;
@@ -737,11 +754,14 @@ export class NuclearPowerConsole extends HTMLElement {
         this.updateOverview(true);
         updateMaintenance(this);
         this.computerConsole?.activate();
+        this.equipmentStations?.activate();
         this.updateActivity();
         this.updateAlarmSound();
     }
 
     equipmentTrigger(key) {
+        const stationTrigger = this.equipmentStations?.trigger(key);
+        if (stationTrigger) return stationTrigger;
         if (['dieselA', 'dieselB', 'grid', 'bus'].includes(key)) {
             if (this.plantTab !== 'reactor') return this.shadowRoot.querySelector(`#${this.plantTab}-tab`);
             return this.shadowRoot.querySelector(this.overviewMode === '3d' ? `[data-scene-equipment="${key}"]`
@@ -892,6 +912,14 @@ export class NuclearPowerConsole extends HTMLElement {
         });
     }
 
+    navigateEquipment(key) {
+        if (!this.companion && key === 'computers') {
+            this.setPlantTab('computers');
+            this.shadowRoot.querySelector('#computers-tab').focus({ preventScroll: true });
+        } else if (!this.companion && equipmentStation(key)) this.equipmentStations.navigate(key);
+        else this.inspect(key);
+    }
+
     inspect(key, open = true) {
         if (key.startsWith('diesel')) { if (open) this.openDiesel(key.slice(-1)); return; }
         if (['grid', 'bus'].includes(key)) { if (open) this.openElectricalSupply(); return; }
@@ -905,6 +933,7 @@ export class NuclearPowerConsole extends HTMLElement {
             if (key === 'reactor') this.openCoreMap();
             else {
                 const dialog = this.shadowRoot.querySelector(`[data-component-dialog="${key}"]`);
+                delete dialog.dataset.stationControls;
                 this.openFloatingDialog(dialog);
                 dialog.querySelector('.core-dialog-titlebar').focus({ preventScroll: true });
             }
@@ -934,7 +963,7 @@ export class NuclearPowerConsole extends HTMLElement {
                     if (Audio) {
                         this.alarmAudio ||= new Audio();
                         this.plantAudio ||= new PlantAudio(this.alarmAudio);
-                        this.plantAudio.setScene(this.plantTab);
+                        this.plantAudio.setScene(equipmentStation(this.plantTab) ? 'reactor' : this.plantTab);
                         this.plantAudio.preloadUi().then(() => this.update());
                         this.plantAudio.preloadPlant().then(() => this.update());
                         this.plantAudio.preloadDiesels().then(() => this.update());
@@ -1008,6 +1037,7 @@ export class NuclearPowerConsole extends HTMLElement {
         const clockActive = !this.companion && this.isConnected && !this.simulation.paused && (active || remoteOperator)
             && (!this.game?.career || this.game.owner);
         this.computerConsole?.scene?.setVisible(this.computerConsole.canDraw());
+        this.equipmentStations?.syncVisibility();
         if (this.reducedMotion.matches && this.fuelTransfer.job) {
             this.fuelTransfer.finish();
             this.updateOverview();
@@ -1061,7 +1091,7 @@ export class NuclearPowerConsole extends HTMLElement {
         if (this.computerConsole?.hasMotion()) return true;
         if (this.processMotion.turbineFragments?.some(fragment => fragment.age < 2.2)) return true;
         if (sim.power > .01 || sim.electricalOutput > .1 || sim.primaryFlow > .1 || sim.secondaryFlow > .1) return true;
-        const processVisible = this.plantTab === 'reactor' || this.shadowRoot.querySelector('.equipment-dialog:popover-open');
+        const processVisible = this.plantTab === 'reactor' || this.equipmentStations?.canDraw() || this.shadowRoot.querySelector('.equipment-dialog:popover-open');
         return !!processVisible && (hasPlantMotion(sim) || this.processMotion.speed > .0001
             || (this.plantTab === 'reactor' && this.overviewMode === '3d' && !!this.fuelTransfer.job));
     }
@@ -1084,6 +1114,7 @@ export class NuclearPowerConsole extends HTMLElement {
         this.drawInstrumentMotion(seconds);
         this.updateOverview();
         this.computerConsole?.draw(seconds);
+        this.equipmentStations?.draw();
     }
 
     drawInstrumentMotion(seconds = 0) {
@@ -1343,7 +1374,7 @@ export class NuclearPowerConsole extends HTMLElement {
         const context = this.alarmAudio;
         if (!context) return;
         if (context.state === 'suspended') { context.resume().catch(() => {}); return; }
-        this.plantAudio?.updateScene(sim, this.plantTab);
+        this.plantAudio?.updateScene(sim, equipmentStation(this.plantTab) ? 'reactor' : this.plantTab);
         if (!pending && severity < 2) { this.stopAlarmSound(false); return; }
         const now = context.currentTime;
         const mode = meltdown ? 'meltdown' : ['quiet', 'attention', 'overheating', 'core-damage', 'critical'][severity];
@@ -1594,6 +1625,7 @@ export class NuclearPowerConsole extends HTMLElement {
         updateSpentFuel(this);
         updateMaintenance(this);
         this.computerConsole?.update();
+        this.equipmentStations?.update();
         updateExercises(this);
         drawEquipmentMotion(this);
         this.shadowRoot.querySelector('#fault-scenario').value = condition.fault;

@@ -14,28 +14,34 @@ export const PIPE_LAYOUT = [
     { id: 'primaryPipes', position: [-7.4, 1.2, 2.3] },
     { id: 'secondaryPipes', position: [.7, 1.2, 3.7] },
 ];
+export function buildPumpUnit(view, id, x = 0, z = 0) {
+    const definition = PUMPS.find(pump => pump.id === id);
+    const pump = view.component(id, [x, 0, z]);
+    view.pad(pump, 2.25, 2);
+    view.box(pump, [1.5, .65, 1.2], view.darkSteel, [0, .5, 0]);
+    view.cylinder(pump, .66, .9, view.steel, [0, 1.2, -.1]).rotation.x = Math.PI / 2;
+    const bearings = view.material('#c2b276'), blades = view.material('#64c9b5'), fittings = view.material('#a9c5cd');
+    view.mesh(pump, new THREE.TorusGeometry(.66, .09, 4, 12), bearings, [0, 1.2, .4]);
+    const rotor = new THREE.Group(); rotor.position.set(0, 1.2, .48); pump.add(rotor);
+    view.cylinder(rotor, .14, .16, bearings, [0, 0, 0]).rotation.x = Math.PI / 2;
+    for (let i = 0; i < 4; i++) {
+        const angle = i / 4 * Math.PI * 2;
+        const blade = view.box(rotor, [.23, .43, .08], blades, [Math.sin(angle) * .29, Math.cos(angle) * .29, 0]);
+        blade.rotation.z = -angle + .4;
+    }
+    view.pumps[id] = rotor;
+    view.valve(id, 'dischargeValve', [1, 1.1, 0]);
+    view.cylinder(pump, .22, .12, fittings, [-.87, 1.2, 0]).rotation.z = Math.PI / 2;
+    view.box(pump, [.65, .13, .4], definition.backup ? view.brass || view.trim : view.teal, [0, .85, .65]);
+    view.pumpParts[id] = { blades, bearings, fittings };
+    return pump;
+}
+
 export function buildPumpScene(view) {
     view.pumpParts = {};
     for (const { id, x, z } of PUMP_LAYOUT) {
         const definition = PUMPS.find(pump => pump.id === id);
-        const pump = view.component(id, [x, 0, z]);
-        view.pad(pump, 2.25, 2);
-        view.box(pump, [1.5, .65, 1.2], view.darkSteel, [0, .5, 0]);
-        view.cylinder(pump, .66, .9, view.steel, [0, 1.2, -.1]).rotation.x = Math.PI / 2;
-        const bearings = view.material('#c2b276'), blades = view.material('#64c9b5'), fittings = view.material('#a9c5cd');
-        view.mesh(pump, new THREE.TorusGeometry(.66, .09, 4, 12), bearings, [0, 1.2, .4]);
-        const rotor = new THREE.Group(); rotor.position.set(0, 1.2, .48); pump.add(rotor);
-        view.cylinder(rotor, .14, .16, bearings, [0, 0, 0]).rotation.x = Math.PI / 2;
-        for (let i = 0; i < 4; i++) {
-            const angle = i / 4 * Math.PI * 2;
-            const blade = view.box(rotor, [.23, .43, .08], blades, [Math.sin(angle) * .29, Math.cos(angle) * .29, 0]);
-            blade.rotation.z = -angle + .4;
-        }
-        view.pumps[id] = rotor;
-        view.valve(id, 'dischargeValve', [1, 1.1, 0]);
-        view.cylinder(pump, .22, .12, fittings, [-.87, 1.2, 0]).rotation.z = Math.PI / 2;
-        view.box(pump, [.65, .13, .4], definition.backup ? view.brass || view.trim : view.teal, [0, .85, .65]);
-        view.pumpParts[id] = { blades, bearings, fittings };
+        buildPumpUnit(view, id, x, z);
         const circuit = definition.circuit === 'primary' ? 'A' : 'B';
         const key = definition.circuit === 'primary' ? 'primaryReturn' : 'secondaryReturn';
         const inlet = circuit === 'A' ? -3.3 : 4, outlet = circuit === 'A' ? -7.4 : .7;

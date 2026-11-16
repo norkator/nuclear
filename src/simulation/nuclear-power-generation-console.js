@@ -222,6 +222,7 @@ export function updateGenerationConsole(host, root) {
 }
 
 export function drawGenerationConsole(host, root) {
+    if (root.dataset.stationControls) return;
     const id = root.dataset.componentDialog, sim = host.simulation, actual = sim.components.items[id].actual, motion = host.processMotion;
     for (const node of root.querySelectorAll('[data-generation-valve]')) node.setAttribute('transform', `rotate(${valveHandleAngle(actual[node.dataset.generationValve])})`);
     const cooling = sim.components.items.condenser.actual;

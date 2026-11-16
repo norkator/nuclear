@@ -15,7 +15,8 @@
     "test:browser:equipment": "node --test test/equipment-browser.mjs",
     "test:browser:companion": "node --test test/companion-browser.mjs",
     "test:browser:game": "node --test test/game-browser.mjs",
-    "test:browser:computers": "node --test test/computers-browser.mjs"
+    "test:browser:computers": "node --test test/computers-browser.mjs",
+    "test:browser:stations": "node --test test/stations-browser.mjs"
   },
   "dependencies": {
     "react": "19.3.1",

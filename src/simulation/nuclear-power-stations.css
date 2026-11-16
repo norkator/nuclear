@@ -1,0 +1,40 @@
+/*
+ * Pörssiohjain - Energy usage optimization platform
+ * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
+ * Licensed under the Pörssiohjain Personal Use License v1.0.
+ */
+.plant-tabs { flex-wrap: wrap; }
+.equipment-station { display: flex; flex-direction: column; gap: 12px; padding: 14px; min-width: 0; }
+.station-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.station-heading .eyebrow { font-size: 9px; letter-spacing: 1px; color: var(--muted); }
+.station-heading h2 { margin: 5px 0 0; font-size: 16px; }
+.station-pump-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.station-pump-list [aria-pressed="true"] { color: var(--cool); border-color: var(--cool); }
+.station-health { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 5px; font-size: 11px; }
+.station-health strong { color: var(--cool); }
+.station-health span { color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1.5; }
+.station-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 170px; gap: 12px; min-width: 0; }
+.station-viewport { position: relative; min-width: 0; height: 480px; border: 1px solid var(--border); border-radius: 6px; background: radial-gradient(ellipse at 50% 35%, #29445366, transparent 75%); overflow: hidden; }
+.station-scene { position: absolute; inset: 0; width: 100%; height: 100%; }
+.station-scene .plant-scene-canvas { width: 100%; height: 100%; }
+.station-camera-tools { position: absolute; display: flex; gap: 5px; left: 10px; bottom: 10px; }
+.station-part-list { display: grid; align-content: start; gap: 8px; min-width: 0; }
+.station-part-list button { display: grid; gap: 7px; text-align: left; border: 1px solid var(--border); background: transparent; color: inherit; padding: 11px; border-radius: 5px; }
+.station-part-list strong { font-size: 11px; }
+.station-part-list span { font-size: 10px; line-height: 1.5; color: var(--cool); overflow-wrap: anywhere; }
+.station-part-list button:is(:hover, :focus-visible, [aria-expanded="true"]) { border-color: var(--cool); background: #69b9b810; }
+.station-note, .station-view-status { color: var(--muted); font-size: 10px; line-height: 1.6; margin: 0; }
+.station-view-status { position: absolute; inset: 0; display: grid; place-content: center; padding: 24px; text-align: center; }
+.equipment-dialog[data-station-controls] :is(.pump-model-scroll, .hx-model-scroll, .generation-model-scroll, .pump-console-help, .hx-help, .generation-help) { display: none; }
+:host([data-theme="light"]) .station-viewport { background: radial-gradient(ellipse at 50% 35%, #b6cbd4, #d7e2e8); }
+@container nuclear-console (min-width: 1400px) {
+    :host([data-screen="desktop"]) .equipment-station { flex: 1; min-height: 0; overflow-y: auto; }
+    .station-workspace { flex: 1; min-height: 240px; }
+    .station-viewport { height: 100%; min-height: 240px; }
+}
+@media (max-width: 850px) {
+    .equipment-station { padding: 10px; }
+    .station-workspace { grid-template-columns: minmax(0, 1fr); }
+    .station-viewport { height: 340px; }
+    .station-part-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

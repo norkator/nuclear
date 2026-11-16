@@ -169,7 +169,8 @@ The overview defaults to a low-poly 3D cutaway, with a retained SVG schematic
 available through the view selector. Both include moving rods and fuel channels,
 separate primary and secondary circuits, animated pumps and coolant flow, a heat
 exchanger, a turbine/generator, and a condenser. Click or keyboard-activate outlined
-equipment to open its movable component console. The reactor opens the core map;
+equipment to open its dedicated 3D station. Selecting parts there opens movable
+controls and trends windows. The reactor opens the core map;
 its former Equipment detail readings are inside that window. The main view has no
 Equipment detail card. The 3D scene supports bounded orbit, pan and zoom; the SVG diagram can be zoomed and
 scrolled. Controls and instruments adapt to the browser viewport's width.
@@ -483,8 +484,8 @@ no-flow and unavailable-cooling states have no plume, while retained hot circula
 can continue it after Stop. This is a normalized illustration, not added heat/water
 physics or a measured MW signal. One bounded instanced billboard batch shares the
 frame clock, pause/reduced-motion/visibility behavior and GPU disposal. Tower and
-pipe picking, plus its keyboard-accessible CT-01 label, open the existing condenser
-controls. The default camera includes the tower and plume. The river/tower are 3D
+pipe picking, plus its keyboard-accessible CT-01 label, open the condenser
+station. The default camera includes the tower and plume. The river/tower are 3D
 presentation additions; the existing SVG condenser controls remain available.
 See [the cooling tower checkpoint](../COOLING-TOWER-PLAN.md). Focused checks:
 `npm run test:browser:cooling`; equipment browser checks include these scenarios.
@@ -495,8 +496,8 @@ the initial camera, including its center. Hold the mouse wheel and drag to pan
 in the camera plane; Shift+drag also pans. Panning is bounded to eight scene
 units in the unified 3D view. When the canvas has keyboard focus, arrow
 keys orbit, Shift+arrow keys pan, +/− zoom and Home resets. Equipment can be selected directly through canvas picking or
-through semantic HTML buttons with live readings. They open the same movable
-component/core dialogs and receive focus again when those dialogs close.
+through semantic HTML buttons with live readings. Main equipment opens its 3D
+station; reactor, pool and electrical equipment retain their movable windows.
 
 **Schematic** returns to the original SVG process view without resetting the
 simulation. Both themes, actual rod insertion, motor/shaft coast-down, coolant
@@ -508,14 +509,38 @@ renderer around the retained simulation. Unsupported/lost WebGL 2 falls back to
 the usable SVG view. Stationary equipment surfaces and rotor blades are batched
 by material to reduce draw calls.
 
-The main panel has **Reactor overview** and **Maintenance** tabs, with keyboard
-arrow/Home/End navigation and retained plant state. Reactor overview contains the
+The main panel has **Reactor overview**, **Maintenance**, **Computer systems**,
+**Pumps**, **Heat exchanger**, **Turbine / generator** and **Condenser** tabs,
+with keyboard arrow/Home/End navigation and retained plant state. Tabs wrap on
+narrow displays. Reactor overview contains the
 unified 3D plant and SVG selector. Small diesels, grid, bus and electrical routes
 share the plant scene. Maintenance stops rendering without changing simulation
 state. The left Pump power source panel sits above Grid controller. Its source
 controls and each diesel's own dialog remain usable in the SVG/WebGL fallback.
 There is no Auxiliary power tab or header EXTERNAL GRID/source button. Component,
 core, pool and electrical windows can coexist and retain the shared lifecycle.
+
+The small open-front server warehouse left of the cooling tower contains visible
+racks and actual process-computing status lamps. Its meshes and IT-01 button
+navigate to Computer systems. Pumps, exchanger, turbine/generator and condenser
+selection in either overview presentation opens the matching 3D station first.
+The Pumps station retains the selected pump's identity across all four branches.
+
+Each equipment station builds only its own cutaway, with an independent camera
+and semantic part buttons. Select an impeller/motor, valve, exchanger bundle/
+deposit, turbine governor or generator to open existing native controls, actual
+readings, local trends, disturbances and guarded service. Station windows hide
+their old SVG drawing; controls and model ownership stay unchanged. Solid levers
+show actual position and amber wireframes show requested position. Closing a
+window restores part focus; Plant overview returns to the retained plant camera.
+Pump damage/leaks, turbine missing blades/fragments, exchanger fouling/steam and
+condenser drops follow existing actual state. No station advances plant time.
+Lazy renderers share the console frame clock, suspend offscreen/inactive work,
+freeze motion during pause/reduced motion, and dispose/rebuild on detach/reconnect.
+WebGL loss leaves native part inspection and controls usable. Companion station
+presets and saved careers are unchanged. See
+[the equipment-station plan](../EQUIPMENT-STATIONS-PLAN.md) and run
+`npm run test:browser:stations` for focused coverage.
 
 ## Loop temperatures, valves and flow
 
@@ -688,8 +713,10 @@ damage/leaks and returns every pump to OFF.
 
 ## Component consoles and operating exercises
 
-Heat exchanger, all four pumps, pipework, turbine/generator and condenser open independent,
-movable nonmodal windows via pointer or Enter/Space on their outlined equipment.
+Heat exchanger, all four pumps, turbine/generator and condenser first open their
+3D station via pointer or Enter/Space on overview equipment. Selecting a station
+part opens an independent movable nonmodal control window. Pipework opens its
+window directly. Direct inspection and companion consoles retain their SVG aids.
 Requested inputs and actual read-backs remain separate. The underlying process stays
 usable; windows retain positions, clamp to the viewport, close with ×/Escape and
 close on hide/detach. Pause keeps them available for inspection. Each console has
@@ -1313,6 +1340,8 @@ npm run build
 npm run test:browser
 # Focused shared desktop layout (same checks as the full suite):
 npm run test:browser:layout
+# Focused overview navigation, 3D equipment parts and station lifecycle:
+npm run test:browser:stations
 # Focused company-game flow:
 npm run test:browser:game
 # Focused two-window pairing/controls/lifecycle coverage:

@@ -31,14 +31,23 @@ export const captureConsoleLayout = consoleCode => consoleCode(`
 `);
 
 export async function waitForConsoleLayout(consoleCode, label = 'Console layout') {
-    const deadline = Date.now() + 10_000;
-    let previous, latest;
-    while (Date.now() < deadline) {
+    // Ultrawide software-WebGL reallocations can take several browser frames
+    // longer than ordinary layout. This is a readiness deadline, not a sleep:
+    // return as soon as real transitions, geometry and renderer sizing settle.
+    const deadline = Date.now() + 30_000;
+    let previous, latest, samples = 0;
+    // Software WebGL can block the initial resize read beyond the deadline.
+    // Always obtain a frame-separated pair before deciding geometry is unstable.
+    while (samples < 2 || Date.now() < deadline) {
         latest = await captureConsoleLayout(consoleCode);
+        samples++;
         const signature = JSON.stringify(latest);
         if (latest?.console?.width > 0 && !latest.transitions.length && latest.sceneReady && signature === previous) return latest;
         previous = signature;
-        await new Promise(resolve => setTimeout(resolve, 50));
+        // A timer can poll the same unpainted layout while headless Chrome has
+        // a pending resize/transition. Sample actual frames so the compositor,
+        // resize observers and visibility observers can settle between reads.
+        await consoleCode('return new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));');
     }
     throw new Error(`${label} did not settle: ${JSON.stringify(latest)}`);
 }

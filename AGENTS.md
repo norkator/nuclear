@@ -91,6 +91,20 @@ separate camera, keyboard picking, floating-window focus and GPU disposal/reconn
 Use `npm run test:browser:computers` during iteration; the full browser harness
 runs the same rack checks. Existing authored career count remains eight.
 
+The overview's server warehouse (left of the cooling tower) navigates to Computer
+systems. Overview/schematic pump, exchanger, turbine/generator and condenser
+selection navigates to dedicated 3D equipment tabs. `nuclear-power-stations.js`
+owns routing/part inspection, with lazy station scenes, independent cameras and
+latest-record-wins visibility. Shared geometry lives in
+`nuclear-power-cutaway-scene.js` and `nuclear-power-pump-scene.js`. Station part
+buttons and canvas picking open the existing guarded controls/trends/service
+windows with their SVG cutaways hidden. Native controls work after WebGL loss.
+Direct inspection and companion controls retain their existing path. Preserve
+actual-state animation/damage, single frame ownership, four-pump identity,
+focus return, overview camera, fallback and GPU disposal/reconnect. Read
+`EQUIPMENT-STATIONS-PLAN.md`; use `npm run test:browser:stations` during iteration.
+Its checks are shared by equipment and full browser runs. No save/model changes.
+
 ## UI changes and browser verification
 
 Shared console layout, breakpoints, panel motion, visibility, focus or lifecycle

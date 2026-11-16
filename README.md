@@ -69,6 +69,26 @@ Mission IDs and saved objective terms support inserting new assignments in later
 updates without deleting completed goals or changing an issued assignment.
 Focused verification: `npm run test:browser:game`.
 
+## 3D equipment stations
+
+The reactor overview is also plant navigation. Select the small **server warehouse**
+left of the cooling tower to open Computer systems. Selecting a pump, heat
+exchanger, turbine/generator, condenser or cooling tower opens its dedicated
+equipment tab. The schematic follows the same route. The Pumps station selects
+each of the four independent pumps, including both backups.
+
+Each station has a larger 3D cutaway and its own orbit/zoom/reset camera. Select
+a model part or its matching button to open native controls, actual readings,
+local trends, disturbances and service actions. These windows omit the previous
+2D cutaway while using the existing command guards. Solid levers show actual
+position; amber outlines show requested position. Pump damage/leaks, turbine
+blade loss, exchanger deposits and condenser drops follow actual plant state.
+Pause, reduced motion, offscreen suspension and detach preserve the shared clock.
+If WebGL fails, the part buttons still provide usable controls. **Plant overview**
+returns to the retained plant camera. Focused checks:
+`npm run test:browser:stations` (also included in equipment and full browser checks).
+See [the implementation plan](EQUIPMENT-STATIONS-PLAN.md) for the next visual work.
+
 ## Computer systems
 
 The **Computer systems** tab contains a clickable 3D server rack with two

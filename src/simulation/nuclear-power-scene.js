@@ -13,7 +13,10 @@ import { buildElectricalScene, updateElectricalScene, ELECTRICAL_LABELS } from '
 import { PUMPS } from './nuclear-power-pumps.js';
 import { buildPumpScene, updatePumpScene, PUMP_LAYOUT, PIPE_LAYOUT } from './nuclear-power-pump-scene.js';
 import { ParticleBatch } from './nuclear-power-particles.js';
+import { buildExchangerCutaway, buildTurbineCutaway, buildCondenserCutaway, updateTurbineCutaway, updateExchangerCutaway } from './nuclear-power-cutaway-scene.js';
 import { buildCoolingScene, updateCoolingScene, COOLING_LABELS } from './nuclear-power-cooling-scene.js';
+import { buildServerBuilding, updateServerBuilding, SERVER_BUILDING } from './nuclear-power-server-building.js';
+import { equipmentStation } from './nuclear-power-stations-config.js';
 
 const TAU = Math.PI * 2;
 const DEFAULT_ZOOM = 1.2;
@@ -24,6 +27,7 @@ const equipment = [
     ['exchanger', 'HX-01', 'Heat exchanger', [-1.3, 6.5, -1.5]],
     ['turbine', 'TG-01', 'Turbine / generator', [7.2, 4.8, -1.5]],
     ['condenser', 'C-01', 'Condenser', [7, .3, 3.1]],
+    ['computers', 'IT-01', 'Server warehouse', SERVER_BUILDING.label],
     ...PUMP_LAYOUT.map(pump => [pump.id, PUMPS.find(p => p.id === pump.id).tag,
         `${pump.id.startsWith('pumpA') ? 'Primary' : 'Secondary'} ${pump.id.endsWith('2') ? 'backup ' : ''}pump`, [pump.x, .3, pump.z + .9]]),
     ...PIPE_LAYOUT.map(pipe => [pipe.id, pipe.id.startsWith('primary') ? 'L-01' : 'L-02', `${pipe.id.startsWith('primary') ? 'Primary' : 'Secondary'} pipework`, [pipe.position[0], 2.1, pipe.position[2]]]),
@@ -32,12 +36,12 @@ const equipment = [
 // A presentation adapter only. All commands, interlocks and plant state stay in
 // NuclearPowerSimulation; the console owns the single visibility-aware frame loop.
 export class PlantOverviewScene {
-    constructor(host, { inspect, unavailable }) {
+    constructor(host, { inspect, unavailable, visible = true }) {
         this.host = host;
         host.dataset.labels = 'compact';
         this.inspect = inspect;
         this.disposed = false;
-        this.visible = true;
+        this.visible = visible;
         this.geometries = new Set();
         this.materials = new Set();
         this.groups = new Map();
@@ -241,85 +245,19 @@ export class PlantOverviewScene {
         this.pool.visible = false;
         this.drips = Array.from({ length: 5 }, (_, i) => this.mesh(reactor, this.dotGeometry, this.pool.material, [(i - 2) * .42, 2, .5]));
 
-        const exchanger = this.component('exchanger', [-1.3, 0, -1.5]);
-        this.pad(exchanger, 3, 3.2);
-        for (const x of [-.8, .8]) this.box(exchanger, [.24, 1.2, 1.2], this.darkSteel, [x, .65, 0]);
-        this.mesh(exchanger, new THREE.CylinderGeometry(1, 1, 3.8, 10, 1, true, Math.PI / 2, Math.PI),
-            this.material('#7a9caa', { side: THREE.DoubleSide }), [0, 3.3, 0]);
-        for (const y of [1.4, 5.2]) this.cylinder(exchanger, 1.07, .22, this.steelLight, [0, y, 0]);
-        this.cylinder(exchanger, .94, .6, this.steel, [0, 5.6, 0], .45);
-        for (let i = 0; i < 5; i++) {
-            const x = -.65 + i * .32;
-            this.line(exchanger, [[x, 1.6, .3], [x, 4.65, .3], [x, 4.8, -.3], [x, 1.6, -.3]], this.hotPipe, .065);
-        }
-        this.exchangerGlow = this.material('#f4b166', { emissive: '#e7a256', emissiveIntensity: .2 });
-        for (const y of [2.3, 3.4, 4.5]) this.box(exchanger, [1.5, .07, .12], this.exchangerGlow, [0, y, .5]);
-        // Steam stays inside the secondary-side cutaway, then turns into its
-        // outlet. It shares the existing steam phase, not a separate animation.
-        const steamGeometry = new THREE.IcosahedronGeometry(1, 1);
-        this.exchangerSteam = Array.from({ length: 15 }, () => {
-            const material = this.material('#def6f2', {
-                transparent: true, opacity: 0, depthWrite: false, metalness: 0,
-                emissive: '#b8e1db', emissiveIntensity: .25,
-            });
-            const puff = this.mesh(exchanger, steamGeometry, material);
-            puff.visible = false;
-            puff.renderOrder = 1;
-            puff.raycast = () => {}; // Selecting steam still picks the equipment behind it.
-            this.dynamicMeshes.push(puff);
-            return puff;
-        });
-        this.valve('exchanger', 'secondaryValve', [1.25, 4.3, 0], [0, -1, 0]);
-        this.valve('exchanger', 'bypass', [-1.4, 2.5, .6], [0, 1, 0]);
+        buildExchangerCutaway(this);
         this.bypassMaterial = this.material('#698c8c');
         this.flow([[-2.3, 4.7, -1.5], [-3, 4.7, -1.5], [-3, 1.3, -1.5], [-2.3, 1.3, -1.5]], 'A', 'water', this.bypassMaterial, 'primaryBypass');
 
+
         buildPumpScene(this);
 
-        const turbine = this.component('turbine', [6, 0, -1.5]);
-        this.pad(turbine, 6, 3);
-        for (const x of [-1, 1, 3]) this.box(turbine, [.38, 1.9, 1.3], this.darkSteel, [x, 1.1, 0]);
-        const shell = this.mesh(turbine, new THREE.CylinderGeometry(.65, 1.1, 3.1, 12, 1, true, Math.PI, Math.PI),
-            this.material('#799baa', { side: THREE.DoubleSide }), [0, 2.8, 0]);
-        shell.rotation.z = Math.PI / 2;
-        this.turbineRotor = new THREE.Group();
-        this.turbineRotor.position.set(0, 2.8, 0);
-        turbine.add(this.turbineRotor);
-        this.cylinder(this.turbineRotor, .1, 6.3, this.steelLight, [1, 0, 0]).rotation.z = Math.PI / 2;
-        this.turbineBladePoses = [];
-        for (let i = 0; i < 5; i++) {
-            const x = -1.15 + i * .56;
-            for (let blade = 0; blade < 8; blade++) {
-                const angle = blade / 8 * TAU;
-                const radius = .43 + i * .07;
-                this.turbineBladePoses.push({ x, y: Math.cos(angle) * radius * .65, z: Math.sin(angle) * radius * .65, angle, scale: radius * .75 / .4 });
-            }
-        }
-        const bladeGeometry = new THREE.BoxGeometry(.09, .4, .16);
-        this.geometries.add(bladeGeometry);
-        this.turbineBlades = new THREE.InstancedMesh(bladeGeometry, this.steelLight, 40);
-        this.turbineRotor.add(this.turbineBlades);
-        this.turbineFragments = new THREE.InstancedMesh(bladeGeometry, this.steelLight, 40);
-        this.turbineFragments.frustumCulled = false;
-        this.turbineFragments.count = 0;
-        turbine.add(this.turbineFragments);
-        this.instancedMeshes.push(this.turbineBlades, this.turbineFragments);
-        this.dynamicMeshes.push(this.turbineBlades, this.turbineFragments);
-        this.turbineTransform = new THREE.Object3D();
-        const generator = this.cylinder(turbine, .84, 1.8, this.teal, [3.15, 2.8, 0]);
-        generator.rotation.z = Math.PI / 2;
-        for (const x of [2.4, 3.9]) this.cylinder(turbine, .88, .12, this.steelLight, [x, 2.8, 0]).rotation.z = Math.PI / 2;
-        this.generatorLamp = this.box(turbine, [.65, .12, .5], this.material('#4d7d6d', { emissive: '#57e3a6', emissiveIntensity: 0 }), [3.15, 3.68, 0]);
-        this.valve('turbine', 'admission', [-1.7, 3.4, 0]);
+        buildTurbineCutaway(this);
 
-        const condenser = this.component('condenser', [7, 0, 3.1]);
-        this.pad(condenser, 4.2, 2.6);
-        this.box(condenser, [3.7, 1.45, 1.8], this.steel, [0, 1.05, 0]);
-        this.box(condenser, [3.2, 1.1, .05], this.darkSteel, [0, 1.08, .93]);
-        for (let i = 0; i < 6; i++) this.box(condenser, [.1, 1, .1], this.coolPipe, [-1.3 + i * .52, 1.08, .98]);
-        this.drops = Array.from({ length: 7 }, (_, i) => this.mesh(condenser, this.dotGeometry, this.coolMarker, [-1.3 + i * .43, 1.4, 1.1]));
-        this.valve('condenser', 'coolingValve', [1.8, 1.3, 0]);
+        buildCondenserCutaway(this);
+
         buildCoolingScene(this);
+        buildServerBuilding(this);
 
         this.flow([[-5.8, 4.7, 0], [-4, 4.7, 0], [-4, 4.7, -1.5], [-2.3, 4.7, -1.5]], 'A', 'hot', this.hotPipe, 'primaryHot');
         this.flow([[-2.3, 1.3, -1.5], [-3.3, 1.3, -1.5], [-3.3, 1.2, 2.3]], 'A', 'water', this.material('#4c9eac'), 'primaryReturn');
@@ -344,10 +282,11 @@ export class PlantOverviewScene {
             const button = document.createElement('button');
             button.className = 'plant-scene-label';
             button.dataset.sceneEquipment = id;
-            button.setAttribute('aria-label', `${tag}: open ${name.toLowerCase()} controls`);
-            button.setAttribute('aria-haspopup', 'dialog');
-            button.setAttribute('aria-controls', id === 'reactor' ? 'core-map-window' : id.startsWith('diesel') ? `${id}-window` : ['grid', 'bus'].includes(id) ? 'electrical-supply-window' : `equipment-${id}-window`);
-            button.setAttribute('aria-expanded', 'false');
+            const station = id === 'computers' ? 'computers' : equipmentStation(id);
+            button.setAttribute('aria-label', station ? `${tag}: open ${id === 'computers' ? 'Computer systems' : name.toLowerCase()} station` : `${tag}: open ${name.toLowerCase()} controls`);
+            if (!station) button.setAttribute('aria-haspopup', 'dialog');
+            button.setAttribute('aria-controls', station ? `${station}-panel` : id === 'reactor' ? 'core-map-window' : id.startsWith('diesel') ? `${id}-window` : ['grid', 'bus'].includes(id) ? 'electrical-supply-window' : `equipment-${id}-window`);
+            if (!station) button.setAttribute('aria-expanded', 'false');
             const title = document.createElement('strong');
             title.textContent = tag;
             const text = document.createElement('span');
@@ -372,10 +311,10 @@ export class PlantOverviewScene {
             label.setAttribute('aria-label', `${tag}: ${title}`);
             if (inspectId) {
                 label.dataset.sceneEquipment = inspectId;
-                label.setAttribute('aria-label', id === 'spent-fuel-pool' ? 'Open spent-fuel pool and dispatch controls' : 'Open condenser controls for cooling tower heat rejection');
-                label.setAttribute('aria-haspopup', 'dialog');
-                label.setAttribute('aria-controls', id === 'spent-fuel-pool' ? 'spent-fuel-window' : 'equipment-condenser-window');
-                label.setAttribute('aria-expanded', 'false');
+                label.setAttribute('aria-label', id === 'spent-fuel-pool' ? 'Open spent-fuel pool and dispatch controls' : 'Open condenser station for cooling tower heat rejection');
+                if (id === 'spent-fuel-pool') label.setAttribute('aria-haspopup', 'dialog');
+                label.setAttribute('aria-controls', id === 'spent-fuel-pool' ? 'spent-fuel-window' : 'condenser-panel');
+                if (id === 'spent-fuel-pool') label.setAttribute('aria-expanded', 'false');
                 label.addEventListener('click', () => this.inspect(inspectId), { signal: this.abort.signal });
             }
             const name = document.createElement('strong');
@@ -635,43 +574,10 @@ export class PlantOverviewScene {
             drip.scale.set(.5, 1, .5);
         }
         updatePumpScene(this, sim, motion, pumps);
-        this.turbineRotor.rotation.x = motion.angle * Math.PI / 180;
-        const lost = sim.components.turbineIntegrity.bladesLost, transform = this.turbineTransform;
-        if (lost !== this.turbineBladesLost) {
-            for (const [index, pose] of this.turbineBladePoses.entries()) {
-                transform.position.set(pose.x, pose.y, pose.z); transform.rotation.set(pose.angle, 0, 0);
-                transform.scale.set(1, pose.scale, 1); if (index < lost) transform.scale.setScalar(0);
-                transform.updateMatrix(); this.turbineBlades.setMatrixAt(index, transform.matrix);
-            }
-            this.turbineBlades.instanceMatrix.needsUpdate = true;
-            this.turbineBladesLost = lost;
-        }
-        this.turbineFragments.count = motion.turbineFragments?.length || 0;
-        for (const [index, fragment] of (motion.turbineFragments || []).entries()) {
-            const pose = this.turbineBladePoses[fragment.blade];
-            transform.position.set(pose.x + fragment.x, Math.max(.24, 2.8 + pose.y + fragment.y), pose.z + fragment.z);
-            transform.rotation.set(fragment.spin * Math.PI / 180, fragment.spin * .007, 0); transform.scale.set(1, pose.scale, 1);
-            transform.updateMatrix(); this.turbineFragments.setMatrixAt(index, transform.matrix);
-        }
-        if (this.turbineFragments.count) this.turbineFragments.instanceMatrix.needsUpdate = true;
-        this.generatorLamp.material.emissiveIntensity = sim.electricalOutput > .1 ? .7 : 0;
-        this.exchangerGlow.emissiveIntensity = motion.heat * (.4 + .4 * Math.sin(motion.heatPhase * TAU) ** 2);
-        for (const [index, puff] of this.exchangerSteam.entries()) {
-            const phase = (motion.steamPhase + index / this.exchangerSteam.length) % 1;
-            const turn = clamp((phase - .72) / .28, 0, 1);
-            const lane = index % 3 - 1;
-            puff.position.set(
-                (lane * .48 + Math.sin(phase * TAU + index) * .06) * (1 - turn) + turn * 1.05,
-                2.1 + Math.min(1, phase / .8) * 2.6,
-                .64 * (1 - turn),
-            );
-            const size = .1 + Math.sin(phase * Math.PI) * .14;
-            puff.scale.set(size * 1.2, size * 1.45, size);
-            puff.rotation.y = phase * TAU;
-            puff.material.opacity = motion.steam * .48 * Math.sin(phase * Math.PI);
-            puff.material.color.set(theme === 'light' ? '#82b5b3' : '#def6f2');
-            puff.visible = puff.material.opacity > .012;
-        }
+        updateTurbineCutaway(this, sim, motion);
+
+        updateExchangerCutaway(this, motion, theme);
+
         const temperatures = loopTemperatures(sim);
         this.coolPipe.color.set(temperatureColor(temperatures.condenserCooling));
         this.coolMarker.color.set(temperatureColor(temperatures.secondaryReturn)).lerp(this.markerHighlight, .5);
@@ -700,6 +606,7 @@ export class PlantOverviewScene {
             exchanger: `In ${sim.secondaryReturnTemperature.toFixed(0)} °C · Out ${sim.secondaryTemperature.toFixed(0)} °C`,
             turbine: `${sim.electricalOutput.toFixed(0)} MW · ${sim.components.turbineIntegrity.damage.toFixed(0)}% blade damage`,
             condenser: `Return ${sim.secondaryReturnTemperature.toFixed(0)} °C`,
+            computers: sim.computers.automationAvailable ? 'Process computing ready' : 'Auto unavailable · inspect rack',
             ...Object.fromEntries(PUMPS.map(pump => [pump.id, `${sim.components.items[pump.id].actual.speed.toFixed(0)}% speed · ${sim.components.items[pump.id].actual.flow.toFixed(0)}% flow`])),
             ...Object.fromEntries(['primary', 'secondary'].map(circuit => [`${circuit}Pipes`, `${sim.hydraulics.pipes[circuit].pressure.toFixed(0)}% ΔP${sim.hydraulics.pipes[circuit].damage > 0 ? ' · LEAK DAMAGE' : ''}`])),
         };
@@ -712,6 +619,7 @@ export class PlantOverviewScene {
         this.labels.get('reactor').button.setAttribute('aria-label', `Open reactor core map; simulated inlet ${sim.returnTemperature.toFixed(1)} degrees Celsius, outlet ${sim.temperature.toFixed(1)} degrees Celsius`);
         if (fuelTransfer) updateFuelHandlingHall(this, fuelTransfer);
         updateCoolingScene(this, motion, theme);
+        updateServerBuilding(this, sim.computers);
         updateElectricalScene(this, sim.supply, dieselMotion, motion.supplyPhase, sim);
         this.render();
     }

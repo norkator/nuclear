@@ -17,14 +17,16 @@ import { checkTurbineOverload } from './turbine-overload.browser.mjs';
 import { checkCoolingTower } from './cooling-tower.browser.mjs';
 import { waitForChrome } from './chrome-startup.mjs';
 import { checkCompanyGame } from './company-game.browser.mjs';
+import { checkEquipmentStations } from './equipment-stations.browser.mjs';
 import { checkComputerSystems } from './computer-systems.browser.mjs';
 import { captureConsoleLayout, checkConsoleLayout, checkBatchedConsoleVisibility } from './console-layout.browser.mjs';
 
 const dist = fileURLToPath(new URL('../dist/', import.meta.url));
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-// Software WebGL, audio, fuel handling and lifecycle checks can exceed five minutes.
-test('3D overview, core map, centered pumps, automatic control, trip recovery and logs work in browser', { timeout: 480000 }, async () => {
+// Software WebGL, rack/equipment stations, audio and fuel/lifecycle checks cover
+// several independent 3D views and can exceed ten minutes on software renderers.
+test('3D overview, core map, centered pumps, automatic control, trip recovery and logs work in browser', { timeout: 1200000 }, async () => {
     const artifacts = mkdtempSync(join(tmpdir(), 'nuclear-power-check-'));
     const appUrl = process.env.NUCLEAR_POWER_APP_URL;
     if (appUrl) {
@@ -146,8 +148,9 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         const focusedCooling = process.env.NUCLEAR_BROWSER_FOCUS === 'cooling';
         const focusedGame = process.env.NUCLEAR_BROWSER_FOCUS === 'game';
         const focusedLayout = process.env.NUCLEAR_BROWSER_FOCUS === 'layout';
+        const focusedStations = process.env.NUCLEAR_BROWSER_FOCUS === 'stations';
         const focusedComputers = process.env.NUCLEAR_BROWSER_FOCUS === 'computers';
-        if (!focusedEquipment && !focusedCooling && !focusedGame && !focusedLayout && !focusedComputers) {
+        if (!focusedEquipment && !focusedCooling && !focusedGame && !focusedLayout && !focusedComputers && !focusedStations) {
             // Check the actual shipped HTML with JavaScript disabled, as a crawler sees it.
             await page('Emulation.setScriptExecutionDisabled', { value: true });
             for (const entry of pages) {
@@ -208,6 +211,15 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
             if (focusedComputers) {
                 assert.deepEqual(exceptions, []);
                 console.log(`Computer rack browser checks passed; artifacts: ${artifacts}`);
+                await send('Browser.close');
+                return;
+            }
+        }
+        if (focusedStations || focusedEquipment || !process.env.NUCLEAR_BROWSER_FOCUS) {
+            await checkEquipmentStations({ consoleCode, action, input, page, until, screenshot });
+            if (focusedStations) {
+                assert.deepEqual(exceptions, []);
+                console.log(`Equipment station browser checks passed; artifacts: ${artifacts}`);
                 await send('Browser.close');
                 return;
             }
@@ -748,8 +760,13 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         assert.equal(await consoleCode(`return s.querySelector('[data-component-dialog="pumpA"]').matches(':popover-open');`), false);
         await page('Input.dispatchMouseEvent', { type: 'mousePressed', ...pumpPoint, button: 'left', clickCount: 1 });
         await page('Input.dispatchMouseEvent', { type: 'mouseReleased', ...pumpPoint, button: 'left', clickCount: 1 });
-        assert.equal(await consoleCode(`return s.querySelector('[data-component-dialog="pumpA"]').matches(':popover-open');`), true, 'Picking the 3D pump should open its existing console');
+        assert.equal(await consoleCode('return c.plantTab;'), 'pumps', 'Picking the 3D pump opens its station');
+        assert.equal(await consoleCode(`return s.querySelector('[data-component-dialog="pumpA"]').matches(':popover-open');`), false);
+        await consoleCode('s.querySelector("#pumps-panel [data-station-inspect]").click();');
+        assert.equal(await consoleCode(`return s.querySelector('[data-component-dialog="pumpA"]').matches(':popover-open');`), true);
         await consoleCode(`s.querySelector('[data-component-close="pumpA"]').click();`);
+        assert.equal(await consoleCode('return s.activeElement?.hasAttribute("data-station-inspect");'), true);
+        await consoleCode('s.querySelector("#pumps-panel [data-station-overview]").click();');
         assert.equal(await consoleCode('return s.activeElement?.dataset.sceneEquipment;'), 'pumpA');
         await screenshot('3d-cold-start');
         await action('overview-schematic');
@@ -805,6 +822,9 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         await action('overview-schematic');
         assert.equal(await consoleCode("return s.querySelector('.equipment-panel');"), null);
         await consoleCode(`s.querySelector('[data-equipment="pumpA"]').dispatchEvent(new MouseEvent('click',{bubbles:true}));`);
+        assert.equal(await consoleCode('return c.plantTab;'), 'pumps');
+        // Retain the detailed legacy SVG-control regressions through direct inspection.
+        await consoleCode('c.inspect("pumpA");');
         assert.equal(await consoleCode(`return s.querySelector('[data-component-dialog="pumpA"]').matches(':popover-open');`), true);
         await consoleCode('s.querySelector("[data-component-dialog=pumpA] [data-pump-select=speed]").click();');
         assert.equal(await consoleCode('return s.querySelector("[data-component-dialog=pumpA] .pump-setting").disabled;'), true);
@@ -822,6 +842,8 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         assert.equal(await consoleCode('return s.querySelector("#pump-B-speed").disabled;'), true);
         assert.ok(await consoleCode('return c.simulation.primaryFlow;') < 65);
         await consoleCode(`s.querySelector('[data-equipment="exchanger"]').dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));`);
+        assert.equal(await consoleCode('return c.plantTab;'), 'exchanger');
+        await consoleCode('c.inspect("exchanger");');
         assert.equal(await consoleCode(`return s.querySelector('[data-component-dialog="exchanger"]').matches(':popover-open');`), true);
         assert.equal(await consoleCode(`return s.querySelector('[data-component-dialog="pumpA"]').matches(':popover-open');`), true);
         await input('[data-component="exchanger"][data-component-setting="bypass"]', 30);
@@ -888,6 +910,8 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         await page('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1120, deviceScaleFactor: 1, mobile: false });
         await consoleCode('const toggle=s.querySelector("#light-theme");toggle.checked=false;toggle.dispatchEvent(new Event("change",{bubbles:true}));');
         await consoleCode(`s.querySelector('[data-component-close="pumpA"]').click();s.querySelector('[data-component-close="exchanger"]').click();s.querySelector('[data-equipment="turbine"]').dispatchEvent(new MouseEvent('click',{bubbles:true}));`);
+        assert.equal(await consoleCode('return c.plantTab;'), 'turbine');
+        await consoleCode('c.inspect("turbine");s.querySelector("#reactor-tab").click();');
         await consoleCode(`const box=s.querySelector('[data-component="turbine"][data-component-setting="breaker"]');box.checked=false;box.dispatchEvent(new Event('change',{bubbles:true}));`);
         assert.equal(await consoleCode('return c.simulation.electricalOutput;'), 0);
         await screenshot('equipment-turbine');
@@ -1623,10 +1647,14 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         await consoleCode('s.querySelector("#maintenance-tab").dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowRight",bubbles:true}));');
         assert.equal(await consoleCode('return c.plantTab;'), 'computers');
         await consoleCode('s.querySelector("#computers-tab").dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowRight",bubbles:true}));');
+        assert.equal(await consoleCode('return c.plantTab;'), 'pumps');
+        await consoleCode('s.querySelector("#pumps-tab").dispatchEvent(new KeyboardEvent("keydown",{key:"End",bubbles:true}));');
+        assert.equal(await consoleCode('return c.plantTab;'), 'condenser');
+        await consoleCode('s.querySelector("#condenser-tab").dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowRight",bubbles:true}));');
         assert.equal(await consoleCode('return c.plantTab;'), 'reactor');
-        await consoleCode('s.querySelector("#reactor-tab").dispatchEvent(new KeyboardEvent("keydown",{key:"End",bubbles:true}));');
-        assert.equal(await consoleCode('return c.plantTab;'), 'computers');
-        await consoleCode('s.querySelector("#computers-tab").dispatchEvent(new KeyboardEvent("keydown",{key:"Home",bubbles:true}));');
+        await consoleCode('s.querySelector("#reactor-tab").dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowLeft",bubbles:true}));');
+        assert.equal(await consoleCode('return c.plantTab;'), 'condenser');
+        await consoleCode('s.querySelector("#condenser-tab").dispatchEvent(new KeyboardEvent("keydown",{key:"Home",bubbles:true}));');
         assert.equal(await consoleCode('return c.plantTab;'), 'reactor');
         await page('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1120, deviceScaleFactor: 1, mobile: false });
         await consoleCode('const box=s.querySelector("#light-theme");box.checked=false;box.dispatchEvent(new Event("change",{bubbles:true}));');

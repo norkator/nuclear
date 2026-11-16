@@ -153,6 +153,7 @@ export function updateExchanger(host, root) {
 }
 
 export function drawExchanger(host, root) {
+    if (root.dataset.stationControls) return;
     const sim = host.simulation, actual = sim.components.items.exchanger.actual, motion = host.processMotion;
     const temperatures = { primaryHot: sim.temperature, primaryReturn: sim.returnTemperature, bypass: sim.temperature, tubes: (sim.temperature + sim.returnTemperature) / 2, secondaryHot: sim.secondaryTemperature, secondaryReturn: sim.secondaryReturnTemperature, secondaryChamber: sim.secondaryTemperature };
     for (const node of root.querySelectorAll('[data-hx-water]')) node.style.stroke = temperatureColor(temperatures[node.dataset.hxWater]);

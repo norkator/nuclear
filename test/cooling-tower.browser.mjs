@@ -52,7 +52,7 @@ export async function checkCoolingTower({ consoleCode, action, page, until, scre
     assert.equal(density.blocked, 0);
     await action('stop');
     assert.ok(await consoleCode('return !c.simulation.running && c.overviewScene.coolingTower.plume.mesh.count > 0;'), 'Retained hot circulation should still reject heat');
-    // Tower surfaces share condenser picking, preserving the existing control window.
+    // Tower surfaces and its accessible label open the condenser station.
     assert.equal(await consoleCode('return c.overviewScene.coolingTower.group.userData.equipment;'), 'condenser');
     const towerPoint = await consoleCode(`
         const view=c.overviewScene, point=view.coolingTower.group.position.clone();
@@ -61,11 +61,13 @@ export async function checkCoolingTower({ consoleCode, action, page, until, scre
         return {x:rect.x+(point.x+1)*rect.width/2,y:rect.y+(1-point.y)*rect.height/2};`);
     await page('Input.dispatchMouseEvent', { type: 'mousePressed', ...towerPoint, button: 'left', buttons: 1, clickCount: 1 });
     await page('Input.dispatchMouseEvent', { type: 'mouseReleased', ...towerPoint, button: 'left', buttons: 0, clickCount: 1 });
-    assert.ok(await consoleCode(`return s.querySelector('[data-component-dialog="condenser"]').matches(':popover-open');`));
-    await consoleCode(`c.closeFloatingDialog(s.querySelector('[data-component-dialog="condenser"]'));`);
+    assert.equal(await consoleCode('return c.plantTab;'), 'condenser');
+    await consoleCode('s.querySelector("#reactor-tab").click();');
     await consoleCode(`s.querySelector('[data-scene-feature="cooling-tower"]').click();`);
+    assert.equal(await consoleCode('return c.plantTab;'), 'condenser');
+    await consoleCode('s.querySelector("#condenser-panel [data-station-inspect]").click();');
     assert.ok(await consoleCode(`return s.querySelector('[data-component-dialog="condenser"]').matches(':popover-open');`));
-    await consoleCode(`c.closeFloatingDialog(s.querySelector('[data-component-dialog="condenser"]'));`);
+    await consoleCode(`c.closeFloatingDialog(s.querySelector('[data-component-dialog="condenser"]'));s.querySelector('#reactor-tab').click();`);
     assert.ok(await consoleCode('return c.overviewScene.renderer.info.programs.every(program=>program.diagnostics?.runnable!==false);'), 'Cooling tower shaders must compile');
     await page('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
     await action('pause');
