@@ -89,6 +89,12 @@ returns to the retained plant camera. Focused checks:
 `npm run test:browser:stations` (also included in equipment and full browser checks).
 See [the implementation plan](EQUIPMENT-STATIONS-PLAN.md) for the next visual work.
 
+**Enable plant sounds** also enables distinct server-room, pump, exchanger,
+turbine/generator and condenser ambience. Actual equipment speed, flow, heat and
+cooling drive the sound. Only the active visible room plays; offscreen views,
+mute, pause and hiding stop it. Room sounds load locally on demand. Maintenance
+stays quiet. Focused sound checks: `npm run test:browser:audio`.
+
 ## Computer systems
 
 The **Computer systems** tab contains a clickable 3D server rack with two

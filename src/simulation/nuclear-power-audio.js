@@ -6,6 +6,7 @@
 /* Plant/diesel sounds, quiet Start/Stop cues and UI samples. The caller owns gesture-based resume, visibility,
  * mute and pause, and calls cue only after an accepted Start/Stop state change.
  * No context creation, alarm tones, command inference or deferred cue replay. */
+import { STATION_SOUNDS, stationSoundState } from './nuclear-power-station-audio.js';
 
 export function plantSoundState(sim) {
     const turbine = sim.components.items.turbine.actual;
@@ -32,6 +33,9 @@ export class PlantAudio {
         this.dieselState = 'not-loaded';
         this.dieselStates = new Map();
         this.completedStarts = new Set();
+        this.stationBuffers = new Map();
+        this.stationStates = new Map();
+        this.stationLoading = new Map();
         this.scene = 'reactor';
     }
 
@@ -44,12 +48,59 @@ export class PlantAudio {
         this.completedStarts.clear();
     }
 
-    updateScene(sim, scene) {
+    updateScene(sim, scene, { visible = true, pumpId = 'pumpA' } = {}) {
         this.setScene(scene);
         if (scene === 'reactor') {
             this.updatePlant(plantSoundState(sim));
             this.updateDiesels(sim.supply.generators);
+        } else if (STATION_SOUNDS.includes(scene)) {
+            if (!visible || this.context.state !== 'running') { this.stopStation(); return; }
+            // Only the opted-in active room loads. Resolution never starts a voice;
+            // the host rechecks mute, pause, tab and viewport on its next update.
+            if (!this.stationStates.has(scene)) return this.preloadStation(scene);
+            this.updateStation(stationSoundState(sim, scene, pumpId));
         }
+    }
+
+    preloadStation(scene, fetcher = fetch) {
+        if (!STATION_SOUNDS.includes(scene)) return Promise.resolve();
+        if (this.stationLoading.has(scene)) return this.stationLoading.get(scene);
+        this.stationStates.set(scene, 'loading');
+        const loading = (async () => {
+            try {
+                const response = await fetcher(`/audio/nuclear-power/stations/${scene}-loop.wav`);
+                if (response.ok) this.stationBuffers.set(scene, await this.context.decodeAudioData(await response.arrayBuffer()));
+            } catch { /* Missing room audio never affects hardware or plant controls. */ }
+            this.stationStates.set(scene, this.stationBuffers.has(scene) ? 'ready' : 'unavailable');
+        })();
+        this.stationLoading.set(scene, loading);
+        return loading;
+    }
+
+    stopStation() { for (const voice of this.nodes) if (voice.station) this.halt(voice); }
+
+    updateStation(state) {
+        if (!state || state.sound !== this.scene || this.context.state !== 'running'
+                || this.stationStates.get(state.sound) !== 'ready' || state.activity <= .005) {
+            this.stopStation(); return;
+        }
+        let voice = [...this.nodes].find(node => node.station);
+        if (voice && voice.equipment !== state.equipment) { this.halt(voice); voice = null; }
+        const now = this.context.currentTime;
+        if (!voice) {
+            const source = this.context.createBufferSource(), filter = this.context.createBiquadFilter(), gain = this.context.createGain();
+            source.buffer = this.stationBuffers.get(state.sound); source.loop = true;
+            source.playbackRate.setValueAtTime(state.rate, now);
+            filter.type = 'lowpass'; filter.Q.setValueAtTime(.6, now); filter.frequency.setValueAtTime(state.cutoff, now);
+            gain.gain.setValueAtTime(0, now);
+            source.connect(filter); filter.connect(gain); gain.connect(this.context.destination);
+            voice = { oscillator: source, filter, gain, station: state.sound, equipment: state.equipment };
+            this.nodes.add(voice); source.onended = () => this.release(voice); source.start(now);
+        }
+        const target = .08 * Math.sqrt(Math.min(1, Math.max(0, state.activity)));
+        if (target !== voice.target) { voice.gain.gain.setTargetAtTime(target, now, .12); voice.target = target; }
+        if (state.rate !== voice.rate) { voice.oscillator.playbackRate.setTargetAtTime(state.rate, now, .2); voice.rate = state.rate; }
+        if (state.cutoff !== voice.cutoff) { voice.filter.frequency.setTargetAtTime(state.cutoff, now, .15); voice.cutoff = state.cutoff; }
     }
 
     preloadDiesels(fetcher = fetch) {
@@ -212,13 +263,15 @@ export class PlantAudio {
         if (!this.nodes.delete(voice)) return;
         voice.oscillator.onended = null;
         voice.oscillator.disconnect();
+        voice.filter?.disconnect();
         voice.gain.disconnect();
     }
 
     cue(command) {
-        if (!['start', 'stop'].includes(command) || this.context.state !== 'running' || this.scene !== 'reactor') return;
+        if (!['start', 'stop'].includes(command) || this.context.state !== 'running'
+                || !['reactor', 'pumps', 'exchanger', 'turbine', 'condenser'].includes(this.scene)) return;
         // One short command voice at a time, even during rapid operator actions.
-        for (const voice of this.nodes) if (!voice.plant && !voice.diesel) this.halt(voice);
+        for (const voice of this.nodes) if (!voice.plant && !voice.diesel && !voice.station) this.halt(voice);
         const voice = this.voice('sine');
         const now = this.context.currentTime;
         const starting = command === 'start';

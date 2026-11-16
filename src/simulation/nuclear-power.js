@@ -738,7 +738,7 @@ export class NuclearPowerConsole extends HTMLElement {
 
     setPlantTab(tab) {
         this.plantTab = PLANT_TABS.includes(tab) ? tab : 'reactor';
-        this.plantAudio?.setScene(equipmentStation(this.plantTab) ? 'reactor' : this.plantTab);
+        this.plantAudio?.setScene(this.plantTab);
         this.dataset.plantTab = this.plantTab;
         for (const name of PLANT_TABS) {
             const selected = this.plantTab === name;
@@ -963,7 +963,7 @@ export class NuclearPowerConsole extends HTMLElement {
                     if (Audio) {
                         this.alarmAudio ||= new Audio();
                         this.plantAudio ||= new PlantAudio(this.alarmAudio);
-                        this.plantAudio.setScene(equipmentStation(this.plantTab) ? 'reactor' : this.plantTab);
+                        this.plantAudio.setScene(this.plantTab);
                         this.plantAudio.preloadUi().then(() => this.update());
                         this.plantAudio.preloadPlant().then(() => this.update());
                         this.plantAudio.preloadDiesels().then(() => this.update());
@@ -1038,6 +1038,7 @@ export class NuclearPowerConsole extends HTMLElement {
             && (!this.game?.career || this.game.owner);
         this.computerConsole?.scene?.setVisible(this.computerConsole.canDraw());
         this.equipmentStations?.syncVisibility();
+        if (!this.stationAudioVisible()) this.plantAudio?.stopStation();
         if (this.reducedMotion.matches && this.fuelTransfer.job) {
             this.fuelTransfer.finish();
             this.updateOverview();
@@ -1357,6 +1358,12 @@ export class NuclearPowerConsole extends HTMLElement {
         return alarms.some(alarm => !alarm.acknowledged) ? 1 : 0;
     }
 
+    stationAudioVisible() {
+        if (this.plantTab === 'computers') return Boolean(this.computerConsole?.visible);
+        if (equipmentStation(this.plantTab)) return Boolean(this.equipmentStations?.visible.get(this.plantTab));
+        return this.plantTab === 'reactor';
+    }
+
     updateAlarmSound() {
         const sim = this.simulation;
         const meltdown = sim.condition.meltdown;
@@ -1366,7 +1373,8 @@ export class NuclearPowerConsole extends HTMLElement {
         const button = this.shadowRoot.querySelector('[data-action="sound"]');
         button.textContent = this.soundEnabled ? 'Mute plant sounds' : 'Enable plant sounds';
         button.setAttribute('aria-pressed', String(!!this.soundEnabled));
-        const audioStates = [this.plantAudio?.uiState, this.plantAudio?.plantState, this.plantAudio?.dieselState];
+        const audioStates = [this.plantAudio?.uiState, this.plantAudio?.plantState, this.plantAudio?.dieselState,
+            this.plantAudio?.stationStates.get(this.plantTab)].filter(Boolean);
         this.shadowRoot.querySelector('.ui-sound-status').textContent = !this.soundEnabled ? ''
             : audioStates.includes('unavailable') ? 'Some sound files unavailable'
                 : audioStates.every(state => state === 'ready') ? '' : 'Loading sounds…';
@@ -1374,7 +1382,8 @@ export class NuclearPowerConsole extends HTMLElement {
         const context = this.alarmAudio;
         if (!context) return;
         if (context.state === 'suspended') { context.resume().catch(() => {}); return; }
-        this.plantAudio?.updateScene(sim, equipmentStation(this.plantTab) ? 'reactor' : this.plantTab);
+        const loading = this.plantAudio?.updateScene(sim, this.plantTab, { visible: this.stationAudioVisible(), pumpId: this.equipmentStations?.selectedPump });
+        loading?.then(() => this.update());
         if (!pending && severity < 2) { this.stopAlarmSound(false); return; }
         const now = context.currentTime;
         const mode = meltdown ? 'meltdown' : ['quiet', 'attention', 'overheating', 'core-damage', 'critical'][severity];

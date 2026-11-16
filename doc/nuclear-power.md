@@ -300,11 +300,33 @@ sounds retain separate escalation. Mute, pause, hidden views and detach stop all
 loop, cue and alarm nodes immediately; Reset demo returns to cold silence.
 Machinery audio is scoped to the selected tab. **Reactor overview** mixes the
 reactor operating loops/Start/Stop cues and independent actual-state diesel
-startup, running and shutdown sounds. **Maintenance** stops all machinery
+startup, running and shutdown sounds. **Computer systems** has its own server
+ventilation, PSU/UPS hum and restrained drive texture. **Pumps**, **Heat exchanger**,
+**Turbine / generator** and **Condenser** have distinct motor/water, circulation/
+steam, shaft/generator and cooling-water loops. Only the selected pump's actual
+motor drives the Pumps station sound, including OFF/coast-down and backups.
+Actual motor/shaft speed controls intensity and pitch; actual flow, cooling and
+secondary temperature shape the water/steam texture through a low-pass filter.
+Requested speed/MW alone cannot sound stopped equipment. A powered rack can be
+audible while the reactor is cold; all cold, stopped process equipment stays quiet.
+**Maintenance** stops all machinery
 immediately; UI clicks and alarms remain shared. Reactor command cues never
-interrupt diesel voices. Returning resumes current operation without replaying
+interrupt diesel or station voices. Returning resumes current operation without replaying
 past starts/stops. Opt-in, bounded gain, mute/pause/hide/detach and Reset cleanup
 remain unchanged.
+
+The five original station WAVs are seamless eight-second stereo 48 kHz PCM16,
+with no external recordings or samples. Only an opted-in, active, visible station
+loads its asset, once per console instance. One source/filter/gain chain is allowed,
+with maximum gain 0.08 and smoothly adjusted pitch/filter parameters. Tab/pump
+changes stop outgoing machinery immediately; offscreen station/rack viewports stop
+their ambience even while instruments and plant time remain live. WebGL fallback
+keeps audio and native controls usable. Mute, pause, page hiding, detach and reset
+disconnect every source/filter/gain. Late decoding only caches data and cannot
+start a voice independently. Files/source notes are in
+`public/audio/nuclear-power/stations`; regenerate with
+`python3 scripts/generate-station-audio.py`. Focused checks:
+`npm run test:browser:audio` (the full browser harness uses the same assertions).
 
 Original stereo PCM WAVs under `public/audio/nuclear-power/diesel` provide
 an eight-second starter/ignition/acceleration cue, a seamless twelve-second exhaust,
@@ -1287,6 +1309,9 @@ See the Nuclear README for deployment details and limitations.
   internal damage; it uses the existing component commands and shared frame loop.
 - `src/simulation/nuclear-power-audio.js` owns operating-state loops, UI samples and quiet Start/Stop cues;
   the main element retains alarm scheduling and shared-context lifecycle.
+- `src/simulation/nuclear-power-station-audio.js` derives equipment-room audio only
+  from actual read-back; five original WAVs and their deterministic generator
+  provide distinct room textures without model/save fields or an extra clock.
 - `src/simulation/nuclear-power-generation-console.js` and its isolated CSS
   render the turbine/generator and condenser cutaways, drag/keyboard/range tuning,
   breaker rocker/readiness, actual-state animation and preview cancellation.

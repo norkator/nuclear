@@ -93,3 +93,20 @@ that renderer frame counts stop, rather than only inspecting visibility flags.
   authored faults; do not invent failures inside rendering code.
 - Keep the current station-to-native-control path as the accessible fallback if
   direct 3D dragging is added later.
+
+## Station ambience follow-up
+
+Implemented five original seamless loops for server fans/PSU, pump motor/water,
+exchanger circulation/steam, turbine/generator and condenser water. They reuse
+Enable/Mute plant sounds and actual read-back, load only for the opted-in visible
+active room, and keep one bounded source/filter/gain chain. Actual speed adjusts
+pitch/intensity; flow, heat and cooling shape the texture. Offscreen views and
+pause/mute/hide/detach/reset stop and disconnect voices; late decode cannot play.
+Maintenance, alarms and UI feedback retain their existing behavior. Native
+controls and audio work after WebGL failure. See the assets' README and
+`scripts/generate-station-audio.py`; run `npm run test:browser:audio`.
+
+Audio verification: all 172 unit checks, production build and the focused shared
+audio browser checks pass (86.8 seconds). This audio-only follow-up did not rerun
+the full browser suite; its reactor/diesel assertions and new station assertions
+share the same helper with the full harness.

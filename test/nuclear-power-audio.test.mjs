@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { PlantAudio, plantSoundState } from '../src/simulation/nuclear-power-audio.js';
 import { NuclearPowerSimulation } from '../src/simulation/nuclear-power-model.js';
+import { STATION_SOUNDS, stationSoundState } from '../src/simulation/nuclear-power-station-audio.js';
 
 class Param {
     value = 0;
@@ -22,6 +23,8 @@ class Param {
 class Node {
     frequency = new Param();
     gain = new Param();
+    playbackRate = new Param();
+    Q = new Param();
     connections = [];
     stops = [];
     connect(target) { this.connections.push(target); }
@@ -39,7 +42,149 @@ class Context {
     createBufferSource() { const node = new Node(); this.created.push(node); return node; }
     async decodeAudioData(data) { return { duration: 0.32, data }; }
     createGain() { const node = new Node(); this.created.push(node); return node; }
+    createBiquadFilter() { const node = new Node(); this.created.push(node); return node; }
 }
+
+const loadStation = (audio, scene) => audio.preloadStation(scene, async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(4) }));
+
+test('station sounds use actual selected equipment, circulation and rack fans without advancing the plant', () => {
+    const sim = new NuclearPowerSimulation();
+    assert.equal(stationSoundState(sim, 'computers').activity, 1);
+    for (const scene of ['pumps', 'exchanger', 'turbine', 'condenser']) assert.equal(stationSoundState(sim, scene).activity, 0);
+    sim.autoElectricalTarget = 650; sim.pumpB2Speed = 100;
+    sim.components.items.exchanger.settings.secondaryValve = 100;
+    assert.equal(stationSoundState(sim, 'pumps', 'pumpB2').activity, 0, 'Requested speed cannot spin a silent actual motor');
+    Object.assign(sim.components.items.pumpB2.actual, { speed: 60, flow: 0 });
+    const motor = stationSoundState(sim, 'pumps', 'pumpB2');
+    assert.equal(motor.activity, .6); assert.equal(motor.cutoff, 350);
+    assert.equal(stationSoundState(sim, 'pumps', 'pumpA').activity, 0, 'A backup never borrows another pump reading');
+    sim.components.items.pumpB2.actual.flow = 60;
+    assert.ok(stationSoundState(sim, 'pumps', 'pumpB2').cutoff > motor.cutoff, 'Actual water flow opens the water texture');
+    sim.components.items.turbine.actual.shaftSpeed = 80;
+    assert.equal(stationSoundState(sim, 'turbine').activity, .8, 'Stopped generation retains actual shaft coast-down');
+    sim.primaryFlow = 100;
+    sim.components.items.exchanger.settings.bypass = 100;
+    assert.equal(stationSoundState(sim, 'exchanger').activity, 1, 'Requested bypass cannot replace actual valve position');
+    sim.components.items.exchanger.actual.bypass = 100;
+    assert.equal(stationSoundState(sim, 'exchanger').activity, 0);
+    sim.secondaryFlow = 70; sim.secondaryTemperature = 180;
+    assert.ok(stationSoundState(sim, 'condenser').activity > 0);
+    sim.components.items.condenser.actual.coolingFactor = 0;
+    assert.equal(stationSoundState(sim, 'condenser').activity, 0);
+    sim.computers.fanSpeed = 0; sim.computers.source = 'OFF';
+    assert.equal(stationSoundState(sim, 'computers').activity, 0);
+    const before = sim.snapshot();
+    for (const scene of STATION_SOUNDS) stationSoundState(sim, scene, 'pumpB2');
+    assert.deepEqual(sim.snapshot(), before);
+});
+
+test('station assets load once per selected room and cannot play on decode completion', async () => {
+    const audio = new PlantAudio(new Context()), paths = [];
+    assert.equal(audio.stationBuffers.size, 0);
+    const fetcher = async path => { paths.push(path); return { ok: true, arrayBuffer: async () => new ArrayBuffer(4) }; };
+    await audio.preloadStation('computers', fetcher); await audio.preloadStation('computers', fetcher);
+    assert.deepEqual(paths, ['/audio/nuclear-power/stations/computers-loop.wav']);
+    assert.equal(audio.stationStates.get('computers'), 'ready');
+    assert.equal(audio.nodes.size, 0);
+    assert.equal(audio.stationStates.has('turbine'), false, 'Inactive rooms are not downloaded');
+    await audio.preloadStation('invalid', fetcher);
+    assert.equal(paths.length, 1);
+});
+
+test('one station voice follows tab/pump selection, bounded actual speed, and cleans all filter nodes', async () => {
+    const context = new Context(), audio = new PlantAudio(context), sim = new NuclearPowerSimulation();
+    for (const scene of STATION_SOUNDS) await loadStation(audio, scene);
+    Object.assign(sim, { primaryFlow: 100, secondaryFlow: 100, secondaryTemperature: 190 });
+    sim.components.items.turbine.actual.shaftSpeed = 100;
+    sim.components.items.pumpA.actual.speed = 70; sim.components.items.pumpB2.actual.speed = 50;
+    const before = sim.snapshot();
+    let previous;
+    for (const scene of STATION_SOUNDS) {
+        audio.updateScene(sim, scene);
+        if (previous) assert.ok(previous.oscillator.disconnected && previous.filter.disconnected && previous.gain.disconnected);
+        assert.equal(audio.nodes.size, 1);
+        const voice = [...audio.nodes][0];
+        assert.equal(voice.station, scene); assert.equal(voice.oscillator.loop, true);
+        assert.ok(voice.target > 0 && voice.target <= .08);
+        assert.ok(voice.oscillator.playbackRate.value >= .55 && voice.oscillator.playbackRate.value <= 1.2);
+        const created = context.created.length;
+        for (let i = 0; i < 20; i++) audio.updateScene(sim, scene);
+        assert.equal(context.created.length, created, 'Repeated updates reuse one source/filter/gain');
+        previous = voice;
+    }
+    audio.updateScene(sim, 'pumps'); const a = [...audio.nodes][0];
+    audio.updateScene(sim, 'pumps', { pumpId: 'pumpB2' });
+    assert.ok(a.oscillator.disconnected && a.filter.disconnected);
+    assert.equal([...audio.nodes][0].equipment, 'pumpB2');
+    assert.equal(sim.running, false);
+    sim.components.items.pumpB2.actual.speed = 0;
+    audio.updateScene(sim, 'pumps', { pumpId: 'pumpB2' }); assert.equal(audio.nodes.size, 0);
+    sim.components.items.pumpB2.actual.speed = 50;
+    assert.deepEqual(sim.snapshot(), before);
+    audio.updateScene(sim, 'computers'); const server = [...audio.nodes][0];
+    audio.updateScene(sim, 'maintenance');
+    assert.equal(audio.nodes.size, 0); assert.ok(server.filter.disconnected);
+});
+
+test('station ambience stops offscreen, on pause/mute cleanup and suspension while shared UI stays independent', async () => {
+    const context = new Context(), audio = new PlantAudio(context), sim = new NuclearPowerSimulation();
+    await loadStation(audio, 'pumps'); await loadStation(audio, 'computers');
+    await audio.preloadUi(async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(4) }));
+    sim.components.items.pumpA.actual.speed = 90;
+    audio.updateScene(sim, 'pumps'); const pump = [...audio.nodes][0];
+    audio.cue('start'); audio.ui('on');
+    assert.ok(audio.nodes.has(pump), 'Command/UI cues preserve the active component loop');
+    audio.updateScene(sim, 'pumps', { visible: false });
+    assert.ok(pump.oscillator.disconnected && pump.filter.disconnected && pump.gain.disconnected);
+    assert.ok([...audio.nodes].some(voice => voice.ui), 'Offscreen machinery does not silence UI feedback');
+    audio.stop(); audio.updateScene(sim, 'computers');
+    const server = [...audio.nodes][0];
+    context.state = 'suspended'; audio.updateScene(sim, 'computers');
+    assert.equal(audio.nodes.size, 0); assert.ok(server.filter.disconnected);
+    context.state = 'running'; audio.updateScene(sim, 'computers');
+    assert.equal(audio.nodes.size, 1);
+    audio.stop(); audio.stop(); assert.equal(audio.nodes.size, 0);
+    assert.ok(context.created.filter(node => node.started).every(node => node.disconnected));
+});
+
+test('late or failed station loading never plays outgoing-room audio or blocks controls', async () => {
+    const audio = new PlantAudio(new Context()), sim = new NuclearPowerSimulation();
+    let release; const gate = new Promise(resolve => { release = resolve; });
+    const loading = audio.preloadStation('computers', async () => { await gate; return { ok: true, arrayBuffer: async () => new ArrayBuffer(4) }; });
+    audio.updateScene(sim, 'computers'); audio.updateScene(sim, 'maintenance'); audio.stop();
+    release(); await loading;
+    assert.equal(audio.scene, 'maintenance'); assert.equal(audio.nodes.size, 0);
+    audio.updateScene(sim, 'computers', { visible: false }); assert.equal(audio.nodes.size, 0);
+    audio.updateScene(sim, 'computers'); assert.equal(audio.nodes.size, 1);
+    audio.stop();
+    const failed = new PlantAudio(new Context());
+    await failed.preloadStation('computers', async () => { throw new Error('Missing audio'); });
+    failed.updateScene(sim, 'computers');
+    assert.equal(failed.stationStates.get('computers'), 'unavailable'); assert.equal(failed.nodes.size, 0);
+    assert.equal(sim.setComputerEnabled('serverA', false), true);
+});
+
+test('bundled station loops are quiet stereo PCM with clean seams, distinct waveforms and no silent padding', () => {
+    const fingerprints = new Set();
+    for (const scene of STATION_SOUNDS) {
+        const wav = readFileSync(new URL(`../public/audio/nuclear-power/stations/${scene}-loop.wav`, import.meta.url));
+        assert.equal(wav.toString('ascii', 0, 4), 'RIFF'); assert.equal(wav.toString('ascii', 8, 12), 'WAVE');
+        assert.equal(wav.readUInt16LE(22), 2); assert.equal(wav.readUInt32LE(24), 48000); assert.equal(wav.readUInt16LE(34), 16);
+        assert.equal(wav.readUInt32LE(40), 8 * 48000 * 4);
+        let peak = 0, squares = 0, firstWindow = 0, lastWindow = 0;
+        for (let i = 44; i < wav.length; i += 2) {
+            const sample = wav.readInt16LE(i); peak = Math.max(peak, Math.abs(sample)); squares += sample ** 2;
+            if (i < 44 + 4800 * 4) firstWindow += sample ** 2;
+            if (i >= wav.length - 4800 * 4) lastWindow += sample ** 2;
+        }
+        assert.ok(peak > 6000 && peak <= 16384);
+        const rms = Math.sqrt(squares / ((wav.length - 44) / 2)); assert.ok(rms > 2200 && rms < 2900);
+        assert.ok(Math.sqrt(firstWindow / 9600) > 1500 && Math.sqrt(lastWindow / 9600) > 1500, 'Loop endpoints have no baked-in fade or silence');
+        for (let channel = 0; channel < 2; channel++) assert.ok(Math.abs(wav.readInt16LE(44 + channel * 2) - wav.readInt16LE(wav.length - 4 + channel * 2)) < 900);
+        fingerprints.add(wav.subarray(44, 512).toString('base64'));
+    }
+    assert.equal(fingerprints.size, 5, 'Each room has its own sound design');
+});
 
 test('start and stop have distinct bounded envelopes and onended disconnects both nodes', () => {
     const context = new Context();
