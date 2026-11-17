@@ -25,6 +25,7 @@ also describe future work and must not be treated as entirely implemented.
 | Plant behavior and interlocks | [Plant specification](doc/nuclear-power.md) |
 | Company game, missions and saves | [Current implementation handoff](doc/game-development.md) and [product plan](doc/GAMEPLAY-PLAN.md) |
 | Development, tests and branch policy | [Development guide](doc/development.md) |
+| Phone landscape layout work | [Mobile layout proposal](doc/MOBILE-LANDSCAPE-PLAN.md); planned, not implemented |
 | Docker, relay and reverse proxies | [Deployment guide](doc/deployment.md) |
 | Equipment stations and electrical grid | [Station plan](doc/EQUIPMENT-STATIONS-PLAN.md) and [grid plan](doc/ELECTRICAL-GRID-PLAN.md) |
 | Fuel handling and cooling tower | [Fuel-handling plan](doc/FUEL-HANDLING-PLAN.md) and [tower checkpoint](doc/COOLING-TOWER-PLAN.md) |
