@@ -112,7 +112,7 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
             const layout = await captureConsoleLayout(consoleCode);
             console.log('Browser failure layout:', JSON.stringify(layout));
             writeFileSync(join(artifacts, 'failure-context.json'), JSON.stringify({ layout, exceptions }, null, 2));
-            const result = await page('Page.captureScreenshot', { format: 'png', captureBeyondViewport: !layout.mobile.active });
+            const result = await page('Page.captureScreenshot', { format: 'png', captureBeyondViewport: !layout?.mobile?.active });
             writeFileSync(join(artifacts, 'failure.png'), Buffer.from(result.data, 'base64'));
         };
         const action = action => consoleCode(`s.querySelector('[data-action="${action}"]').click();`);

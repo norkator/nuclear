@@ -89,8 +89,8 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot 
     assert.equal(await consoleCode('return s.activeElement.dataset.mobileOpen;'), 'instruments');
 
     await tap('[data-mobile-open="operator"]');
-    const emergency = await consoleCode('const r=s.querySelector(".emergency-station").getBoundingClientRect();return {top:r.top,bottom:r.bottom,height:innerHeight};');
-    assert.ok(emergency.top >= 0 && emergency.bottom <= emergency.height, `Covered ESD fits the first drawer screen: ${JSON.stringify(emergency)}`);
+    const emergency = await consoleCode('const r=s.querySelector(".emergency-station").getBoundingClientRect();return {top:r.top,bottom:r.bottom,height:r.height,viewportHeight:innerHeight};');
+    assert.ok(emergency.height > 0 && emergency.top >= 0 && emergency.bottom <= emergency.viewportHeight, `Covered ESD fits the first drawer screen: ${JSON.stringify(emergency)}`);
     assert.equal(await consoleCode('return s.querySelector("[data-action=trip]").disabled && !c.tripCoverOpen;'), true);
     await screenshot('phone-operator');
     await page('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Shift', code: 'ShiftLeft', windowsVirtualKeyCode: 16, modifiers: 8 });

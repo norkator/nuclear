@@ -119,8 +119,8 @@ export class MobileLayout {
                 this.dismissalFocus.focus({ preventScroll: true });
             }
         }, { signal });
-        this.root.addEventListener('touchstart', event => this.touchStart(event), { passive: true, signal });
-        this.root.addEventListener('touchend', event => this.touchEnd(event), { passive: false, signal });
+        this.root.addEventListener('touchstart', event => this.touchStart(event), { passive: false, signal });
+        this.root.addEventListener('touchend', event => this.touchEnd(event), { passive: true, signal });
         this.root.addEventListener('touchcancel', () => { this.swipe = null; this.backdropPress = null; cancelAnimationFrame(this.gestureFrame); }, { passive: true, signal });
         document.addEventListener('visibilitychange', () => { if (document.hidden) { cancelAnimationFrame(this.gestureFrame); cancelAnimationFrame(this.focusFrame); this.close(false); } }, { signal });
         this.reconcile();
@@ -318,21 +318,23 @@ export class MobileLayout {
         if (!this.active || event.touches.length !== 1) { this.swipe = null; return; }
         const handle = event.target.closest('.mobile-edge, [data-mobile-drag]');
         if (!handle || event.target.closest('[data-mobile-close]')) return;
+        // These dedicated gesture handles own this touch sequence. Cancel its
+        // compatibility mouse events at the start, before top-layer changes.
+        // Sliders, Close buttons and the scene keep their native touch path.
+        event.preventDefault();
         const touch = event.touches[0];
         this.swipe = { id: touch.identifier, x: touch.clientX, y: touch.clientY, handle, closing: Boolean(this.current) };
     }
 
     touchEnd(event) {
         const swipe = this.swipe; this.swipe = null;
-        const touch = [...event.changedTouches].find(point => point.identifier === swipe?.id);
+        const touch = Array.from(event.changedTouches).find(point => point.identifier === swipe?.id);
         if (!swipe || !touch) return;
         const dx = touch.clientX - swipe.x, dy = touch.clientY - swipe.y;
-        if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+        const tap = Math.abs(dx) < 10 && Math.abs(dy) < 10 && swipe.handle.matches('.mobile-edge');
+        if (!tap && (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy) * 1.5)) return;
         const left = swipe.handle.dataset.mobileOpen === 'instruments' || this.kind === 'instruments';
-        if (swipe.closing ? (left ? dx >= 0 : dx <= 0) : (left ? dx <= 0 : dx >= 0)) return;
-        // Cancel only the recognized swipe's compatibility click; normal taps,
-        // range controls, scrolling and camera gestures keep their native path.
-        event.preventDefault();
+        if (!tap && (swipe.closing ? (left ? dx >= 0 : dx <= 0) : (left ? dx <= 0 : dx >= 0))) return;
         const current = this.current;
         // Finish the native touch sequence before removing its top-layer target.
         // Otherwise the browser can suppress the next control's compatibility click.
