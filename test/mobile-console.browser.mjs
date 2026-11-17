@@ -26,8 +26,8 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot 
         await waitForConsoleLayout(consoleCode, `After touch ${selector}`);
     };
     const close = async () => {
-        await page('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape' });
-        await page('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape' });
+        await page('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+        await page('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
         await ready('!c.mobileLayout.current', 'Mobile surface closes');
     };
     const area = async name => { await tap('[data-mobile-open="more"]'); await tap(`[data-mobile-tab="${name}"]`); };
@@ -88,14 +88,15 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot 
     assert.equal(await consoleCode('return c.plantTab;'), 'reactor');
     assert.equal(await consoleCode('return s.activeElement.dataset.mobileOpen;'), 'instruments');
 
-    await consoleCode(`window.mobileTrace=[];for(const name of ['open','close']){const original=c.mobileLayout[name];c.mobileLayout[name]=function(...args){window.mobileTrace.push({name,kind:args[0],current:this.current?.id,stack:new Error().stack.slice(0,240)});return original.apply(this,args);};}`);
     await tap('[data-mobile-open="operator"]');
-    console.log('Operator transition:',await consoleCode('return {kind:c.mobileLayout.kind,trace:window.mobileTrace,focus:s.activeElement?.outerHTML.slice(0,100)};'));
     const emergency = await consoleCode('const r=s.querySelector(".emergency-station").getBoundingClientRect();return {top:r.top,bottom:r.bottom,height:innerHeight};');
     assert.ok(emergency.top >= 0 && emergency.bottom <= emergency.height, `Covered ESD fits the first drawer screen: ${JSON.stringify(emergency)}`);
     assert.equal(await consoleCode('return s.querySelector("[data-action=trip]").disabled && !c.tripCoverOpen;'), true);
     await screenshot('phone-operator');
-    await page('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Tab', code: 'Tab', modifiers: 8 });
+    await page('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Shift', code: 'ShiftLeft', windowsVirtualKeyCode: 16, modifiers: 8 });
+    await page('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9, modifiers: 8 });
+    await page('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9, modifiers: 8 });
+    await page('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Shift', code: 'ShiftLeft', windowsVirtualKeyCode: 16, modifiers: 0 });
     assert.equal(await consoleCode('return c.mobileLayout.current.contains(s.activeElement);'), true, 'Keyboard focus remains in the surface');
     assert.ok(await consoleCode('const r=s.activeElement.getBoundingClientRect(),d=c.mobileLayout.current.getBoundingClientRect();return r.top>=d.top && r.bottom<=d.bottom;'), 'Keyboard focus scrolls a lower control into view');
     await close();
