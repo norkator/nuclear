@@ -13,14 +13,14 @@ export const computerPanel = `<section id="computers-panel" class="computer-pane
   <div class="computer-health" role="status"><strong data-rack-status></strong><span data-rack-readings></span></div>
   <div class="computer-workspace"><div class="computer-rack-viewport"><div class="computer-rack-scene" aria-label="Interactive 3D computer server rack"></div><p class="computer-view-status" role="status" hidden></p><div class="computer-camera-tools"><button class="small-button" data-computer-camera="out" aria-label="Zoom server rack out">−</button><button class="small-button" data-computer-camera="in" aria-label="Zoom server rack in">+</button><button class="small-button" data-computer-camera="home">Reset view</button></div></div>
   <nav class="computer-unit-list" aria-label="Inspect rack units">${COMPUTER_UNITS.map(unit => `<div class="computer-unit-card"><button data-computer-open="${unit.id}" aria-haspopup="dialog" aria-controls="computer-window" aria-expanded="false"><small>${unit.tag}</small><strong>${unit.name}</strong><span data-computer-state="${unit.id}"></span></button><button class="computer-quick-power" data-computer-power="${unit.id}" role="switch" aria-checked="false" aria-label="${unit.name} power">OFF</button></div>`).join('')}</nav></div>
-  <p class="computer-note">Establish auxiliary AC, then switch units ON beside each card. Servers and network boot for five plant seconds. Either process server plus the network can support Auto. Select a card to inspect or maintain. Manual controls, plant instruments and emergency shutdown remain independent of this rack. All equipment is simulated.</p>
+  <p class="computer-note">Establish auxiliary AC, then switch units ON beside each card. Servers and network boot for five plant seconds. Either process server plus the network can support Auto. The plant instrument server plus the network powers the main instrument displays. Select a card to inspect or maintain. Local inspections, Manual controls and emergency shutdown remain independent. All equipment is simulated.</p>
 </section>`;
 
 export const computerDialog = `<section id="computer-window" class="computer-dialog equipment-dialog floating-dialog" popover="manual" role="dialog" aria-modal="false" aria-labelledby="computer-title"><div class="core-dialog-titlebar" tabindex="0" aria-label="Move computer inspection window with arrow keys or drag"><span aria-hidden="true">⠿</span><h2 id="computer-title">Computer inspection</h2><button class="small-button" data-computer-close aria-label="Close computer inspection">×</button></div><div class="equipment-dialog-body"><p class="computer-description"></p><div class="computer-run"><button class="pump-rocker" data-computer-toggle role="switch" aria-checked="true" aria-label="Selected computer power switch"><span class="pump-rocker-face" aria-hidden="true"><span class="rocker-on">I <small>ON</small></span><span class="rocker-off">O <small>OFF</small></span></span></button><strong class="computer-unit-status"></strong><button class="small-button" data-computer-prefer>Make active server</button></div><dl class="computer-readings">${['temperature', 'hours', 'boot', 'source', 'charge', 'battery', 'airflow', 'filter', 'services'].map(key => `<div data-computer-row="${key}"><dt></dt><dd></dd></div>`).join('')}</dl><div class="computer-inspection-actions"><button class="small-button" data-computer-diagnose>Run diagnostics</button><button class="small-button" data-computer-order>Create work order</button></div><p class="computer-diagnostic"></p><section class="computer-work-order"><h3>Hardware maintenance</h3><p class="computer-order-status"></p><progress max="10" value="0" aria-label="Computer functional test qualifying time"></progress><ul class="computer-service-checks"></ul><div class="computer-inspection-actions">${Object.entries(workActions).map(([action, label]) => `<button class="small-button" data-computer-work="${action}">${label}</button>`).join('')}</div><p>Switch the selected unit OFF, establish the checks, then isolate and service it. Release for test, switch it ON and prove ten continuous seconds of actual operation before returning it to service. Service preserves plant heat, fuel and trip latches.</p></section><p class="computer-result" role="status" aria-live="polite"></p></div></section>`;
 
 export class ComputerConsole {
     constructor(host) {
-        this.host = host; this.root = host.shadowRoot; this.selected = 'serverA'; this.phase = 0; this.visible = false;
+        this.host = host; this.root = host.shadowRoot; this.selected = 'serverA'; this.phase = 0; this.activityTime = 0; this.visible = false;
         this.root.addEventListener('click', event => {
             if (host.companion) return;
             const quick = event.target.closest('[data-computer-power]');
@@ -100,20 +100,28 @@ export class ComputerConsole {
         this.selected = id; this.update(true);
         this.host.openFloatingDialog(this.dialog); this.update(); this.dialog.querySelector('.core-dialog-titlebar').focus({ preventScroll: true }); this.draw();
     }
-    hasMotion() { return this.canDraw() && this.host.simulation.computers.fanSpeed > .5; }
+    hasMotion() {
+        const computers = this.host.simulation.computers;
+        return this.canDraw() && (computers.fanSpeed > .5 || computers.powered && Object.entries(computers.units)
+            .some(([id, unit]) => id !== 'rackCooling' && unit.enabled && !unit.fault));
+    }
     draw(seconds = 0) {
         if (!this.canDraw() || !this.scene) return;
-        if (!this.host.simulation.paused && !this.host.reducedMotion.matches) this.phase = (this.phase + Math.min(.1, Math.max(0, seconds)) * this.host.simulation.computers.fanSpeed / 100 * 5) % (Math.PI * 2);
-        this.scene.setVisible(true); this.scene.update(this.host.simulation.computers, this.selected, this.host.dataset.theme, this.phase);
+        if (!this.host.simulation.paused && !this.host.reducedMotion.matches) {
+            const dt = Math.min(.1, Math.max(0, seconds));
+            this.phase = (this.phase + dt * this.host.simulation.computers.fanSpeed / 100 * 5) % (Math.PI * 2);
+            this.activityTime = (this.activityTime + dt) % 120;
+        }
+        this.scene.setVisible(true); this.scene.update(this.host.simulation.computers, this.selected, this.host.dataset.theme, this.phase, this.activityTime, this.host.reducedMotion.matches);
     }
     update(forceDialog = false) {
         const sim = this.host.simulation, computers = sim.computers;
-        if (this.model !== computers) { this.model = computers; this.message = ''; this.phase = 0; }
+        if (this.model !== computers) { this.model = computers; this.message = ''; this.phase = 0; this.activityTime = 0; }
         for (const trigger of this.root.querySelectorAll('[data-computer-open]')) trigger.setAttribute('aria-expanded',
             String(trigger.dataset.computerOpen === this.selected && this.dialog.matches(':popover-open')));
         if (this.host.plantTab === 'computers') {
             text(this.root.querySelector('[data-rack-status]'), computers.automationAvailable ? `Process computing ready · ${computers.activeServer === 'serverA' ? 'Server A' : 'Server B'} active` : 'Auto unavailable · Manual controls remain available');
-            text(this.root.querySelector('[data-rack-readings]'), `${computers.source === 'UPS' ? 'UPS battery' : computers.source === 'AC' ? 'Auxiliary AC' : 'Rack unpowered'} · ${computers.rackTemperature.toFixed(1)} °C · UPS ${computers.charge.toFixed(0)}%`);
+            text(this.root.querySelector('[data-rack-readings]'), `${computers.source === 'UPS' ? 'UPS battery' : computers.source === 'AC' ? 'Auxiliary AC' : 'Rack unpowered'} · ${computers.rackTemperature.toFixed(1)} °C · UPS ${computers.charge.toFixed(0)}% · Instruments ${computers.instrumentsAvailable ? 'ONLINE' : 'OFF'}`);
             for (const unit of COMPUTER_UNITS) {
                 const control = this.root.querySelector(`[data-computer-power="${unit.id}"]`), actual = computers.units[unit.id];
                 control.setAttribute('aria-checked', String(actual.enabled));

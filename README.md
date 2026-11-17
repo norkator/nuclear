@@ -15,14 +15,14 @@ React mounts the existing `nuclear-power-console` custom element. Its shadow-roo
 styles, deterministic simulation modules, dialog behavior and audio
 lifecycle are retained under `src/simulation/`. Each reactor page owns its simulation;
 free-operation sessions are discarded on reload. Optional careers save the plant,
-company inbox and achieved goals locally; Continue game restores a paused career.
+company inbox and achieved goals locally; Continue game preserves the saved Pause choice.
 Reload ends any companion pairing session. The light/dark theme is also saved
 locally. The external Vaadin desktop and Start menu open this app in a separate tab.
 
 ## Company game: operations and maintenance
 
 Free operation remains the default. Choose **Start game → Begin career** for a
-separate cold plant. Choose **Easy** for Auto or Manual operation, or **Hard** for
+separate cold plant with its clock running immediately. Choose **Easy** for Auto or Manual operation, or **Hard** for
 Manual only; Hard blocks Auto on the desktop and paired companions. Eight
 assignments cover startup, reliable operation, condition rounds, pump service,
 water quality, filter service, cooling-water intake service and return to generation.
@@ -53,8 +53,8 @@ The company window contains Inbox, Assignments, Achievements, Archive and Save.
 Careers save to IndexedDB with one writer tab, complete plant/pool state and sampled
 rotor tolerances. **Save & return to free operation** restores the parked free
 plant on this page. Reload starts free operation; **Continue game** restores the
-career paused, without offline progress. Export/import JSON backups from Save.
-Schema-1 saves migrate as Easy careers; schema-1/2 saves upgrade to schema 3, preserving issued terms,
+career with the user's Pause choice preserved, without offline progress. Export/import JSON backups from Save.
+Schema-1 saves migrate as Easy careers; schema-1/2/3 saves upgrade to schema 4, preserving issued terms,
 progress, heat, damage, trips and rotor samples. New saves also retain work orders,
 inspection/sample records, water state and difficulty. Maintenance management
 and sampling are desktop-owned; companions remain plant-control followers.
@@ -103,7 +103,9 @@ footer's left, with PÖRSSIOHJAIN at right.
 ## Computer systems
 
 The **Computer systems** tab contains a clickable 3D server rack with two
-redundant process servers, a control-network switch, rack UPS and cooling tray.
+redundant process servers, a plant instrument server, control-network switch, rack UPS and cooling tray.
+Server drive, network-port and UPS activity lights blink while units are powered ON.
+They freeze on Pause/offscreen and stay steady with reduced motion.
 Drag or use arrow keys to orbit, wheel or +/− to zoom, and Home/Reset view to
 restore the camera. The rack uses only the 3D presentation. Native unit buttons
 also open the same inspection window and remain usable if 3D is unavailable.
@@ -116,7 +118,13 @@ reactor Start in both Auto and Manual. Restoring AC never switches computers on.
 Startup requires an online server and control network, plus AC and circulation.
 Once running, independent Manual controls and emergency shutdown remain usable
 during computing loss. Existing saves restore their
-recorded power state, including partial boot; legacy migrations remain unchanged.
+recorded power state, including partial boot; schema 3→4 adds a healthy instrument
+server while preserving the five previously saved rack units.
+
+The six main plant instruments start OFF. Switch ON the plant instrument server
+and network and let them boot to restore current readings. Power loss, hardware
+faults or either unit switched OFF darken the displays and hide their readings and
+motion. Local inspections, Manual controls and emergency shutdown remain usable.
 
 Inspect actual power/online state, boot countdown, temperature, operating hours,
 UPS charge/battery health and cooling airflow/filter load. Run diagnostics,
@@ -129,7 +137,7 @@ stopped reactor, UPS work needs AC bypass, and cooling service waits for fan sto
 Either online server plus the network supports normal Auto regulation. Total
 computing loss holds requested rod/pump targets and suspends dispatch; it never
 starts, stops, trips or resets the reactor. Independent Manual controls, essential
-instruments and emergency shutdown remain available. Hard still prohibits Auto.
+inspection readings and emergency shutdown remain available. Hard still prohibits Auto.
 The rack UPS bridges auxiliary AC interruptions for a fictional 120 seconds at
 full battery health and recharges from AC; it never powers coolant pumps. Blocked
 cooling can latch hardware overheat faults, requiring explicit cooled hardware

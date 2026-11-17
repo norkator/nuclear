@@ -15,10 +15,10 @@ code that exists and the work still needed.
 ## Current playable operations and maintenance chapter
 
 Free operation remains the initial mode. **Start game → Begin career** creates
-a separate cold plant, initially paused. **Resume shift** starts its clock.
+a separate cold plant with its clock running immediately. Pause is operator-owned.
 The free-operation plant is parked in memory and restored by **Save & return to
 free operation**; it does not earn career progress. Reload opens free operation;
-**Continue game** restores the saved career paused, without offline advancement.
+**Continue game**, import and reconnect preserve the user's Pause choice, without offline advancement.
 Switching plants ends companion pairing and clears old local audio/motion.
 
 New careers select Easy (Auto and Manual) or Hard (Manual only). Hard sets the
@@ -111,7 +111,7 @@ Computer-rack support is in `nuclear-power-computers-model.js` (pure rack model)
 `nuclear-power-computers-scene.js` (draw-only GPU adapter), and
 `nuclear-power-computers.js`/CSS (3D-only tab and floating inspection). The main
 console owns the shared frame loop. A rack-only observer suspends offscreen GPU
-work; detach disposes resources. Existing work orders accept all five rack units,
+work; detach disposes resources. Existing work orders accept all six rack units,
 with dedicated hardware isolation and actual online proof. There are no extra
 authored missions yet; the current eight remain unchanged. Rack commands and
 records stay desktop-owned; companion hydration retains model methods and
@@ -134,7 +134,7 @@ visibility, actual damage/motion and fallback are covered by
 
 ## Saved-state contract and known gaps
 
-- Save schema: `CAREER_SAVE_VERSION = 3`; content metadata:
+- Save schema: `CAREER_SAVE_VERSION = 4`; content metadata:
   `MISSION_CONTENT_VERSION = 2`. There is no economy rules version yet.
 - IndexedDB: `porssiohjain-nuclear-career`, database version 1, object store
   `career`, keys `current` and `previous`. Keep this namespace when changing
@@ -158,7 +158,9 @@ visibility, actual damage/motion and fallback are covered by
 - JSON export/import validates the complete bundle before replacing the career.
   `migrateCareerBundle` adds healthy water, empty work records, evidence baselines
   and Easy difficulty to schema 1, preserving old plant state, issued terms and
-  achievements. The schema-2-to-3 step adds healthy computer defaults. Schema 3
+  achievements. The schema-2-to-3 step adds healthy computer defaults; schema 3→4
+  adds a healthy instrument server without changing the five existing rack units.
+  Schema 4
   retains rack power/boot/fault/thermal state, UPS inventory and diagnostics, and
   validates water bounds, order IDs/stage timestamps,
   evidence types and difficulty/Auto consistency. Manual trend samples can have
@@ -199,7 +201,7 @@ For an extension:
    together. Retain support for the saved version-1 hold definitions.
 3. Add any new plant/economy/receipt fields to the explicit serializer and a
    tested migration from existing versions. Never silently fill missing required
-   schema-3 fields; legacy additions belong only in explicit migrations.
+   schema-4 fields; legacy additions belong only in explicit migrations.
 4. Update the introduction, progression copy and actual-state checklist. Adding
    a definition alone does not implement new objective behavior or paid contracts.
 5. Test insertion before issuance, during active/ready work and after completion;
@@ -313,3 +315,11 @@ build, focused grid/layout checks, the full browser regression and the focused
 companion check. Browser coverage includes all eight assignments and verifies
 Hard startup with the rack OFF, explicit native rack power/boot, generation and
 save/Continue. Companions cannot bypass the host's Manual startup interlock.
+
+The instrument-server update adds a sixth rack unit, shared-clock server/network/UPS
+activity LEDs and powered main instrument displays. Schema 4 migrates versions 1–3
+without changing prior plant state or progress. New careers run immediately;
+Continue/import/reconnect preserve the user's Pause choice. Verification passed
+185 unit/model/session checks, build, focused game/layout checks, the full browser
+regression and the focused companion check. Companion coverage includes instrument
+shutdown/boot synchronization and desktop ownership of the new hardware.

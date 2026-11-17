@@ -102,7 +102,7 @@ test('computing loss during Manual operation preserves independent controls and 
     sim.trip(); assert.equal(sim.tripped, true); assert.ok(sim.controlRods.every(rod => rod.target === 100));
 });
 
-test('cold/off and partially booted schema-3 career saves restore exact power state without powering hardware', () => {
+test('cold/off and partially booted schema-4 career saves restore exact power state without powering hardware', () => {
     const sim = new NuclearPowerSimulation(), career = new CompanyCareer();
     const capture = () => captureCareer(sim, new FuelTransferAnimation(CORE_CHANNELS), career);
     let restored = restoreCareerBundle(capture()).simulation;
@@ -111,7 +111,7 @@ test('cold/off and partially booted schema-3 career saves restore exact power st
     restored = restoreCareerBundle(capture()).simulation;
     assert.deepEqual(restored.supply, sim.supply); assert.deepEqual(restored.computers, sim.computers);
     assert.equal(restored.computers.units.serverA.online, false);
-    assert.ok(Object.values(restored.computers.units).filter(unit => !unit.enabled).length === 4);
+    assert.equal(Object.values(restored.computers.units).filter(unit => !unit.enabled).length, 5);
 });
 
 

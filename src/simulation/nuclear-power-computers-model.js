@@ -7,12 +7,16 @@
 export const COMPUTER_UNITS = [
     { id: 'serverA', name: 'Process server A', tag: 'PC-01', description: 'Preferred process computer for automatic regulation. Server B can take over while this unit is offline.' },
     { id: 'serverB', name: 'Process server B', tag: 'PC-02', description: 'Redundant process computer. Either healthy, connected server can run normal automatic regulation.' },
+    { id: 'instrumentServer', name: 'Plant instrument server', tag: 'IS-01', description: 'Powers the main plant instrument displays through the control network. Instruments stay OFF until this server and the network finish booting. Process regulation, local inspections, Manual controls and emergency shutdown remain independent.' },
     { id: 'rackSwitch', name: 'Control network switch', tag: 'SW-01', description: 'Connects the process servers to normal plant automation. Its loss suspends regulation; independent Manual controls remain available.' },
     { id: 'rackUps', name: 'Rack UPS', tag: 'UPS-01', description: 'Bridges auxiliary AC interruptions for the computer rack. It does not power coolant-pump motors or replace standby diesels.' },
     { id: 'rackCooling', name: 'Rack cooling tray', tag: 'FAN-01', description: 'Fans and a replaceable filter remove computer heat. Blocked airflow can overheat servers and latch a hardware fault.' },
 ];
 export const COMPUTER_IDS = COMPUTER_UNITS.map(unit => unit.id);
 export const isComputer = id => COMPUTER_IDS.includes(id);
+const PROCESS_SERVERS = ['serverA', 'serverB'];
+const SERVERS = [...PROCESS_SERVERS, 'instrumentServer'];
+const BOOT_UNITS = [...SERVERS, 'rackSwitch'];
 const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
 const approach = (value, target, dt, tau) => target + (value - target) * Math.exp(-dt / tau);
 
@@ -41,6 +45,7 @@ export class PlantComputers {
             : ['serverA', 'serverB'].find(id => this.units[id].online) || null;
     }
     get automationAvailable() { return this.powered && this.units.rackSwitch.online && Boolean(this.activeServer); }
+    get instrumentsAvailable() { return this.powered && this.units.rackSwitch.online && this.units.instrumentServer.online; }
     get airflow() { return this.fanSpeed / 100 * this.fanHealth / 100 * clamp(1 - this.filterLoad / 100, 0, 1); }
 
     canPowerOn(sim) {
@@ -57,7 +62,7 @@ export class PlantComputers {
         if (unit.bootRemaining > 0) return `BOOTING · ${Math.ceil(unit.bootRemaining)} s`;
         if (id === 'rackUps') return this.source === 'UPS' ? 'ON BATTERY' : this.charge < 99.9 ? 'CHARGING' : 'READY';
         if (id === 'rackCooling') return this.airflow < .5 ? 'AIRFLOW LOW' : 'COOLING';
-        if (['serverA', 'serverB'].includes(id)) return this.activeServer === id ? 'ACTIVE' : 'STANDBY';
+        if (PROCESS_SERVERS.includes(id)) return this.activeServer === id ? 'ACTIVE' : 'STANDBY';
         return 'ONLINE';
     }
 
@@ -68,7 +73,7 @@ export class PlantComputers {
         if (enabled && !this.canPowerOn(sim)) return false;
         unit.enabled = enabled;
         unit.online = false;
-        unit.bootRemaining = enabled && ['serverA', 'serverB', 'rackSwitch'].includes(id) ? 5 : 0;
+        unit.bootRemaining = enabled && BOOT_UNITS.includes(id) ? 5 : 0;
         sim.record(`${COMPUTER_UNITS.find(item => item.id === id).name} ${enabled ? 'power requested; waiting for actual readiness' : 'switched OFF'}.`, 'info', 'operator');
         return true;
     }
@@ -134,7 +139,7 @@ export class PlantComputers {
         const cooling = this.units.rackCooling;
         const fanTarget = this.powered && cooling.enabled && !cooling.fault && !sim.work.locked('rackCooling') ? 100 : 0;
         this.fanSpeed = approach(this.fanSpeed, fanTarget, dt, 1.5);
-        const enabledServers = ['serverA', 'serverB'].filter(id => this.units[id].enabled && !this.units[id].fault).length;
+        const enabledServers = SERVERS.filter(id => this.units[id].enabled && !this.units[id].fault).length;
         const heat = this.powered ? 12 + enabledServers * (sim.running ? 18 : 9) : 0;
         this.rackTemperature = approach(this.rackTemperature, 24 + heat * (1 - this.airflow * .88), dt, 40);
         if (this.fanSpeed > 1) {
@@ -143,9 +148,9 @@ export class PlantComputers {
         }
         for (const [id, unit] of Object.entries(this.units)) {
             const energised = this.powered && unit.enabled && !unit.fault && !sim.work.locked(id);
-            if (!energised && unit.online && ['serverA', 'serverB', 'rackSwitch'].includes(id)) unit.bootRemaining = 5;
+            if (!energised && unit.online && BOOT_UNITS.includes(id)) unit.bootRemaining = 5;
             unit.bootRemaining = energised ? Math.max(0, unit.bootRemaining - dt) : unit.bootRemaining;
-            unit.temperature = approach(unit.temperature, energised ? this.rackTemperature + (id.startsWith('server') ? 5 : 1) : 24, dt, 15);
+            unit.temperature = approach(unit.temperature, energised ? this.rackTemperature + (SERVERS.includes(id) ? 5 : 1) : 24, dt, 15);
             if (id !== 'rackCooling' && unit.temperature >= 70 && !unit.fault) {
                 unit.fault = true;
                 sim.record(`${COMPUTER_UNITS.find(item => item.id === id).name} overheated. Regulation may be unavailable; Manual controls remain live.`, 'warning', 'process');

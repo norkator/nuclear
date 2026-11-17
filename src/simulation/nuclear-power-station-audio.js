@@ -18,7 +18,7 @@ export function stationSoundState(sim, scene, pumpId = 'pumpA') {
     const steam = fraction((sim.secondaryTemperature - 65) / 140) * secondary;
     if (scene === 'computers') {
         const rack = sim.computers, fans = fraction(rack.fanSpeed / 100);
-        const online = Object.values(rack.units).filter(unit => unit.online).length / 5;
+        const units = Object.values(rack.units), online = units.filter(unit => unit.online).length / units.length;
         activity = Math.max(fans, rack.powered ? .22 * online : 0);
         rate = .8 + .2 * fans;
         cutoff = 500 + 2400 * fans;

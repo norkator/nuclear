@@ -51,7 +51,7 @@ export const pages = [
             <a href="/guides/faults-and-recovery/" target="_blank" rel="noopener"><strong>Faults, shutdown and recovery ↗</strong><span>Investigate alarms, restore power and work through trip and repair checks.</span></a>
           </nav>
           <h2>Sessions and saved games</h2>
-          <p>Free operation starts a fresh plant on reload. <strong>Start game</strong> creates a separate career with startup and reliable-operation assignments. Your plant, inbox and achievements save on this browser. <strong>Continue game</strong> restores the career paused; Save offers a JSON backup.</p>
+          <p>Free operation starts a fresh plant on reload. <strong>Start game</strong> creates a separate career with its clock running and startup and reliable-operation assignments. Your plant, inbox and achievements save on this browser. <strong>Continue game</strong> preserves your saved Pause choice; Save offers a JSON backup.</p>
           <p>Controls adapt to phones and tablets. Choose the SVG schematic if 3D WebGL is unavailable. The channel deck has an RBMK-inspired appearance, but this fictional two-loop plant does not model a specific real reactor.</p>
         `,
     },
@@ -68,6 +68,7 @@ export const pages = [
           <h2>2. Establish auxiliary power and computing</h2>
           <p>External grid and turbine feed start disconnected. Both diesels are stopped with standby disabled. Open <strong>Pump power source</strong> to connect the external grid, or manually start a diesel and wait eight simulated seconds for AC.</p>
           <p>Open <strong>Computer systems</strong> using the tab or server building. Use the ON/OFF buttons beside the cards to power the cooling tray, network switch and at least one process server. Wait five simulated seconds for boot. Power restoration alone never switches computers on. Reactor Start requires an online process server and control network in both Auto and Manual. Emergency shutdown remains available with the rack off.</p>
+          <p>Also switch ON the <strong>Plant instrument server</strong>. The six main plant instruments start OFF and darkened; they show current readings once this server and the network are online. Local inspection windows and Manual controls remain available during an instrument-server outage.</p>
           <h2>3. Start both cooling pumps</h2>
           <p>Switch the primary and secondary pump rockers to ON. Check their actual motor lamps, speed and flow readings as circulation builds. An ON request alone does not prove a pump is moving coolant: the pump also needs auxiliary AC power and available equipment.</p>
           <p>The connected grid or ready diesel supplies the pumps before generation begins. Open <strong>Pump power source</strong> if the motors fail to accelerate. A disconnected source or unavailable cooling circuit can keep the reactor Start button interlocked.</p>
@@ -85,7 +86,7 @@ export const pages = [
           <p>In the 3D view, drag to orbit, use the mouse wheel to zoom, and use middle-button drag or Shift+drag to pan. With the canvas focused, arrow keys orbit, Shift+arrow keys pan, and Home resets the camera. Select <strong>Schematic</strong> for the SVG process view.</p>
           <h2>Stop, pause and finish</h2>
           <p><strong>Stop</strong> inserts the rods while cooling continues if powered pumps remain enabled. Retained heat does not disappear immediately. <strong>Pause</strong> freezes plant time. Hiding the browser tab also suspends the simulation without fast-forwarding when you return.</p>
-          <p>Enable plant sounds for operating audio and alarms. The yellow <strong>Alert silence</strong> pushbutton above emergency shutdown mutes alerts independently; machinery and button sounds continue. Visual alarms remain active. Export free-operation logs before Reset demo, reload or closing the page. In a company career, use Save or Save &amp; return to free operation; Continue game restores the local career paused after reload. Continue with the <a href="/guides/reactor-controls/">control rods, cooling and output guide</a> to explore manual operation.</p>
+          <p>Enable plant sounds for operating audio and alarms. The yellow <strong>Alert silence</strong> pushbutton above emergency shutdown mutes alerts independently; machinery and button sounds continue. Visual alarms remain active. Export free-operation logs before Reset demo, reload or closing the page. In a company career, use Save or Save &amp; return to free operation; Continue game preserves your saved Pause choice after reload. Continue with the <a href="/guides/reactor-controls/">control rods, cooling and output guide</a> to explore manual operation.</p>
         `,
     },
     {

@@ -92,8 +92,9 @@ Show **Company**, **Inbox**, **Assignments**, **Achievements** and
 free operation cannot change its wallet or complete its missions.
 
 Reloading `/reactor/` still opens free operation. **Continue game** restores the
-saved career at its saved simulated instant, initially paused, with an explicit
-**Resume shift** action. There are no offline earnings, interest or failures.
+saved career at its saved simulated instant, preserving the user's Pause choice.
+New careers run immediately; only explicit operator commands change Pause.
+There are no offline earnings, interest or failures.
 
 Use one local career slot initially, with export/import for backup. Starting
 another career must explicitly explain that it replaces this slot. Keep a

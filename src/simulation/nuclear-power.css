@@ -1196,6 +1196,20 @@ select { background: #1b2c38; color: #cadddf; border: 1px solid #47606c; padding
 .metric-flow-particle { fill: currentColor; }
 .animated-metric .metric-track i { position: relative; overflow: hidden; }
 .animated-metric .metric-track i::after { content: ''; position: absolute; inset: 0; width: 36%; background: linear-gradient(90deg, transparent, #ffffffb0, transparent); left: var(--instrument-phase, -30%); opacity: var(--instrument-strength, 0); }
+
+/* Unpowered instrument screens retain their labels and local inspection access. */
+:host([data-instruments="false"]) .metrics .metric {
+    background: linear-gradient(135deg, #182027, #10171d); border-color: #39444c;
+    box-shadow: inset 0 2px 8px #0005; animation: none;
+}
+:host([data-instruments="false"]) .metrics .metric :is(.metric-label, .metric-icon, .metric-reading, .metric-foot) { color: #829197; }
+:host([data-instruments="false"]) .metrics .metric-reading { font-family: Consolas, monospace; letter-spacing: 3px; }
+:host([data-instruments="false"]) .metrics :is(.unit, .metric-motion, .metric-flow-limit, .turbine-condition, .metric-track i) { visibility: hidden; }
+:host([data-instruments="false"]) .metrics .metric-foot > span { display: none; }
+:host([data-instruments="false"]) .metrics .metric-foot::before { content: 'IS-01 / NETWORK OFFLINE'; font: 7px Consolas, monospace; letter-spacing: .2px; }
+:host([data-instruments="false"]) .metrics .metric-track { background: #29343b; }
+:host([data-instruments="false"][data-theme="light"]) .metrics .metric { background: linear-gradient(135deg, #d0d7da, #bfc9cd); border-color: #8c9da5; box-shadow: inset 0 2px 7px #31434f26; }
+:host([data-instruments="false"][data-theme="light"]) .metrics .metric :is(.metric-label, .metric-icon, .metric-reading, .metric-foot) { color: #4c606b; }
 @container nuclear-console (min-width: 1400px) {
     .diagram-viewport > .plant-scene { height: clamp(400px, calc(100dvh - 470px), 680px); }
 }

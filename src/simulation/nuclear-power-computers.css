@@ -47,8 +47,9 @@
 :host([data-theme="light"]) .computer-rack-viewport { background: radial-gradient(ellipse at 50% 35%, #b6cbd4, #d7e2e8); }
 @container nuclear-console (min-width: 1400px) {
     :host([data-screen="desktop"]) .computer-panel { flex: 1; min-height: 0; overflow-y: auto; }
-    .computer-workspace { flex: 1; min-height: 250px; }
-    .computer-rack-viewport { height: 100%; min-height: 250px; }
+    .computer-workspace { flex: 1; min-height: 250px; grid-template-rows: minmax(0, 1fr); }
+    .computer-rack-viewport { height: auto; min-height: 250px; }
+    .computer-unit-list { min-height: 0; overflow-y: auto; }
 }
 @media (max-width: 850px) {
     .computer-panel { padding: 10px; }

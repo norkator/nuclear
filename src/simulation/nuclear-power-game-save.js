@@ -9,7 +9,7 @@ import { validObjective } from './nuclear-power-missions.js';
 import { MONITORED_EQUIPMENT, WORK_EQUIPMENT, WORK_TEST_SECONDS } from './nuclear-power-work.js';
 import { PlantComputers, COMPUTER_IDS } from './nuclear-power-computers-model.js';
 
-export const CAREER_SAVE_VERSION = 3;
+export const CAREER_SAVE_VERSION = 4;
 const ROOT_FIELDS = ['elapsed', 'startSequence', 'running', 'tripped', 'paused', 'demand', 'controlRods', 'autoAllowed',
     'operatingRodTargets', 'power', 'temperature', 'returnTemperature', 'secondaryTemperature',
     'secondaryReturnTemperature', 'pumpA', 'pumpA2', 'pumpB', 'pumpB2', 'pumpASpeed', 'pumpA2Speed',
@@ -54,7 +54,7 @@ export function captureCareer(sim, transfer, career) {
 // Migrations only add newly introduced state. Existing heat, damage, rotor samples,
 // objective terms, achievements and IDs are copied without being recalculated.
 export function migrateCareerBundle(source) {
-    if (!source || ![1, 2, CAREER_SAVE_VERSION].includes(source.schemaVersion)) throw new Error('Unsupported career save version.');
+    if (!source || ![1, 2, 3, CAREER_SAVE_VERSION].includes(source.schemaVersion)) throw new Error('Unsupported career save version.');
     validateData(source);
     const bundle = structuredClone(source);
     if (bundle.schemaVersion === 1) {
@@ -72,6 +72,16 @@ export function migrateCareerBundle(source) {
         if (!bundle.plant) throw new Error('Invalid legacy plant.');
         bundle.plant.computers = pick(new PlantComputers(), SECTION_FIELDS.computers);
         bundle.schemaVersion = 3;
+    }
+    if (bundle.schemaVersion === 3) {
+        if (!bundle.plant?.computers?.units) throw new Error('Invalid legacy computer rack.');
+        // Existing instruments were always live. Add their dedicated healthy
+        // server without changing any of the five saved rack units or plant state.
+        bundle.plant.computers.units.instrumentServer = {
+            ...new PlantComputers().units.instrumentServer,
+            online: bundle.plant.computers.source !== 'OFF',
+        };
+        bundle.schemaVersion = 4;
     }
     return bundle;
 }

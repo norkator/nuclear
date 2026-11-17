@@ -75,8 +75,8 @@ class GameController {
             await this.detaching;
             if (!this.host.isConnected) return;
             document.addEventListener('visibilitychange', this.onHide);
-            if (this.career && !this.owner) { this.host.simulation.paused = true; await this.acquire(); this.host.update(); }
-        } finally { this.attaching = false; this.render(); }
+            if (this.career && !this.owner) { await this.acquire(); this.host.update(); }
+        } finally { this.attaching = false; this.render(); this.host.updateActivity(); }
     }
 
     async acquire() {
@@ -104,7 +104,6 @@ class GameController {
         if (!this.career) this.freeSession = { simulation: this.host.simulation, transfer: this.host.fuelTransfer };
         this.career = new CompanyCareer(restored.state);
         this.switchPlant(restored.simulation, restored.transfer);
-        this.host.simulation.paused = true;
         this.career.state.lastElapsed = this.host.simulation.elapsed;
         this.lastSaved = -Infinity;
         this.tab = 'inbox';
@@ -220,8 +219,9 @@ class GameController {
     }
 
     async detach() {
+        // Suspend ownership work without overwriting the operator's Pause choice.
+        this.attaching = true;
         document.removeEventListener('visibilitychange', this.onHide);
-        if (this.career) this.host.simulation.paused = true;
         await this.save(true);
         await this.release();
     }
@@ -287,7 +287,7 @@ class GameController {
         } else if (this.tab === 'archive') {
             page.innerHTML = `<h3>Assignment archive</h3>${this.career.state.assignments.filter(item => item.status === 'completed').map(item => `<article class="company-message"><h3>${escape(item.definition.title)}</h3><p>${escape(item.definition.brief)}</p><p>Report accepted at T+${time(item.completedAt)} · ${time(item.held)} verified hold</p><p>${escape(item.definition.completion)}</p></article>`).join('') || '<p>Completed reports will be kept here.</p>'}`;
         } else {
-            page.innerHTML = '<h3>Career save</h3><p>Your plant, assignments, inbox and achievements are saved together. Returning later resumes at the saved plant time, paused. Nothing runs while the career is closed.</p><button class="control-button" data-game-action="save">Save now</button><button class="small-button" data-game-action="export">Export backup</button><p>Importing replaces this career and its plant. Export a backup first if you want to keep it.</p><button class="small-button" data-game-action="import">Import and replace career</button><button class="small-button" data-game-action="return">Save & return to free operation</button>';
+            page.innerHTML = '<h3>Career save</h3><p>Your plant, assignments, inbox and achievements are saved together. Returning later resumes at the saved plant time with your Pause choice preserved. New careers run immediately. Nothing runs while the career is closed.</p><button class="control-button" data-game-action="save">Save now</button><button class="small-button" data-game-action="export">Export backup</button><p>Importing replaces this career and its plant. Export a backup first if you want to keep it.</p><button class="small-button" data-game-action="import">Import and replace career</button><button class="small-button" data-game-action="return">Save & return to free operation</button>';
         }
     }
 }

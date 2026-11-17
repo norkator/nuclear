@@ -27,8 +27,10 @@ Read [doc/game-development.md](doc/game-development.md) for the current code map
 save contract, known gaps and next implementation slice. It distinguishes current
 behavior from the larger product plan.
 
-Free operation remains the default. Start game creates a separate cold career;
-Continue restores its IndexedDB save paused. Eight company assignments cover
+Free operation remains the default. Start game creates a separate cold career with
+its clock running; Continue/import/reconnect preserve the user's saved Pause choice.
+Only user commands change Pause; closed/hidden careers still never advance offline.
+Eight company assignments cover
 startup, reliability, condition rounds, pump service, water quality, filter/intake
 service and return to generation. New careers choose Easy (Auto/Manual) or Hard
 (Manual only, enforced by the host model on every screen). Manual power tasks
@@ -53,7 +55,7 @@ rotor tolerances, pool records, and no offline advancement. Switching sessions
 ends pairing and clears local motion/audio; companions never tick a career.
 Keep accepting/reporting/import/export and new-career actions desktop owned.
 Company inbox/mission/finance summaries on companions are still planned.
-Save schema version 3 has tested version-1/2 migrations preserving old progress,
+Save schema version 4 has tested version-1/2/3 migrations preserving old progress,
 terms, heat/damage/trips and sampled rotor tolerance; older careers become Easy.
 Previous-revision recovery UI and career restart checkpoints remain planned.
 Add tested migrations before changing required saved fields or introducing
@@ -79,13 +81,17 @@ companions cannot manage orders/samples. Service remains free. Focused coverage:
 The fourth desktop tab, Computer systems, has a lazy 3D rack with no diagram or
 presentation selector. If 3D is unavailable, keep native unit inspection and
 maintenance buttons usable alongside a status message.
-`nuclear-power-computers-model.js` owns redundant process servers, network, UPS,
+`nuclear-power-computers-model.js` owns redundant process servers, an instrument server, network, UPS,
 cooling, boot and retained hardware faults. One online server plus network supports
 Auto; computing loss holds requested targets/suspends dispatch while independent
 Manual controls, instruments and ESD remain live. Hard never gains Auto. Rack
-power/diagnostics/maintenance are desktop-owned. All five targets reuse work
+power/diagnostics/maintenance are desktop-owned. All six targets reuse work
 orders with hardware-specific OFF/cool/redundancy/AC/fan interlocks and actual
-online proof. Preserve schema-3 rack state and explicit v1→v2→v3 migrations,
+online proof. The instrument server and network must be online for the six main
+plant instruments; cold/reset displays show OFF with a darkened screen style.
+Local inspections, Manual controls and ESD remain independent. Servers, switch and
+UPS have activity LEDs on the shared frame loop; pause/offscreen freeze them and
+reduced motion uses steady lamps. Preserve schema-4 rack state and explicit v1→v2→v3→v4 migrations,
 companion prototypes, shared frame ownership, offscreen suspension, reduced motion,
 separate camera, keyboard picking, floating-window focus and GPU disposal/reconnect.
 Use `npm run test:browser:computers` during iteration; the full browser harness

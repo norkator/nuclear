@@ -41,8 +41,9 @@ The standalone repository is https://github.com/norkator/nuclear. Source, tests,
 Docker files and deployment workflow now live at its root, independently of the
 Pörssiohjain Spring project. The external desktop link remains unchanged.
 
-Free operation is still the default. Start game creates a separate cold career;
-Continue game restores a local save paused. New careers choose Easy (Auto or
+Free operation is still the default. Start game creates a separate cold career
+with its clock running. Continue/import/reconnect preserve the user's Pause choice.
+New careers choose Easy (Auto or
 Manual) or Hard (Manual only, enforced at the host command boundary). Eight
 assignments cover startup (200 ± 5 gross MW for 30 seconds after explicit Start),
 five reliable minutes, condition rounds, pump A service, water quality,
@@ -66,7 +67,8 @@ the career and restores the free plant retained on this page. Session changes
 end pairing and stop old audio/motion; companion plant commands remain host owned.
 Schema-1 saves migrate through schema 2 with healthy new water systems and Easy
 difficulty; schema-1/2 saves then migrate to schema 3 with a healthy computer
-rack, preserving existing plant/progress/issued requirements. New saves
+rack, preserving existing plant/progress/issued requirements. Schema 3→4 adds the
+instrument server without changing existing rack units. New saves
 retain water inventories, inspection/sample records, work-order stages and test
 time. Reset demo is unavailable in Career. Money, bankruptcy and further assignments are
 planned in [GAMEPLAY-PLAN.md](../GAMEPLAY-PLAN.md), not implemented yet.
@@ -117,7 +119,7 @@ layout, not a Chernobyl/RBMK simulation or a validated model of any named reacto
 type. It starts stopped with Auto → Electrical output selected (200 MW target).
 Connect external grid or manually start a diesel first; all sources start OFF,
 with diesel standby disabled and turbine feed isolated. Then explicitly switch
-on rack cooling, network and a process server in Computer systems; wait five
+on rack cooling, network, a process server and the plant instrument server in Computer systems; wait five
 plant seconds for boot. An online server and control network are required for
 reactor Start in both Auto and Manual. Restoring AC never starts the rack.
 During computing loss, independent Manual controls and ESD remain available. Start at least one primary and one secondary
@@ -1065,34 +1067,40 @@ These are illustrative UI interlocks, not a real refuelling procedure.
 ## Computer systems rack
 
 The fourth desktop plant tab contains a dedicated 3D rack with process servers A/B,
-a control-network switch, UPS and cooling tray. The rack has only a 3D presentation.
+a plant instrument server, control-network switch, UPS and cooling tray. The rack has only a 3D presentation.
 Each unit opens a shared movable inspection window with actual state, boot,
 temperature/hours, diagnostics and explicit work-order actions. Keyboard unit
 buttons remain available even if 3D is unavailable; the rack camera is independent of the
 plant camera. Renderer creation is lazy, and drawing/fan poses use the console's
 existing visibility-aware frame loop. A dedicated latest-record-wins observer
-suspends offscreen rack work. Pause/reduced motion freeze fan poses; hiding and
+suspends offscreen rack work. Server drive lights, network ports and UPS indicators
+blink while powered/enabled using the same frame loop, even with fans stopped.
+Pause/offscreen freeze activity; reduced motion uses steady LEDs and frozen fans. Hiding and
 detach clean up windows, observer and GPU resources, and reconnect rebuilds them.
 
 The pure model follows plant time across tabs. One server and the network support
 normal regulation and is required for explicit reactor Start in both modes; total
 computing loss holds automatic targets and suspends grid dispatch, without
-automatically starting, stopping, tripping or resetting the reactor. Manual controls, essential
-instruments and emergency shutdown remain independent. Hard continues to disallow
+automatically starting, stopping, tripping or resetting the reactor. Manual controls, local
+inspection readings and emergency shutdown remain independent. The six main instrument
+cards require the instrument server and network online. Their cold/reset state is OFF;
+outages hide live numbers, meters, status indications and motion behind a darkened
+screen style in both themes. Powering and booting restores actual current readings.
+Instrument-server loss does not suspend process regulation. Hard continues to disallow
 Auto. Servers/network boot for five plant seconds after being enabled or restored
 from power loss. The rack UPS bridges AC loss for 120 fictional full-health seconds,
 then recharges over 180 seconds from AC. Pump AC is unchanged. Cooling filter load
 and fan health affect airflow and rack temperature; hardware overheating at 70 °C
 latches a unit fault until explicit service. Healthy defaults preserve normal play.
 
-All five rack targets reuse planned/isolate/service/test/return work orders.
+All six rack targets reuse planned/isolate/service/test/return work orders.
 Hardware service needs the selected unit OFF/offline and below 45 °C. A running
-plant additionally needs the other process server online for server work;
+plant additionally needs the other process server online for process-server work;
 network service requires Manual or a stopped reactor; UPS service requires AC
 bypass; cooling service requires fan coast-down below 0.5%. After release,
 explicitly power ON and prove ten actual continuous seconds below 60 °C with the
 required airflow/UPS readiness. Diagnostics record actual values and never repair.
-Existing heat, fuel, plant settings and trips are preserved. Schema-3 saves and
+Existing heat, fuel, plant settings and trips are preserved. Schema-4 saves and
 companion snapshots retain rack state/prototypes; only the desktop manages it.
 Run `npm run test:browser:computers` and the computer model tests for focused checks.
 
@@ -1173,7 +1181,8 @@ can carry all four pumps at full speed. Pump enabled states and
 speed requests remain separate from energized/actual speed. Without AC the pumps coast
 down and coolant animations slow, even if their requested enable state is still on.
 Restoring power ramps the requested pumps back up but never resets a trip or restarts
-the reactor. Essential instruments retain an independent, idealized DC supply.
+the reactor. Local inspections retain independent read-back; main instrument cards
+require the instrument server and control network (the rack UPS can bridge AC loss).
 The operational computer rack has its own modeled UPS capacity and charging;
 it never supplies coolant-pump motors.
 
@@ -1301,7 +1310,7 @@ See the Nuclear README for deployment details and limitations.
   and records inbox messages, reports, capabilities and achievements.
 - `src/simulation/nuclear-power-game.js` and its CSS provide game entry, company UI,
   session switching, save orchestration and one-tab ownership.
-- `src/simulation/nuclear-power-game-save.js` defines schema-3 full-state saves, version-1/2 migrations and
+- `src/simulation/nuclear-power-game-save.js` defines schema-4 full-state saves, version-1/2/3 migrations and
   IndexedDB revisions; do not replace this with a companion transport snapshot.
 - `src/App.tsx` mounts the console through React, independently of Vaadin.
 - `src/simulation/nuclear-power.js` renders the native custom element, SVG

@@ -1043,7 +1043,7 @@ export class NuclearPowerConsole extends HTMLElement {
         const active = this.isConnected && this.intersecting && !document.hidden && !this.simulation.paused && (!this.companion || this.remoteReady);
         const remoteOperator = this.sessionStatus === 'connected' && this.connectedActiveScreens > 0;
         const clockActive = !this.companion && this.isConnected && !this.simulation.paused && (active || remoteOperator)
-            && (!this.game?.career || this.game.owner);
+            && (!this.game?.career || this.game.owner && !this.game.attaching);
         this.computerConsole?.scene?.setVisible(this.computerConsole.canDraw());
         this.equipmentStations?.syncVisibility();
         if (!this.stationAudioVisible()) {
@@ -1132,6 +1132,7 @@ export class NuclearPowerConsole extends HTMLElement {
 
     drawInstrumentMotion(seconds = 0) {
         const sim = this.simulation;
+        if (!sim.computers.instrumentsAvailable) return;
         const nodes = this.instrumentMotionNodes ||= {
             cards: Object.fromEntries([...this.shadowRoot.querySelectorAll('[data-instrument]')].map(card => [card.dataset.instrument, card])),
             wisps: [...this.shadowRoot.querySelectorAll('.metric-heat-wisp')],
@@ -1556,11 +1557,15 @@ export class NuclearPowerConsole extends HTMLElement {
         const turbine = sim.components.turbineIntegrity;
         const electricalCard = this.shadowRoot.querySelector('.electrical-metric');
         electricalCard.dataset.integrity = turbine.level;
-        electricalCard.title = `Turbine rating ${TURBINE_RATING_MW} MW · rotor load ${n(turbine.load)}% · blade damage ${n(turbine.damage, 1)}% · service wear ${n(turbine.wear, 2)}%`;
+        electricalCard.title = sim.computers.instrumentsAvailable ? `Turbine rating ${TURBINE_RATING_MW} MW · rotor load ${n(turbine.load)}% · blade damage ${n(turbine.damage, 1)}% · service wear ${n(turbine.wear, 2)}%` : 'Instruments OFF. Power the plant instrument server and control network in Computer systems.';
         values.turbineCondition = turbine.damage >= 100 ? 'ROTOR DESTROYED' : turbine.damage > 0 ? `BLADE DAMAGE ${n(turbine.damage, 1)}%` : turbine.serviceDue ? 'MAINTENANCE DUE' : turbine.load > 100 ? 'ABOVE RATED LOAD' : turbine.level === 'warning' ? 'NEAR RATED LOAD' : 'TURBINE NORMAL';
         values.turbineWear = `${n(turbine.wear, 2)}% wear`;
+        this.dataset.instruments = String(sim.computers.instrumentsAvailable);
         for (const element of this.shadowRoot.querySelectorAll('[data-value]')) {
-            if (values[element.dataset.value] !== undefined && element.textContent !== values[element.dataset.value]) element.textContent = values[element.dataset.value];
+            const value = !sim.computers.instrumentsAvailable && element.closest('.metrics')
+                ? element.closest('.metric-reading') ? 'OFF' : element.closest('.flow-pressure') ? 'INSPECT' : ''
+                : values[element.dataset.value];
+            if (value !== undefined && element.textContent !== value) element.textContent = value;
         }
         this.shadowRoot.querySelector('#follow-grid').checked = sim.gridDispatch.enabled;
         this.shadowRoot.querySelector('[data-action="grid-request"]').disabled = !sim.gridDispatch.readiness(sim).ready;

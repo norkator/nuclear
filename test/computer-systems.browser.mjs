@@ -24,6 +24,18 @@ export async function checkComputerSystems({ consoleCode, action, input, page, u
     assert.equal(await consoleCode('return s.querySelector("[data-computer-view], .computer-rack-diagram");'), null, 'Rack has only the 3D presentation');
     await ready('c.computerConsole.scene?.width>0 && c.computerConsole.visible', '3D rack sized and visible');
     assert.ok(await consoleCode('return c.computerConsole.scene.renderer.info.render.calls>0;'), 'Real rack meshes rendered');
+    for (const id of ['serverA', 'serverB', 'instrumentServer', 'rackSwitch', 'rackUps']) {
+        const lamps = await consoleCode(`return c.computerConsole.scene.units.get('${id}').activity.map(lamp=>lamp.emissiveIntensity);`);
+        await ready(`JSON.stringify(c.computerConsole.scene.units.get('${id}').activity.map(lamp=>lamp.emissiveIntensity))!==${JSON.stringify(JSON.stringify(lamps))}`, `${id} activity lights blink on the shared frame clock`);
+    }
+    await open('instrumentServer');
+    assert.equal(await consoleCode('return s.querySelector("[data-computer-prefer]").hidden;'), true, 'Instrument server has no process-duty control');
+    await click('[data-computer-close]');
+    // Rack activity continues with fans stopped, without its own animation timer.
+    await click('[data-computer-power=rackCooling]'); await advance(12);
+    const lightTime = await consoleCode('return c.computerConsole.activityTime;');
+    await ready(`c.computerConsole.activityTime>${lightTime}`, 'Activity lights animate with stopped rack fans');
+    await click('[data-computer-power=rackCooling]');
     await waitForConsoleLayout(consoleCode, 'Rack drag geometry');
     const rackPose = () => consoleCode('const view=c.computerConsole.scene,point=view.units.get("serverA").group.position.clone();point.z=1.04;point.project(view.camera);return {x:point.x,y:point.y,pitch:view.pitch};');
     for (const [dx, dy] of [[80, 0], [-80, 0], [0, 40]]) {
@@ -45,9 +57,11 @@ export async function checkComputerSystems({ consoleCode, action, input, page, u
             await consoleCode(`c.setTheme('${theme}');`);
             await waitForConsoleLayout(consoleCode, 'Computer rack shell');
             await ready('c.computerConsole.scene.width===s.querySelector(".computer-rack-scene").clientWidth', 'Rack renderer resized');
-            const geometry = await consoleCode('const rect=n=>{const r=s.querySelector(n).getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height};};return {panel:rect("#computers-panel"),rack:rect(".computer-rack-viewport"),list:rect(".computer-unit-list"),footer:rect(".console-footer")};');
+            const geometry = await consoleCode('const rect=n=>{const r=s.querySelector(n).getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height};};return {panel:rect("#computers-panel"),rack:rect(".computer-rack-viewport"),list:rect(".computer-unit-list"),note:rect(".computer-note"),footer:rect(".console-footer")};');
             assert.ok(geometry.rack.width > 100 && geometry.rack.height > 200);
             assert.ok(geometry.rack.right <= geometry.list.left, 'Rack and unit controls do not overlap');
+            assert.ok(geometry.rack.bottom <= geometry.note.top && geometry.list.bottom <= geometry.note.top, `Rack and scrollable unit list stay above the instructions: ${JSON.stringify(geometry)}`);
+            assert.ok(await consoleCode('const list=s.querySelector(".computer-unit-list");list.scrollTop=list.scrollHeight;const last=list.lastElementChild.getBoundingClientRect(),r=list.getBoundingClientRect();const reachable=last.bottom<=r.bottom+1;list.scrollTop=0;return reachable;'), 'All six rack unit controls remain reachable');
             assert.ok(geometry.panel.bottom <= geometry.footer.top, 'Computer tab fits the remaining viewport');
             await screenshot(`computer-rack-${width}-${theme}`);
         }
@@ -78,6 +92,22 @@ export async function checkComputerSystems({ consoleCode, action, input, page, u
     await action('pumpA'); await action('pumpB'); await advance(8);
     await consoleCode('c.simulation.setGridDispatchEnabled(false);c.update();');
     await action('start'); await advance(150);
+    await click('[data-computer-power=instrumentServer]');
+    assert.equal(await consoleCode('return c.simulation.computers.automationAvailable && c.simulation.running;'), true, 'Instrument shutdown does not stop generation or process computing');
+    assert.ok(await consoleCode('return [...s.querySelectorAll(".metrics .metric-reading [data-value]")].every(node=>node.textContent==="OFF");'), 'All six main instruments show OFF, without stale readings');
+    assert.ok(await consoleCode('return c.computerConsole.scene.units.get("instrumentServer").activity.every(lamp=>lamp.emissiveIntensity===0);'), 'OFF server has no activity lights');
+    const offMotion = await consoleCode('return {...c.instrumentMotion};'); await advance(3);
+    assert.deepEqual(await consoleCode('return {...c.instrumentMotion};'), offMotion, 'Unpowered instruments stop their motion');
+    for (const theme of ['dark', 'light']) {
+        await consoleCode(`c.setTheme('${theme}');`);
+        assert.ok(await consoleCode('return getComputedStyle(s.querySelector(".thermal-metric .metric-motion")).visibility==="hidden" && getComputedStyle(s.querySelector(".core-temperature-metric")).animationName==="none";'), 'OFF screen hides machinery motion and status animations');
+        await screenshot(`computer-instruments-off-${theme}`);
+    }
+    await click('[data-computer-power=instrumentServer]');
+    assert.equal(await consoleCode('return c.dataset.instruments;'), 'false', 'Instruments wait for boot');
+    await advance(6);
+    assert.equal(await consoleCode('return c.dataset.instruments;'), 'true');
+    assert.ok(await consoleCode('return [...s.querySelectorAll(".metrics .metric-reading [data-value]")].every(node=>node.textContent!=="OFF");'), 'Online instruments restore current actual readings');
     await open('rackSwitch'); await click('[data-computer-toggle]'); await advance(1);
     assert.equal(await consoleCode('return s.querySelector("[data-action=auto]").disabled;'), true);
     assert.equal(await consoleCode('return c.simulation.running && !c.simulation.tripped;'), true);
@@ -93,6 +123,7 @@ export async function checkComputerSystems({ consoleCode, action, input, page, u
     await page('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
     const phase = await consoleCode('return c.computerConsole.phase;'); await advance(2);
     assert.equal(await consoleCode('return c.computerConsole.phase;'), phase, 'Reduced motion keeps rack fan pose still');
+    assert.ok(await consoleCode('return [...c.computerConsole.scene.units.values()].every(unit=>unit.activity.every(lamp=>lamp.emissiveIntensity>.5));'), 'Reduced motion uses steady activity lamps');
     await page('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] });
     await page('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
     await waitForConsoleLayout(consoleCode, 'Mobile computer rack');
@@ -106,8 +137,10 @@ export async function checkComputerSystems({ consoleCode, action, input, page, u
     assert.equal(await consoleCode('return c.computerConsole.scene.renderer.info.render.frame;'), hiddenFrames);
     await consoleCode('s.querySelector(".computer-rack-viewport").scrollIntoView({block:"center"});');
     await ready('c.computerConsole.visible', 'Rack resumes on return');
-    await action('pause'); const pausedPhase = await consoleCode('return c.computerConsole.phase;'); await advance(10);
+    await action('pause'); const pausedPhase = await consoleCode('return c.computerConsole.phase;');
+    const pausedLights = await consoleCode('return c.computerConsole.activityTime;'); await advance(10);
     assert.equal(await consoleCode('return c.computerConsole.phase;'), pausedPhase);
+    assert.equal(await consoleCode('return c.computerConsole.activityTime;'), pausedLights, 'Pause freezes light activity');
     await consoleCode('window.oldRack=c.computerConsole.scene;window.retainedRackConsole=c;c.remove();document.querySelector(".nuclear-power-view").append(c);');
     assert.equal(await consoleCode('return window.oldRack.disposed;'), true);
     await ready('c.computerConsole.scene && c.computerConsole.scene!==window.oldRack', 'Reconnection rebuilds disposed rack resources');
@@ -129,15 +162,18 @@ async function checkColdRack({ consoleCode, action, tab, click, advance }) {
     assert.equal(await consoleCode('return c.simulation.supply.factor;'), 0, JSON.stringify(await consoleCode('return {supply:c.simulation.supply,events:c.simulation.events.slice(-8)};')));
     assert.ok(await consoleCode('return c.simulation.supply.generators.every(g=>g.state==="STOPPED"&&!g.automatic) && Object.values(c.simulation.computers.units).every(u=>!u.enabled&&!u.online);'));
     assert.equal(await consoleCode('return c.simulation.alarms.length;'), 0, 'Cold OFF systems are not failed systems');
+    assert.equal(await consoleCode('return c.dataset.instruments;'), 'false');
+    assert.equal(await consoleCode('return s.querySelectorAll(".metrics .metric-reading [data-value]").length;'), 6);
+    assert.ok(await consoleCode('return [...s.querySelectorAll(".metrics .metric-reading [data-value]")].every(node=>node.textContent==="OFF");'), 'New sessions start with all instrument displays OFF');
     await action('pause');
     await tab('computers');
-    assert.equal(await consoleCode('return s.querySelectorAll(".computer-quick-power:disabled").length;'), 5, 'Cold rack switches wait for an actual power source');
+    assert.equal(await consoleCode('return s.querySelectorAll(".computer-quick-power:disabled").length;'), 6, 'Cold rack switches wait for an actual power source');
     await consoleCode('c.simulation.supply.setGrid(c.simulation,true);c.update();');
     assert.equal(await consoleCode('return s.querySelectorAll(".computer-quick-power:disabled").length;'), 0);
     assert.equal(await consoleCode('return s.querySelectorAll(".computer-quick-power[aria-checked=true]").length;'), 0, 'Restoring AC never starts computers');
-    for (const id of ['rackCooling', 'rackSwitch', 'serverA', 'serverB', 'rackUps']) await click(`[data-computer-power="${id}"]`);
+    for (const id of ['rackCooling', 'rackSwitch', 'serverA', 'serverB', 'instrumentServer', 'rackUps']) await click(`[data-computer-power="${id}"]`);
     assert.equal(await consoleCode('return s.querySelector(".computer-dialog").matches(":popover-open");'), false, 'Quick power does not open a dialog');
-    assert.equal(await consoleCode('return s.querySelectorAll(".computer-quick-power[aria-checked=true]").length;'), 5);
+    assert.equal(await consoleCode('return s.querySelectorAll(".computer-quick-power[aria-checked=true]").length;'), 6);
     assert.equal(await consoleCode('return c.simulation.computers.automationAvailable;'), false);
     await action('pause'); await advance(6);
     assert.equal(await consoleCode('return c.simulation.computers.automationAvailable;'), true, 'Native card switches boot real hardware on plant time');

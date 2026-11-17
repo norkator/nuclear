@@ -6,11 +6,12 @@
 import * as THREE from 'three';
 
 export const RACK_SLOTS = [
-    { id: 'rackCooling', y: 6.7, height: .7 },
-    { id: 'rackSwitch', y: 5.7, height: .65 },
-    { id: 'serverA', y: 4.45, height: 1.05 },
-    { id: 'serverB', y: 3.05, height: 1.05 },
-    { id: 'rackUps', y: 1.35, height: 1.5 },
+    { id: 'rackCooling', y: 7.05, height: .55 },
+    { id: 'rackSwitch', y: 6.25, height: .65 },
+    { id: 'serverA', y: 5.2, height: .9 },
+    { id: 'serverB', y: 4, height: .9 },
+    { id: 'instrumentServer', y: 2.8, height: .9 },
+    { id: 'rackUps', y: 1.15, height: 1.45 },
 ];
 const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
 
@@ -79,6 +80,12 @@ export class ComputerRackScene {
             }
             const lamp = this.material('#59d8b0', { emissive: '#59d8b0', emissiveIntensity: .55 });
             this.mesh(group, new THREE.SphereGeometry(.06, 8, 6), lamp, 1.13, height * .2, 1.02);
+            const activity = [];
+            const activityLamp = (width, height, x, y, z) => {
+                const material = this.material('#59d8b0', { emissive: '#59d8b0', emissiveIntensity: 0 });
+                activity.push(material); this.box(group, width, height, .03, material, x, y, z);
+            };
+            let display;
             const fans = [];
             if (id === 'rackCooling') {
                 for (const x of [-.65, .65]) {
@@ -92,27 +99,29 @@ export class ComputerRackScene {
             } else if (id === 'rackSwitch') {
                 for (let index = 0; index < 12; index++) {
                     this.box(group, .12, .1, .04, this.trim, -1.05 + index * .16, -.04, 1.01);
-                    this.box(group, .035, .025, .05, lamp, -1.05 + index * .16, .08, 1.02);
+                    activityLamp(.035, .025, -1.05 + index * .16, .08, 1.02);
                 }
             } else if (id === 'rackUps') {
-                this.box(group, .6, .38, .04, this.material('#486a74', { emissive: '#164e52', emissiveIntensity: .3 }), -.75, .25, 1.01);
+                display = this.material('#486a74', { emissive: '#164e52', emissiveIntensity: 0 });
+                this.box(group, .6, .38, .04, display, -.75, .25, 1.01);
+                for (let index = 0; index < 3; index++) activityLamp(.065, .045, -.92 + index * .16, -.08, 1.03);
                 for (let row = 0; row < 6; row++) this.box(group, 1.7, .025, .03, this.trim, .25, -.1 - row * .07, 1.02);
             } else {
                 for (let drive = 0; drive < 8; drive++) {
                     const x = -.98 + (drive % 4) * .51, dy = drive < 4 ? .15 : -.18;
                     this.box(group, .45, .25, .06, this.bodyMaterial, x, dy, 1.01);
                     this.box(group, .26, .025, .025, this.trim, x, dy, 1.06);
-                    this.box(group, .025, .035, .03, lamp, x + .18, dy, 1.06);
+                    activityLamp(.045, .05, x + .18, dy, 1.06);
                 }
             }
-            this.units.set(id, { group, face, lamp, fans });
+            this.units.set(id, { group, face, lamp, fans, activity, display });
         }
         // Visible patch leads and the rear power distribution strip.
         const cableColours = ['#4bb6c5', '#d5a553', '#78b58d'];
         for (let index = 0; index < 3; index++) {
-            const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(.6 + index * .2, 5.65, 1.12),
-                new THREE.Vector3(1.8 + index * .13, 5.5, 1.2), new THREE.Vector3(1.8 + index * .13, 3.1 + index * .6, .5),
-                new THREE.Vector3(1.45, 3.1 + index * .6, .5)]);
+            const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(.6 + index * .2, 6.25, 1.12),
+                new THREE.Vector3(1.8 + index * .13, 6, 1.2), new THREE.Vector3(1.8 + index * .13, 2.8 + index * 1.2, .5),
+                new THREE.Vector3(1.45, 2.8 + index * 1.2, .5)]);
             this.mesh(this.scene, new THREE.TubeGeometry(curve, 16, .025, 5, false), this.material(cableColours[index]));
         }
         this.box(this.scene, .22, 6.9, .24, this.dark, 1.75, 3.7, -.8);
@@ -165,13 +174,22 @@ export class ComputerRackScene {
         Object.assign(this.camera, { left: -half * aspect, right: half * aspect, top: half, bottom: -half });
         this.camera.updateProjectionMatrix(); this.render();
     }
-    update(computers, selected, theme, phase) {
+    update(computers, selected, theme, phase, activityTime = 0, reducedMotion = false) {
         if (this.disposed || !this.visible) return;
         const light = theme === 'light';
         this.floor.color.set(light ? '#c1cdd3' : '#162b39'); this.frameMaterial.color.set(light ? '#6a7d87' : '#486170');
         for (const [id, mesh] of this.units) {
             const unit = computers.units[id], colour = unit.fault ? '#ef6c58' : !unit.online ? '#637585' : computers.status(id).includes('LOW') ? '#e8b764' : '#59d8b0';
             mesh.lamp.color.set(colour); mesh.lamp.emissive.set(colour); mesh.lamp.emissiveIntensity = unit.online || unit.fault ? .55 : 0;
+            const powered = computers.powered && unit.enabled && !unit.fault;
+            for (const [index, lamp] of mesh.activity.entries()) {
+                const lit = powered && (reducedMotion || (activityTime * (id === 'rackSwitch' ? 2.3 : 1.4) + index * .19 + RACK_SLOTS.findIndex(slot => slot.id === id) * .13) % 1 < .42);
+                lamp.color.set(lit ? '#87efb5' : '#233c36'); lamp.emissiveIntensity = lit ? .85 : 0;
+            }
+            if (mesh.display) {
+                mesh.display.color.set(powered ? '#486a74' : '#192c36');
+                mesh.display.emissiveIntensity = powered ? .3 : 0;
+            }
             mesh.face.color.set(id === selected ? '#4d7e8d' : light ? '#647c89' : '#385665');
             for (const fan of mesh.fans) fan.rotation.z = phase;
         }

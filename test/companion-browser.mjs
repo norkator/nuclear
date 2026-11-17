@@ -17,7 +17,9 @@ import { waitForChrome } from './chrome-startup.mjs';
 import { waitForConsoleLayout } from './console-layout.browser.mjs';
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-test('desktop and companion share controls, grid/core readings and lifecycle across browser windows', { timeout: 120_000 }, async () => {
+// Desktop software-WebGL resizes plus the complete companion/pairing lifecycle
+// can exceed two minutes. Individual readiness waits remain independently bounded.
+test('desktop and companion share controls, grid/core readings and lifecycle across browser windows', { timeout: 180_000 }, async () => {
     const artifacts = mkdtempSync(join(tmpdir(), 'nuclear-companion-check-'));
     console.log(`Companion browser artifacts: ${artifacts}`);
     const dist = fileURLToPath(new URL('../dist/', import.meta.url));
@@ -242,6 +244,14 @@ test('desktop and companion share controls, grid/core readings and lifecycle acr
         await tablet.action('select-control-rod');
         await tablet.code('s.querySelector("[data-companion-view=grid]").click();');
         await host.code(`(${commissionPlant.toString()})(c.simulation);c.update();`);
+        await tablet.until('c.simulation.computers.instrumentsAvailable && c.dataset.instruments==="true"', 'Companion hydrates the online instrument server');
+        await host.code('c.simulation.setComputerEnabled("instrumentServer",false);c.update();');
+        await tablet.until('!c.simulation.computers.instrumentsAvailable && c.dataset.instruments==="false"', 'Instrument-server shutdown switches companion instruments OFF');
+        assert.ok(await tablet.code('return [...s.querySelectorAll(".metrics .metric-reading [data-value]")].every(node=>node.textContent==="OFF");'), 'Companion instruments hide unavailable readings');
+        await tablet.code('c.simulation.setComputerEnabled("instrumentServer",true);');
+        assert.equal(await host.code('return c.simulation.computers.units.instrumentServer.enabled;'), false, 'Companions cannot power instrument hardware');
+        await host.code('c.simulation.setComputerEnabled("instrumentServer",true);for(let i=0;i<24;i++)c.simulation.tick(.25);c.update();');
+        await tablet.until('c.simulation.computers.instrumentsAvailable && c.dataset.instruments==="true"', 'Companion instruments restore after host boot');
         await tablet.action('pumpA'); await tablet.action('pumpB');
         await host.until('c.simulation.pumpA && c.simulation.pumpB', 'Remote pump switches reach desktop');
         await host.code('c.simulation.setAutoMode(false);for(const id of Object.keys(c.simulation.computers.units))c.simulation.setComputerEnabled(id,false);for(let i=0;i<32;i++)c.simulation.tick(.25);c.update();');

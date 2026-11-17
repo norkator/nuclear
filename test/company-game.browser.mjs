@@ -28,7 +28,10 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
     assert.ok(await consoleCode('return s.querySelector(".game-page").textContent.includes("Your plant manager");'));
     await gameAction('begin');
     await ready('c.game.career && c.game.hasSave && !c.game.busy', 'New career saved');
-    assert.equal(await consoleCode('return c.simulation.paused && !c.simulation.running && !c.simulation.pumpA;'), true);
+    assert.equal(await consoleCode('return !c.simulation.paused && !c.simulation.running && !c.simulation.pumpA;'), true);
+    assert.equal(await consoleCode('return s.querySelector("[data-game-action=resume]").hidden;'), true, 'New career never needs Resume');
+    const startingTime = await consoleCode('return c.simulation.elapsed;');
+    await ready(`c.simulation.elapsed>${startingTime}`, 'New career clock advances without Resume');
     assert.ok(await consoleCode('return s.querySelector(".game-page").textContent.includes("Elena Ward");'));
     assert.equal(await consoleCode('return s.querySelector(".game-tasks").hidden;'), true, 'An unaccepted briefing does not show steps');
     await tab('assignments'); await gameAction('accept');
@@ -38,8 +41,6 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
     assert.ok(await consoleCode('return s.querySelector(".game-tasks").nextElementSibling.classList.contains("trend-panel");'), 'Steps sit directly above Live trends');
     assert.deepEqual(await steps(), { regulation: false, circulation: false, start: false, condition: false, hold: false });
     const pendingColor = await consoleCode('return getComputedStyle(s.querySelector(".game-task-list li")).color;');
-    await gameAction('resume');
-    await ready('!c.game.busy', 'Shift resumed');
     await consoleCode(`(${commissionPlant.toString()})(c.simulation);c.update();`);
     await consoleCode('s.querySelector("#follow-grid").checked=false;s.querySelector("#follow-grid").dispatchEvent(new Event("change",{bubbles:true}));');
     await action('pumpA'); await action('pumpB');
@@ -117,7 +118,7 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
     assert.equal(await consoleCode('return !!c.game.career;'), false, 'Reload starts free operation');
     await gameAction('continue');
     await ready('c.game.career && !c.game.busy', 'Career restored');
-    assert.equal(await consoleCode('return c.simulation.paused;'), true);
+    assert.equal(await consoleCode('return c.simulation.paused;'), true, 'Continue preserves an explicit user Pause');
     assert.deepEqual(await consoleCode('return {elapsed:c.simulation.elapsed,held:c.game.career.current.held,strength:c.simulation.components.turbineIntegrity.strength};'), saved);
     assert.equal(await consoleCode('return c.game.career.state.achievements.length;'), 1);
     assert.deepEqual(await steps(), savedSteps, 'Continue restores the checklist from saved plant and mission evidence');
@@ -190,7 +191,7 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
     // Detach/reconnect preserves the save and reacquires ownership before ticking.
     await consoleCode('window.retainedConsole=c;c.remove();document.querySelector("#root .nuclear-power-view").append(c);');
     await ready('c?.game.owner && !c.game.attaching', 'Reconnected element reacquires career lock');
-    assert.equal(await consoleCode('return c.simulation.paused;'), true);
+    assert.equal(await consoleCode('return c.simulation.paused;'), false, 'Detach/reconnect preserves the user clock choice');
     await gameAction('return'); await ready('!c.game.career', 'Finished career saved');
     // Hard policy is selected explicitly, survives Continue, and rejects Auto at the model boundary.
     await gameAction('start');
@@ -199,7 +200,8 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
     assert.equal(await consoleCode('return c.game.career.state.difficulty;'), 'hard');
     assert.equal(await consoleCode('return c.simulation.autoMode;'), false);
     assert.equal(await consoleCode('return s.querySelector("[data-action=auto]").disabled;'), true);
-    await acceptNext(); await gameAction('resume'); await ready('!c.game.busy', 'Hard shift resumed');
+    assert.equal(await consoleCode('return c.simulation.paused;'), false, 'Hard careers also begin without Pause');
+    await acceptNext();
     await consoleCode('c.simulation.supply.setGrid(c.simulation,true);c.update();');
     await consoleCode('c.simulation.setAutoMode(true);c.simulation.setGridDispatchEnabled(false);c.simulation.setLoad(49);c.update();');
     assert.equal(await consoleCode('return c.simulation.autoMode;'), false);
@@ -217,7 +219,9 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
     assert.ok(Object.values(await steps()).every(Boolean), 'Manual success remains verified after leaving the target');
     await gameAction('return'); await ready('!c.game.career', 'Hard career saved');
     await gameAction('continue'); await ready('c.game.career && !c.game.busy', 'Hard career continued');
-    assert.equal(await consoleCode('return c.simulation.paused && !c.simulation.autoAllowed && !c.simulation.autoMode;'), true);
+    assert.equal(await consoleCode('return !c.simulation.paused && !c.simulation.autoAllowed && !c.simulation.autoMode;'), true, 'Continue preserves the running clock choice');
+    const continuedTime = await consoleCode('return c.simulation.elapsed;');
+    await ready(`c.simulation.elapsed>${continuedTime}`, 'Continue clock advances without Resume');
     await gameAction('return'); await ready('!c.game.career', 'Hard career parked');
     await consoleCode('c.setTheme("dark");'); await action('reset');
 }
