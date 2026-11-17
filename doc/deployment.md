@@ -27,6 +27,13 @@ container. Only Nginx is published. It proxies `/session` with WebSocket upgrade
 to the relay's internal port 8081. No database, Spring service or account is needed.
 The existing static-only frontend container can still run without the optional
 relay; its local simulation works normally and screen pairing reports unavailable.
+
+The relay writes one line to stdout when a WebSocket client connects and one when
+it disconnects, with a timestamp, connection ID and peer address. Disconnects
+also include the desktop/companion/unpaired role and WebSocket close code. The
+peer address is the immediate proxy when running behind Nginx. Command and state
+traffic are not logged. View relay logs with `docker compose logs -f session-server`.
+
 Compose references the published frontend and backend images while retaining
 their local build definitions. The production workflow publishes both for
 `linux/amd64` and `linux/arm64`:

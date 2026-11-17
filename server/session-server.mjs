@@ -56,11 +56,12 @@ export function createSessionServer({ pairingLifetime = 10 * 60_000, hostGrace =
     };
 
     wss.on('connection', (socket, request) => {
+        const clientId = randomUUID(), address = request.socket.remoteAddress;
+        console.log(`[session] ${new Date(now()).toISOString()} Client connected id=${clientId} address=${address}`);
         socket.on('error', () => {});
         const authenticationTimeout = setTimeout(() => { if (!socket.roomId) socket.close(1008, 'Pairing timeout'); }, 15_000);
         socket.alive = true;
         socket.on('pong', () => { socket.alive = true; });
-        const address = request.socket.remoteAddress;
         let messageCount = 0, windowStart = now();
         socket.on('message', (data, binary) => {
             if (now() - windowStart >= 1000) { windowStart = now(); messageCount = 0; }
@@ -140,8 +141,10 @@ export function createSessionServer({ pairingLifetime = 10 * 60_000, hostGrace =
             room.pending.set(id, { socket, clientId: message.id, expiresAt: now() + 3000 });
             send(room.host, { type: 'command', id, command: message.command, generation: message.generation, hostClock: room.hostClock, hostMonotonic: room.hostMonotonic });
         });
-        socket.on('close', () => {
+        socket.on('close', code => {
             clearTimeout(authenticationTimeout);
+            const role = socket.host ? 'desktop' : socket.deviceId ? 'companion' : 'unpaired';
+            console.log(`[session] ${new Date(now()).toISOString()} Client disconnected id=${clientId} address=${address} role=${role} code=${code}`);
             const room = rooms.get(socket.roomId);
             if (!room) return;
             if (room.host === socket) { room.disconnectedAt = now(); room.pending.clear(); }
