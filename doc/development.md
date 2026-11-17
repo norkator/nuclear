@@ -57,6 +57,13 @@ day in `browser-failure-evidence`, excluding browser profiles.
 session tests. Game changes normally use `node --test test/nuclear-power-game.test.mjs`,
 `npm run build`, then `npm run test:browser:game`. Use the companion check when
 shared controls change.
+
+For continuation objectives and save compatibility, include
+`node --test test/nuclear-power-assignment-expansion.test.mjs`. The shared company
+browser journey operates all twenty-four assignments and checks that the original
+eight reports survive the continuation. Run browser harnesses separately when
+software WebGL rendering competes for resources; retain their existing assertions
+and readiness checks.
 The browser regression serves `dist/` on a temporary loopback port and tests the
 actual React production build, including responsive layouts, themes, dialogs,
 controls, exports, animations and cleanup, including 3D picking, zoom, view switching,

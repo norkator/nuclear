@@ -312,7 +312,7 @@ handling just to deliver this first financial/mission loop.
 For game work, from the root:
 
 ```sh
-node --test test/nuclear-power-game.test.mjs test/nuclear-power-grid.test.mjs test/nuclear-power-work.test.mjs
+node --test test/nuclear-power-game.test.mjs test/nuclear-power-assignment-expansion.test.mjs test/nuclear-power-grid.test.mjs test/nuclear-power-work.test.mjs
 npm run build
 npm run test:browser:game
 ```

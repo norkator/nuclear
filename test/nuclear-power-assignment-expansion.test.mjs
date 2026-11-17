@@ -279,6 +279,15 @@ test('a warned failure waits for eligible operation, occurs once, requires backu
     assert.equal(career.state.messages.filter(item => item.id.startsWith('failure:')).length, 1);
 });
 
+test('a cold restart establishes actual generation before the warned bearing clock advances', () => {
+    const sim = poweredSimulation(), career = careerAt('maintenance.warned-pump-failure', sim);
+    sim.setGridDispatchEnabled(false); sim.setElectricalTarget(250); sim.setAutoTargets(330, 100);
+    sim.togglePump('A'); sim.togglePump('B'); advance(sim, career, 8);
+    assert.equal(career.current.evidence.warned, 0);
+    sim.start(); advance(sim, career, 65);
+    assert.notEqual(career.current.evidence.failedAt, null, `${career.current.evidence.warned} eligible seconds; ${sim.electricalOutput} MW`);
+});
+
 test('malformed new objective evidence is rejected before hydration', () => {
     for (const [id, mutate] of [
         ['fuel.selective-outage', e => { e.targets[1].id = e.targets[0].id; }],
