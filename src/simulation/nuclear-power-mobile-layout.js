@@ -5,7 +5,7 @@
  */
 // Presentation only: all controls keep their original DOM, handlers and host model.
 const mobileQuery = '(max-width: 1100px) and (max-height: 600px) and (orientation: landscape) and (any-pointer: coarse)';
-const focusable = 'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, [tabindex="0"]';
+const focusable = 'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], summary, [tabindex="0"]';
 const attributes = ['popover', 'role', 'aria-modal', 'aria-labelledby', 'aria-hidden', 'hidden', 'inert'];
 
 export class MobileLayout {
@@ -85,13 +85,20 @@ export class MobileLayout {
         // Dismiss on click after the native touch sequence, preserving focus and
         // keeping the background inert throughout the complete press/release.
         document.addEventListener('pointerdown', event => {
+            cancelAnimationFrame(this.focusFrame); this.focusFrame = null;
+            this.dismissalFocus = null;
             this.backdropPress = null;
             if (!this.active) return;
             if (!this.current || event.button !== 0) return;
             const r = this.current.getBoundingClientRect();
             if (event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom) return;
             this.backdropPress = this.current;
+            event.stopImmediatePropagation();
         }, { capture: true, signal });
+        document.addEventListener('pointerup', event => {
+            if (this.active && this.current && this.backdropPress === this.current) event.stopImmediatePropagation();
+        }, { capture: true, signal });
+        document.addEventListener('pointercancel', () => { this.backdropPress = null; }, { signal });
         document.addEventListener('click', event => {
             if (!this.active || !this.current || this.backdropPress !== this.current) return;
             this.backdropPress = null;
@@ -99,14 +106,22 @@ export class MobileLayout {
             if (event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom) return;
             event.preventDefault(); event.stopImmediatePropagation(); this.close();
         }, { capture: true, signal });
-        document.addEventListener('keydown', event => this.keydown(event), { capture: true, signal });
+        document.addEventListener('keydown', event => {
+            if (!this.current) { this.dismissalFocus = null; cancelAnimationFrame(this.focusFrame); this.focusFrame = null; }
+            this.keydown(event);
+        }, { capture: true, signal });
         document.addEventListener('focusin', event => {
             const target = event.composedPath()[0];
             if (this.active && this.current && !this.current.contains(target)) this.focusCurrent();
+            else if (this.active && !this.current && this.dismissalFocus && target !== this.dismissalFocus && this.visible(this.dismissalFocus)) {
+                // A backdrop's delayed native focus must not land on the canvas.
+                // The next real pointer/key command releases this return target.
+                this.dismissalFocus.focus({ preventScroll: true });
+            }
         }, { signal });
         this.root.addEventListener('touchstart', event => this.touchStart(event), { passive: true, signal });
         this.root.addEventListener('touchend', event => this.touchEnd(event), { passive: false, signal });
-        this.root.addEventListener('touchcancel', () => { this.swipe = null; }, { passive: true, signal });
+        this.root.addEventListener('touchcancel', () => { this.swipe = null; this.backdropPress = null; cancelAnimationFrame(this.gestureFrame); }, { passive: true, signal });
         document.addEventListener('visibilitychange', () => { if (document.hidden) { cancelAnimationFrame(this.gestureFrame); cancelAnimationFrame(this.focusFrame); this.close(false); } }, { signal });
         this.reconcile();
     }
@@ -147,6 +162,7 @@ export class MobileLayout {
     leave() {
         cancelAnimationFrame(this.gestureFrame);
         cancelAnimationFrame(this.focusFrame);
+        this.dismissalFocus = null;
         this.close(false); this.swipe = null;
         for (const dialog of [...this.host.floatingDialogs]) this.host.closeFloatingDialog(dialog, false);
         for (const { node, marker } of this.moves.reverse()) { marker.replaceWith(node); }
@@ -194,6 +210,7 @@ export class MobileLayout {
 
     open(kind, trigger = this.root.activeElement) {
         if (!this.active) return;
+        this.dismissalFocus = null;
         if (kind === 'company') { this.host.game?.action(this.host.game.career ? 'open' : 'start'); return; }
         const node = this.surfaces.get(kind === 'parts' ? `parts-${this.host.plantTab}` : kind);
         if (!node) return;
@@ -217,6 +234,7 @@ export class MobileLayout {
 
     beforeDialog(dialog) {
         if (!this.active) return;
+        this.dismissalFocus = null;
         const trigger = this.root.activeElement;
         if (this.current !== dialog) this.close(false);
         this.closeOtherDialogs(dialog);
@@ -257,6 +275,7 @@ export class MobileLayout {
             let target = this.visible(trigger) ? trigger : null;
             if (!target) target = this.root.querySelector(`[data-mobile-open="${dialog?.classList.contains('game-dialog') ? 'company' : this.host.plantTab === 'reactor' ? 'more' : 'parts'}"]`);
             if (!this.visible(target)) target = this.root.querySelector('[data-mobile-back]:not([hidden])') || this.root.querySelector('[data-mobile-open="more"]');
+            this.dismissalFocus = target;
             target?.focus({ preventScroll: true });
         };
         apply();
@@ -338,6 +357,7 @@ export class MobileLayout {
 
     focusStation() {
         if (!this.active) return;
+        this.dismissalFocus = null;
         const target = this.host.plantTab === 'reactor' ? this.root.querySelector('.diagram-viewport') : this.root.querySelector('[data-mobile-back]');
         target.focus({ preventScroll: true });
     }
