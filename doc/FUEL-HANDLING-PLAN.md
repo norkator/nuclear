@@ -5,8 +5,9 @@ Licensed under the Pörssiohjain Personal Use License v1.0.
 -->
 # Fuel-handling design and continuation plan
 
-Requested 2026-11-10. Read `AGENTS.md` and `doc/nuclear-power.md` before
-continuing. This is a fictional browser-local two-loop plant; the RBMK reference
+Requested 2026-11-10. Read [AGENTS.md](../AGENTS.md) and
+[the plant specification](nuclear-power.md) before continuing. This is a fictional
+browser-local two-loop plant; the RBMK reference
 is for the appearance of the channel deck, not a change to reactor physics.
 
 ## Current scope and relationship to the company game
@@ -18,7 +19,7 @@ Career saves preserve current transfer/batch state, but there are no paid fuel
 tasks or authoritative purchase/service receipts yet.
 
 [GAMEPLAY-PLAN.md](GAMEPLAY-PLAN.md) is the company-game product plan and
-[doc/game-development.md](doc/game-development.md) is its current continuation
+[the game-development handoff](game-development.md) is its current continuation
 handoff. Their representative business-batch approach supersedes any earlier
 suggestion here that full physical inventory must precede all fuel gameplay.
 Before charging, decouple batch/receipt success from cosmetic frame/deposition

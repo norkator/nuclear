@@ -7,7 +7,7 @@ Licensed under the Pörssiohjain Personal Use License v1.0.
 
 Status: presentation feature implemented. The counts and screenshots below are
 historical tower-task evidence. The later standalone/game baseline is recorded in
-[doc/game-development.md](doc/game-development.md); this is not a pending game task.
+[the game-development handoff](game-development.md); this is not a pending game task.
 
 ## User request
 
@@ -54,7 +54,8 @@ out of context/tokens.
   `inletTemperature` and `coolingFactor`.
 - `test/nuclear-power-rendering.test.mjs`: headless scene geometry/particle tests.
 - `test/equipment-browser.mjs`: focused UI regression entry point.
-- Read `doc/nuclear-power.md` and supplied AGENTS guidance before changes.
+- Read [the plant specification](nuclear-power.md) and root [AGENTS.md](../AGENTS.md)
+  before changes.
 
 ## Verification and status
 
@@ -88,7 +89,7 @@ npm run test:browser:equipment
 
 Worktree was clean before this task. Avoid replaying the full browser suite for
 this focused addition or documentation edits. The current plant specification is
-[doc/nuclear-power.md](doc/nuclear-power.md).
+[the plant specification](nuclear-power.md).
 
 Reference for the water arrangement:
 https://www.eia.gov/todayinenergy/detail.php?id=14971

@@ -13,7 +13,7 @@ been removed from the Java application. Both locale bundles deliberately retain
 the name **Nuclear Power**. No account login or backend connection is required by
 the standalone simulation. An optional Docker WebSocket relay pairs companion
 browsers with an existing desktop session; plant calculations remain in that
-desktop browser. See [companion setup](../README.md#companion-console-and-docker-session-backend).
+desktop browser. See [companion setup](deployment.md#companion-console-and-docker-session-backend).
 
 The homepage is a static landing page with Nuclear reactor and Companion screen
 cards above the introductory SEO/guide content. Separate `/reactor/` and
@@ -33,7 +33,7 @@ trigger; manual main runs verify only, and other branches skip the jobs.
 The test gate includes companion
 pairing checks, and QEMU supports the backend’s ARM64 dependency installation.
 The workflow does not configure DNS/TLS or deploy the images.
-See [local development and deployment](../README.md).
+See [local development](development.md) and [deployment](deployment.md).
 
 ## Optional company game: operations and maintenance
 
@@ -71,7 +71,7 @@ rack, preserving existing plant/progress/issued requirements. Schema 3→4 adds 
 instrument server without changing existing rack units. New saves
 retain water inventories, inspection/sample records, work-order stages and test
 time. Reset demo is unavailable in Career. Money, bankruptcy and further assignments are
-planned in [GAMEPLAY-PLAN.md](../GAMEPLAY-PLAN.md), not implemented yet.
+planned in [GAMEPLAY-PLAN.md](GAMEPLAY-PLAN.md), not implemented yet.
 
 For the exact implementation, save schema/limitations, source map and next work,
 read [the game-development handoff](game-development.md). The 20-mission product
@@ -158,7 +158,7 @@ one illustration, without queueing the entire core. Starting/meltdown cancels
 an unfinished illustration; pause, hiding, tab/view switches and detach freeze
 it. Returning resumes; reduced motion/fallback places the sample immediately.
 Reset demo clears active motion and samples, including at T+0. The animation
-never changes heat, damage, trips, settings or the stopped state. See [the continuation plan](../FUEL-HANDLING-PLAN.md)
+never changes heat, damage, trips, settings or the stopped state. See [the continuation plan](FUEL-HANDLING-PLAN.md)
 for the user references, implementation checkpoint and future gameplay steps.
 
 Click the pool or **Spent fuel ↗** to open its movable, nonmodal window, also
@@ -554,7 +554,7 @@ frame clock, pause/reduced-motion/visibility behavior and GPU disposal. Tower an
 pipe picking, plus its keyboard-accessible CT-01 label, open the condenser
 station. The default camera includes the tower and plume. The river/tower are 3D
 presentation additions; the existing SVG condenser controls remain available.
-See [the cooling tower checkpoint](../COOLING-TOWER-PLAN.md). Focused checks:
+See [the cooling tower checkpoint](COOLING-TOWER-PLAN.md). Focused checks:
 `npm run test:browser:cooling`; equipment browser checks include these scenarios.
 
 The taller viewport starts at 120% zoom. Drag to orbit within bounded angles, use
@@ -606,7 +606,7 @@ Lazy renderers share the console frame clock, suspend offscreen/inactive work,
 freeze motion during pause/reduced motion, and dispose/rebuild on detach/reconnect.
 WebGL loss leaves native part inspection and controls usable. Companion station
 presets and saved careers are unchanged. See
-[the equipment-station plan](../EQUIPMENT-STATIONS-PLAN.md) and run
+[the equipment-station plan](EQUIPMENT-STATIONS-PLAN.md) and run
 `npm run test:browser:stations` for focused coverage.
 
 ## Loop temperatures, valves and flow
@@ -1159,7 +1159,7 @@ selected intersecting viewport, suspend motion on pause/reduced motion and relea
 GPU resources on detach. Electrical markers, switch contacts, fuel tanks and
 engine phases use actual supply/engine state. Its audio reuses diesel voices,
 stopping offscreen while UI feedback/alerts remain independent. There are no new
-saved fields, model clock or supply rules. Read [the implementation plan](../ELECTRICAL-GRID-PLAN.md)
+saved fields, model clock or supply rules. Read [the implementation plan](ELECTRICAL-GRID-PLAN.md)
 and run `npm run test:browser:grid` for focused coverage.
 
 The 3D toolbar offers **Labels: Off / Compact / Full**. New sessions default to

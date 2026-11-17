@@ -8,9 +8,34 @@ Licensed under the Pörssiohjain Personal Use License v1.0.
 This is the standalone English-only Nuclear Power React/Vite project. Source,
 tests, assets, Docker files and configuration live at the repository root.
 Read [doc/nuclear-power.md](doc/nuclear-power.md) before changing plant behavior
-and [GAMEPLAY-PLAN.md](GAMEPLAY-PLAN.md) before changing the company game.
+and [doc/GAMEPLAY-PLAN.md](doc/GAMEPLAY-PLAN.md) before changing the company game.
 Preserve unrelated worktree changes and the retained custom-element lifecycle.
 No Java, Spring, Vaadin login or parent repository checkout is required.
+
+## Documentation map
+
+At the start of every task, read [the documentation index](doc/README.md), then
+read the documents for the affected area before making changes. Current behavior
+is recorded in the plant specification and implementation handoffs; feature plans
+also describe future work and must not be treated as entirely implemented.
+
+| Area | Documentation |
+| --- | --- |
+| Controls, equipment and companion screens | [Control-room guide](doc/control-room-guide.md) |
+| Plant behavior and interlocks | [Plant specification](doc/nuclear-power.md) |
+| Company game, missions and saves | [Current implementation handoff](doc/game-development.md) and [product plan](doc/GAMEPLAY-PLAN.md) |
+| Development, tests and branch policy | [Development guide](doc/development.md) |
+| Docker, relay and reverse proxies | [Deployment guide](doc/deployment.md) |
+| Equipment stations and electrical grid | [Station plan](doc/EQUIPMENT-STATIONS-PLAN.md) and [grid plan](doc/ELECTRICAL-GRID-PLAN.md) |
+| Fuel handling and cooling tower | [Fuel-handling plan](doc/FUEL-HANDLING-PLAN.md) and [tower checkpoint](doc/COOLING-TOWER-PLAN.md) |
+| Landing pages, guides and search visibility | [SEO maintenance](doc/SEO.md) |
+| Audio generation and attribution | [Audio records in the index](doc/README.md#audio-records) |
+
+Keep only `README.md` and `AGENTS.md` as root-level Markdown files. Keep the README
+short and written for human readers; place detailed instructions and project plans
+under `doc/`. Update this map, the index and affected links when documentation
+moves. Audio notes and third-party attribution records stay beside their bundled
+assets under `public/audio/nuclear-power/`, with their existing licenses.
 
 ## Licensing
 
@@ -108,7 +133,8 @@ windows with their SVG cutaways hidden. Native controls work after WebGL loss.
 Direct inspection and companion controls retain their existing path. Preserve
 actual-state animation/damage, single frame ownership, four-pump identity,
 focus return, overview camera, fallback and GPU disposal/reconnect. Read
-`EQUIPMENT-STATIONS-PLAN.md`; use `npm run test:browser:stations` during iteration.
+[the equipment-station plan](doc/EQUIPMENT-STATIONS-PLAN.md); use
+`npm run test:browser:stations` during iteration.
 Its checks are shared by equipment and full browser runs. No save/model changes.
 
 Station ambience shares Enable/Mute plant sounds. `nuclear-power-station-audio.js`
@@ -201,7 +227,8 @@ reconnect/revocation and local motion/audio cleanup. A visible paired companion
 may keep the desktop clock active while its local rendering is hidden; otherwise
 preserve the existing visibility rules. Run `npm run test:browser:companion` for
 focused pairing and shared-control checks. `compose.yml` builds both the
-Nginx frontend and non-root relay for Ubuntu Docker hosting. See the Nuclear README;
+Nginx frontend and non-root relay for Ubuntu Docker hosting. See
+[hosting and deployment](doc/deployment.md);
 accounts, economy and multiplayer remain outside this first version. The local
 commissioning career described above now supports saved games.
 For routine changes, run focused unit checks and `npm run build` in that folder.
@@ -372,7 +399,8 @@ its existing electrical/diesel windows. Preserve independent camera, keyboard
 picking, focus return, actual supply/engine animation, shared frame ownership,
 offscreen/pause/reduced-motion cleanup and GPU disposal/reconnect. Electrical-grid
 audio reuses actual diesel voices only while its viewport is visible. Read
-ELECTRICAL-GRID-PLAN.md; focused check: npm run test:browser:grid. Two small 3D diesel cutaways behind
+[the electrical-grid plan](doc/ELECTRICAL-GRID-PLAN.md); focused check:
+`npm run test:browser:grid`. Two small 3D diesel cutaways behind
 the turbine/generator, grid, AC bus and source-to-pump electrical routes share the
 main plant renderer/camera/disposal. Actual engine/fuel/load drive pistons/fans,
 tank fill, lamps and markers; preserve pause/hide/reduced-motion/maintenance stops.
@@ -448,7 +476,7 @@ follows plant time across tabs. Reduced motion skips movement but never cooling.
 Reset demo clears pool/jobs/shipments, without changing repair/trip semantics.
 Middle-wheel drag or Shift+drag pans the unified 3D view; Shift+arrows also pan,
 plain wheel zooms, and Home/Reset view restores center/orbit/zoom. Read
-`FUEL-HANDLING-PLAN.md` before full spent-fuel inventory or gameplay work;
+[the fuel-handling plan](doc/FUEL-HANDLING-PLAN.md) before full spent-fuel inventory or gameplay work;
 the latest scope update records the intentionally representative animation.
 The 3D background has a gray cooling tower with two red bands, condenser
 warm/cool pipes beneath the base and a separate river make-up intake. Its white
@@ -458,7 +486,7 @@ including retained hot circulation after Stop. Cold/no-flow/no-cooling states ha
 no plume. Keep the bounded instanced vapor on the shared frame clock and preserve
 pause/reduced-motion/visibility/disposal, both themes, camera fitting and condenser
 picking/keyboard access. This is presentation only; do not connect reactor/turbine
-steam directly to the tower. See `COOLING-TOWER-PLAN.md` and use
+steam directly to the tower. See [the tower checkpoint](doc/COOLING-TOWER-PLAN.md) and use
 `npm run test:browser:cooling` for focused coverage.
 The feature document records the control model, verification, and future MQTT work.
 

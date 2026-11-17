@@ -8,7 +8,7 @@ Licensed under the Pörssiohjain Personal Use License v1.0.
 Updated 2026-11-17. This is the implementation handoff for the standalone
 [norkator/nuclear](https://github.com/norkator/nuclear) repository. All commands
 below run from this repository root. Read [AGENTS.md](../AGENTS.md), this file,
-[the product plan](../GAMEPLAY-PLAN.md) and [the plant specification](nuclear-power.md)
+[the product plan](GAMEPLAY-PLAN.md) and [the plant specification](nuclear-power.md)
 before continuing. The plan describes the intended game; this file describes the
 code that exists and the work still needed.
 
@@ -225,7 +225,7 @@ prerequisites and revised economy terms need their own implementation and tests.
 ## Next game-development slice
 
 Continue Phase 0 economy feasibility alongside the Phase 2 implementation in
-[GAMEPLAY-PLAN.md](../GAMEPLAY-PLAN.md). The measured 200 MW startup works; paid
+[GAMEPLAY-PLAN.md](GAMEPLAY-PLAN.md). The measured 200 MW startup works; paid
 dispatch response envelopes and economic balance have not yet been calibrated.
 
 1. Measure healthy gross-output response across raise/lower requests under the

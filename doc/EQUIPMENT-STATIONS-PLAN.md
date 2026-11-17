@@ -103,7 +103,8 @@ active room, and keep one bounded source/filter/gain chain. Actual speed adjusts
 pitch/intensity; flow, heat and cooling shape the texture. Offscreen views and
 pause/mute/hide/detach/reset stop and disconnect voices; late decode cannot play.
 Maintenance, alarms and UI feedback retain their existing behavior. Native
-controls and audio work after WebGL failure. See the assets' README and
+controls and audio work after WebGL failure. See the
+[station audio notes](../public/audio/nuclear-power/stations/README.md) and
 `scripts/generate-station-audio.py`; run `npm run test:browser:audio`.
 
 Audio verification: all 172 unit checks, production build and the focused shared

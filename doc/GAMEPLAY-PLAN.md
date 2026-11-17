@@ -8,8 +8,8 @@ Licensed under the Pörssiohjain Personal Use License v1.0.
 Status: extended 2026-11-14. Eight operations/maintenance assignments, Easy/Hard
 careers, condition monitoring, work orders, water treatment, reports, the Computer systems rack and schema-3
 local saves with version-1 migration are implemented. Economy, bankruptcy and
-the remaining original catalogue are still planned. See README.md and
-doc/game-development.md for current behavior. The catalogue below remains the
+the remaining original catalogue are still planned. See [the control-room guide](control-room-guide.md)
+and [the game-development handoff](game-development.md) for current behavior. The catalogue below remains the
 larger economy roadmap; the implemented maintenance qualification sequence is
 listed in the handoff.
 
@@ -40,9 +40,9 @@ They require playtesting against this fictional plant model before release.
 
 ## 2. Existing foundation and changes needed
 
-Read alongside [the feature handoff](doc/nuclear-power.md),
-[the app README](README.md) and [the fuel-handling plan](FUEL-HANDLING-PLAN.md).
-For the exact implementation, read [the game-development handoff](doc/game-development.md).
+Read alongside [the feature handoff](nuclear-power.md),
+[the control-room guide](control-room-guide.md) and [the fuel-handling plan](FUEL-HANDLING-PLAN.md).
+For the exact implementation, read [the game-development handoff](game-development.md).
 The table below is current; later sections specify the intended complete game.
 Present-tense descriptions of money, extra mission types, economic restrictions
 and company summaries on companions are requirements, not shipped features.
