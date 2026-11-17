@@ -1,0 +1,113 @@
+/*
+ * Pörssiohjain - Energy usage optimization platform
+ * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
+ * Licensed under the Pörssiohjain Personal Use License v1.0.
+ */
+.mobile-only { display: none; }
+:host([data-layout="phone-landscape"]) { --mobile-panel: #15212d; --mobile-header: #1e303c; --mobile-overlay: #08121bbf; --mobile-inset-left: max(8px, env(safe-area-inset-left)); --mobile-inset-right: max(8px, env(safe-area-inset-right)); --mobile-inset-top: max(8px, env(safe-area-inset-top)); --mobile-inset-bottom: max(8px, env(safe-area-inset-bottom)); height: 100dvh; overflow: hidden; }
+:host([data-layout="phone-landscape"][data-theme="light"]) { --mobile-panel: #e3e9ed; --mobile-header: #d1dde4; --mobile-overlay: #233b5373; }
+:host([data-layout="phone-landscape"]) .console { height: 100dvh; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); display: flex; flex-direction: column; overflow: hidden; }
+:host([data-layout="phone-landscape"]) .mobile-header { display: flex; align-items: center; flex-shrink: 0; gap: 6px; min-height: 48px; padding: 2px 8px; background: var(--mobile-header); border-bottom: 1px solid var(--border); }
+:host([data-layout="phone-landscape"]) .mobile-identity { display: grid; margin-right: auto; white-space: nowrap; }
+:host([data-layout="phone-landscape"]) .mobile-logo { width: 28px; height: 28px; flex: 0 0 28px; image-rendering: pixelated; }
+:host([data-layout="phone-landscape"]) .mobile-identity strong { font-size: 12px; font-weight: 500; }
+:host([data-layout="phone-landscape"]) .mobile-identity .session-clock { font: 10px Consolas, monospace; color: var(--muted); margin: 0; }
+:host([data-layout="phone-landscape"]) .mobile-state { color: var(--cool); font: 10px Consolas, monospace; }
+:host([data-layout="phone-landscape"]:is([data-state="tripped"], [data-condition="meltdown"])) .mobile-state { color: var(--warm); }
+:host([data-layout="phone-landscape"]) :is(button, select, input:not([type="checkbox"]):not([type="file"])) { min-height: 44px; }
+:host([data-layout="phone-landscape"]) button { min-width: 44px; touch-action: manipulation; }
+:host([data-layout="phone-landscape"]) :is(.small-button, .footer-button) { font-size: 12px; white-space: normal; }
+:host([data-layout="phone-landscape"]) :is(input[type="number"], select) { font-size: 16px; }
+:host([data-layout="phone-landscape"]) :is(.masthead, .game-status, .console-footer, .workspace-tools, .plant-tabs) { display: none; }
+:host([data-layout="phone-landscape"]) .console-layout { display: block; flex: 1; min-height: 0; margin: 0; }
+:host([data-layout="phone-landscape"]) :is(.control-column, .workspace, .process-panel) { height: 100%; min-height: 0; width: 100%; display: block; }
+:host([data-layout="phone-landscape"]) .process-panel { position: relative; border: 0; border-radius: 0; }
+:host([data-layout="phone-landscape"]) #reactor-panel { height: 100%; min-height: 0; display: flex; flex-direction: column; }
+:host([data-layout="phone-landscape"]) #reactor-panel > :not(.diagram-viewport) { display: none; }
+:host([data-layout="phone-landscape"]) .diagram-viewport { flex: 1; min-height: 0; height: 100%; }
+:host([data-layout="phone-landscape"]) .diagram-viewport > .plant-scene { position: absolute; inset: 0; height: 100%; }
+:host([data-layout="phone-landscape"]) .diagram-viewport > .schematic { min-height: 0; height: 100%; }
+:host([data-layout="phone-landscape"]) .mobile-navigation { display: contents; }
+:host([data-layout="phone-landscape"]) .mobile-navigation > button { position: fixed; z-index: 8; box-shadow: 0 2px 12px var(--mobile-overlay); background: var(--mobile-panel); border-color: var(--border); }
+:host([data-layout="phone-landscape"]) .mobile-edge { top: 43%; width: 44px; height: 108px; padding: 8px; writing-mode: vertical-rl; touch-action: none; opacity: .88; }
+:host([data-layout="phone-landscape"]) .mobile-edge-left { left: max(8px, env(safe-area-inset-left)); }
+:host([data-layout="phone-landscape"]) .mobile-edge-right { right: max(8px, env(safe-area-inset-right)); }
+:host([data-layout="phone-landscape"]) .mobile-back { left: max(8px, env(safe-area-inset-left)); bottom: max(8px, env(safe-area-inset-bottom)); }
+:host([data-layout="phone-landscape"]) .mobile-parts { right: max(8px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); }
+:host([data-layout="phone-landscape"]) [data-mobile-surface]:not(:popover-open):not([data-mobile-inline]) { display: none !important; }
+:host([data-layout="phone-landscape"]) :is([data-mobile-surface], .floating-dialog) {
+    position: fixed; inset: auto; left: calc(var(--mobile-left, 0px) + var(--mobile-inset-left)); top: calc(var(--mobile-top, 0px) + var(--mobile-inset-top));
+    width: calc(var(--mobile-width, 100vw) - var(--mobile-inset-left) - var(--mobile-inset-right)); height: calc(var(--mobile-height, 100dvh) - var(--mobile-inset-top) - var(--mobile-inset-bottom));
+    max-height: calc(var(--mobile-height, 100dvh) - var(--mobile-inset-top) - var(--mobile-inset-bottom)); max-width: none; margin: 0; padding: 0;
+    background: var(--mobile-panel); color: inherit; border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 12px 50px var(--mobile-overlay); overflow: auto; overscroll-behavior: contain;
+}
+:host([data-layout="phone-landscape"]) :is([data-mobile-surface], .floating-dialog)::backdrop { background: var(--mobile-overlay); pointer-events: auto; }
+:host([data-layout="phone-landscape"]) [data-mobile-surface]:popover-open { display: block; }
+:host([data-layout="phone-landscape"]) [data-mobile-surface] { scroll-padding-block: 56px 8px; }
+:host([data-layout="phone-landscape"]) [data-mobile-surface="instruments"] { width: min(320px, calc(var(--mobile-width, 100vw) - 24px)); }
+:host([data-layout="phone-landscape"]) [data-mobile-surface="operator"] { left: auto; right: max(8px, env(safe-area-inset-right)); width: min(480px, calc(var(--mobile-width, 100vw) - 24px)); }
+:host([data-layout="phone-landscape"]) [data-mobile-surface="parts"] { left: auto; right: max(8px, env(safe-area-inset-right)); width: min(360px, calc(var(--mobile-width, 100vw) - 24px)); }
+:host([data-layout="phone-landscape"]) [data-mobile-surface="instruments"]:popover-open { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 10px; }
+:host([data-layout="phone-landscape"]) .mobile-surface-heading { display: flex; grid-column: 1 / -1; position: sticky; top: 0; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 2px 8px 2px 12px; background: var(--mobile-header); border-bottom: 1px solid var(--border); z-index: 10; touch-action: none; }
+:host([data-layout="phone-landscape"]) .mobile-surface-heading h2 { white-space: normal; font-size: 14px; }
+:host([data-layout="phone-landscape"]) .mobile-surface-heading button { font-size: 22px; }
+:host([data-layout="phone-landscape"]) .side-panel-heading { display: none; }
+:host([data-layout="phone-landscape"]) .instrument-column > :not(.mobile-surface-heading) { margin: 0 10px; grid-area: auto; }
+:host([data-layout="phone-landscape"]) .instrument-column .metrics { display: grid; grid-area: auto; grid-template-columns: 1fr; }
+:host([data-layout="phone-landscape"]) .metric-reading { font-size: 22px; }
+:host([data-layout="phone-landscape"]) .setpoint .regulator-display { font-size: 14px; }
+:host([data-layout="phone-landscape"]) .analysis-column { grid-template-columns: minmax(0, 1fr); }
+:host([data-layout="phone-landscape"]) .analysis-column > :not(.mobile-surface-heading) { margin: 12px; }
+:host([data-layout="phone-landscape"]) .analysis-column .event-list { max-height: none; overflow: visible; }
+:host([data-layout="phone-landscape"]) .operator-column .operator-panel { border: 0; border-radius: 0; }
+:host([data-layout="phone-landscape"]) .operator-column .operator-panel > .panel-heading { display: none; }
+:host([data-layout="phone-landscape"]) .operator-content { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
+:host([data-layout="phone-landscape"]) .operator-content > * { grid-column: 1 / -1; margin: 0; }
+:host([data-layout="phone-landscape"]) .operator-content > .operation-state { grid-row: 1; }
+:host([data-layout="phone-landscape"]) .operator-content > .reactor-pushbuttons { grid-column: 1; grid-row: 2; align-self: start; }
+:host([data-layout="phone-landscape"]) .operator-content > .alert-mute-button { grid-column: 1; grid-row: 3; }
+:host([data-layout="phone-landscape"]) .operator-content > .emergency-station { grid-column: 2; grid-row: 2 / 4; align-self: start; }
+:host([data-layout="phone-landscape"]) .operator-column > .automation-strip { margin: 10px; }
+:host([data-layout="phone-landscape"]) .pump-controls { display: grid; grid-template-columns: 1fr; }
+:host([data-layout="phone-landscape"]) .mobile-menu-body { padding: 12px; display: grid; gap: 14px; }
+:host([data-layout="phone-landscape"]) :is(.mobile-destinations, .mobile-shortcuts) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+:host([data-layout="phone-landscape"]) .mobile-menu .header-settings { display: flex; flex-wrap: wrap; justify-content: start; gap: 12px; }
+:host([data-layout="phone-landscape"]) .mobile-menu .overview-toolbar { display: flex; flex-wrap: wrap; padding: 0; }
+:host([data-layout="phone-landscape"]) .mobile-menu [data-mobile-footer] > div { display: flex; flex-wrap: wrap; gap: 12px; }
+:host([data-layout="phone-landscape"]) .floating-dialog:popover-open { display: flex; flex-direction: column; overflow: hidden; }
+/* Override retained desktop drag coordinates without erasing their inline values. */
+:host([data-layout="phone-landscape"]) .floating-dialog { left: calc(var(--mobile-left, 0px) + var(--mobile-inset-left)) !important; top: calc(var(--mobile-top, 0px) + var(--mobile-inset-top)) !important; }
+:host([data-layout="phone-landscape"]) .floating-dialog > .core-dialog-titlebar { min-height: 48px; padding: 2px 8px 2px 12px; cursor: default; background: var(--mobile-header); }
+:host([data-layout="phone-landscape"]) .floating-dialog .core-dialog-titlebar h2 { white-space: normal; }
+:host([data-layout="phone-landscape"]) .floating-dialog .core-dialog-titlebar > :is(.local-tag, span[aria-hidden]) { display: none; }
+:host([data-layout="phone-landscape"]) .floating-dialog > :not(.core-dialog-titlebar) { min-height: 0; overflow: auto; overscroll-behavior: contain; }
+:host([data-layout="phone-landscape"]) :is(.game-content, .trends-dialog-content, .equipment-dialog-body, .core-map) { flex: 1; }
+:host([data-layout="phone-landscape"]) :is(.equipment-station, .computer-panel) { height: 100%; min-height: 0; padding: 0; gap: 0; overflow: hidden; }
+:host([data-layout="phone-landscape"]) :is(.station-heading, .station-health, .station-note, .computer-heading, .computer-health, .computer-note) { display: none; }
+:host([data-layout="phone-landscape"]) :is(.station-workspace, .computer-workspace) { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); flex: 1; min-height: 0; gap: 0; }
+:host([data-layout="phone-landscape"]) :is(.station-viewport, .computer-rack-viewport) { height: 100%; min-height: 0; border: 0; border-radius: 0; }
+:host([data-layout="phone-landscape"]) :is(.station-camera-tools, .computer-camera-tools) { left: 50%; transform: translateX(-50%); bottom: 8px; }
+:host([data-layout="phone-landscape"]) .station-pump-list { padding: 4px 8px; gap: 8px; }
+:host([data-layout="phone-landscape"]) .station-part-list > :not(.mobile-surface-heading) { margin: 8px; }
+:host([data-layout="phone-landscape"]) .computer-unit-list > .computer-unit-card { margin: 8px; }
+:host([data-layout="phone-landscape"]) [data-mobile-inline] { display: block; position: static; width: 100%; height: 100%; max-height: none; border: 0; border-radius: 0; box-shadow: none; overflow: auto; }
+:host([data-layout="phone-landscape"]) [data-mobile-inline] [data-mobile-close] { display: none; }
+:host([data-layout="phone-landscape"]) [data-mobile-inline] .mobile-fallback-note { display: block; margin: 8px; color: var(--muted); }
+:host([data-layout="phone-landscape"]) .station-workspace:has([data-mobile-inline]) > .station-viewport,
+:host([data-layout="phone-landscape"]) .computer-workspace:has([data-mobile-inline]) > .computer-rack-viewport { display: none; }
+:host([data-layout="phone-landscape"]) #maintenance-panel { height: 100%; min-height: 0; overflow: auto; padding-bottom: 64px; }
+:host([data-layout="phone-landscape"]) .plant-scene-label { min-height: 44px; min-width: 44px; padding: 4px 6px; border-color: #68859066; background: #10212bd1; color: #d7e5eb; box-shadow: none; }
+:host([data-layout="phone-landscape"]) .plant-scene-label strong { font-size: 8px; letter-spacing: .4px; color: #c0d4de; }
+:host([data-layout="phone-landscape"]) .plant-scene-label span { font-size: 9px; }
+:host([data-layout="phone-landscape"]) .plant-scene-label small { font-size: 8px; color: #a9d5cc; }
+:host([data-layout="phone-landscape"]) .plant-scene-label:is(:hover, :focus-visible, .selected) { background: #10212bea; border-color: #7dc2b5aa; }
+:host([data-layout="phone-landscape"]) .plant-scene-label.hot { background: #49252bd9; border-color: #f27b71; }
+/* The visible tag is small; its transparent native button retains a 44px target. */
+:host([data-layout="phone-landscape"]) .plant-scene[data-labels="compact"] .plant-scene-label:not(:hover):not(:focus-visible):not(.selected) {
+    width: 44px; height: 44px; padding: 0; display: flex; align-items: center; justify-content: center;
+    background: transparent; border-color: transparent; opacity: 1;
+}
+:host([data-layout="phone-landscape"]) .plant-scene[data-labels="compact"] .plant-scene-label:not(:hover):not(:focus-visible):not(.selected) strong {
+    padding: 3px 4px; border-radius: 3px; background: #10212b80; opacity: .62;
+}

@@ -18,6 +18,7 @@ The interface is in English and supports dark and light themes.
 - Start a saved career with eight operations and maintenance assignments. Easy
   allows Auto or Manual; Hard uses Manual only.
 - Pair a tablet or another browser as a companion control screen.
+- Operate the full plant on a landscape phone with slide-out instrument and control panels.
 
 All plant readings and commands are simulated in the desktop browser. Free
 operation resets on reload; careers save locally and never advance offline.

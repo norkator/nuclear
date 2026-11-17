@@ -64,6 +64,7 @@ export class EquipmentStations {
     }
     canDraw(tab = this.host.plantTab) {
         return this.host.isConnected && !this.host.companion && this.host.plantTab === tab && this.visible.get(tab)
+            && !this.host.mobileLayout?.occludesScene
             && this.host.intersecting && !document.hidden && !this.unavailable.has(tab);
     }
     syncVisibility() { for (const [tab, scene] of this.scenes) scene.setVisible(Boolean(this.canDraw(tab))); }
@@ -75,7 +76,10 @@ export class EquipmentStations {
             this.selectedPump = id; this.scenes.get('pumps')?.dispose(); this.scenes.delete('pumps');
         }
         this.host.inspect(id, false); this.host.setPlantTab(tab);
-        if (focus) this.root.querySelector(`#${tab}-tab`).focus({ preventScroll: true });
+        if (focus) {
+            if (this.host.mobileLayout?.active) this.host.mobileLayout.focusStation();
+            else this.root.querySelector(`#${tab}-tab`).focus({ preventScroll: true });
+        }
         this.host.update();
     }
     activate() {
@@ -99,6 +103,7 @@ export class EquipmentStations {
         panel.querySelector('.station-camera-tools').hidden = true;
         const status = panel.querySelector('.station-view-status'); status.hidden = false;
         status.textContent = '3D equipment unavailable. Use the part buttons to operate, inspect and service this equipment.';
+        this.host.mobileLayout?.update();
     }
     open(part, trigger) {
         const tab = this.host.plantTab, definition = EQUIPMENT_STATIONS.find(station => station.id === tab);

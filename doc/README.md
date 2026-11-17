@@ -34,7 +34,7 @@ plant specification and game-development handoff to establish what is implemente
 | Document | Covers |
 | --- | --- |
 | [Company-game plan](GAMEPLAY-PLAN.md) | Product direction, progression, future economy, mission authoring and delivery phases. |
-| [Phone landscape layout plan](MOBILE-LANDSCAPE-PLAN.md) | Proposed full-reactor phone layout, drawers, station navigation, desktop isolation and verification. Not implemented. |
+| [Phone landscape layout plan](MOBILE-LANDSCAPE-PLAN.md) | Full-reactor phone layout, drawers, station navigation, desktop isolation, verification checkpoint and requested follow-ups. |
 | [Equipment-station plan](EQUIPMENT-STATIONS-PLAN.md) | Dedicated 3D stations, routing, controls, visibility, lifecycle and ambience. |
 | [Electrical-grid plan](ELECTRICAL-GRID-PLAN.md) | Electrical station, supply controls, startup requirements and verification checkpoint. |
 | [Fuel-handling plan](FUEL-HANDLING-PLAN.md) | Representative crane transfers, pool handling, implementation checkpoint and future inventory work. |

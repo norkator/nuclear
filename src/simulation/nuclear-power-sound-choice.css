@@ -1,0 +1,14 @@
+/*
+ * Pörssiohjain - Energy usage optimization platform
+ * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
+ * Licensed under the Pörssiohjain Personal Use License v1.0.
+ */
+.sound-choice-dialog { width: min(420px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 24px; border: 1px solid var(--border); border-radius: 10px; background: #192a36; color: inherit; box-shadow: 0 16px 60px #0008; }
+.sound-choice-dialog[open] { display: grid; gap: 16px; }
+.sound-choice-dialog::backdrop { background: #08121b99; }
+.sound-choice-dialog h2 { font-size: 20px; white-space: normal; }
+.sound-choice-dialog p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+.sound-choice-buttons { display: flex; gap: 12px; justify-content: end; }
+.sound-choice-buttons button { min-width: 88px; min-height: 44px; font-size: 14px; }
+.sound-choice-buttons [data-sound-choice="yes"] { border-color: var(--cool); color: var(--cool); }
+:host([data-theme="light"]) .sound-choice-dialog { background: #e3e9ed; }

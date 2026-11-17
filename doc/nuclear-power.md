@@ -470,6 +470,21 @@ card beside the brand/title, leaving more room for the main overview:
 - middle: tabbed reactor/maintenance overview beside the operator console;
 - right: live trends above the filterable event journal.
 
+The full host has a separate landscape-phone presentation on touch viewports up
+to 1100 × 600 CSS pixels. `nuclear-power-mobile-layout.js` and its CSS own a
+compact icon/clock/status header, left instruments drawer, right operator drawer,
+Company/Trends/More access, floating overview return and native Parts/Units access.
+They reuse existing nodes, model commands, equipment routing and cameras. Existing
+inspection popovers become bounded sheets; the coordinator contains focus and
+inerts background controls. Explicit buttons and handle swipes share the same
+paths. Desktop panel preferences and companion layout preferences are untouched.
+Covering sheets suspend scene rendering and machinery audio independently of
+plant time; partial drawers can retain visible scene motion. Layout transitions
+never change Pause. Native part/unit controls remain available after WebGL loss.
+See [the phone layout plan and checkpoint](MOBILE-LANDSCAPE-PLAN.md) and run
+`npm run test:browser:mobile`. Portrait/tablet/mouse layouts retain their existing
+behavior; mobile roles never turn a full host into a companion.
+
 The operator console uses beveled metal mounting plates, round green/red Start
 and Stop pushbuttons, engraved labels and pilot lamps. Lamps use actual running
 state rather than command availability: Start remains visibly lit while the

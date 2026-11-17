@@ -304,6 +304,24 @@ test('the unified plant mixes reactor and diesel voices, and maintenance silence
     assert.equal([...audio.nodes].filter(v => v.diesel).length, 0, 'Off-tab shutdown must not replay');
 });
 
+test('a covering phone sheet silences reactor machinery without advancing state or replaying diesel starts', async () => {
+    const audio = new PlantAudio(new Context()), sim = poweredSimulation();
+    await loadDiesels(audio); await loadPlant(audio);
+    sim.components.items.turbine.actual.shaftSpeed = 90;
+    sim.supply.command(sim, 'A', 'start'); sim.supply.advance(sim, 8);
+    audio.updateScene(sim, 'reactor');
+    const machinery = [...audio.nodes];
+    assert.ok(machinery.some(voice => voice.plant) && machinery.some(voice => voice.diesel));
+    const state = sim.snapshot();
+    audio.updateScene(sim, 'reactor', { visible: false });
+    assert.equal(audio.nodes.size, 0);
+    assert.ok(machinery.every(voice => voice.oscillator.disconnected && voice.gain.disconnected));
+    assert.deepEqual(sim.snapshot(), state);
+    audio.updateScene(sim, 'reactor');
+    assert.equal([...audio.nodes].find(voice => voice.diesel === 'A').kind, 'running-loop');
+    assert.equal([...audio.nodes].filter(voice => voice.plant).length, 2);
+});
+
 test('electrical grid plays actual diesel voices only while visible and leaves UI sound available offscreen', async () => {
     const audio = new PlantAudio(new Context()), sim = poweredSimulation();
     await loadDiesels(audio); await loadPlant(audio);

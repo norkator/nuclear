@@ -69,6 +69,15 @@ Set `NUCLEAR_POWER_APP_URL=http://127.0.0.1:8080` to test a running app/containe
 Screenshot and export artifacts are written to the temporary directory printed by
 the test. Tests do not need the Spring application.
 
+## Landscape phone verification
+
+For the landscape-phone host layout, run `npm run test:browser:mobile`. The checks
+are shared with the full browser suite and use actual touch input, viewport and
+drawer geometry, focus, cold startup, career controls and rotation/reconnection.
+This layout changes the shared console shell: before handoff also run the existing
+desktop layout/station checks, the final full browser suite and focused companion
+and company-game checks. See [the mobile implementation plan](MOBILE-LANDSCAPE-PLAN.md).
+
 ## Local companion relay
 
 Local development uses two terminals:

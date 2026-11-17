@@ -12,6 +12,7 @@
     "test:browser": "node --test test/browser.mjs",
     "test:browser:seo": "node --test test/seo-browser.mjs",
     "test:browser:layout": "node --test test/layout-browser.mjs",
+    "test:browser:mobile": "node --test test/mobile-browser.mjs",
     "test:browser:cooling": "node --test test/cooling-tower-browser.mjs",
     "test:browser:equipment": "node --test test/equipment-browser.mjs",
     "test:browser:companion": "node --test test/companion-browser.mjs",

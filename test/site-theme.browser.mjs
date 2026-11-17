@@ -87,6 +87,7 @@ export async function checkSiteThemes({ evaluate, page, until, screenshot, baseU
     const landingEntry = history.entries[history.currentIndex].id;
     await page('Page.navigate', { url: new URL('/reactor/', baseUrl).href });
     await until(`document.querySelector('nuclear-power-console')?.dataset.theme === 'light'`, 'Simulator did not inherit the landing page theme');
+    await evaluate(`document.querySelector('nuclear-power-console').shadowRoot.querySelector('[data-sound-choice="no"]')?.click()`);
     await evaluate(`document.querySelector('nuclear-power-console').shadowRoot.querySelector('#light-theme').click()`);
     await page('Page.navigateToHistoryEntry', { entryId: landingEntry });
     await until(`location.pathname === '/' && document.documentElement.dataset.siteTheme === 'dark' && !!document.querySelector('[data-site-theme-toggle]') && !document.querySelector('.site-theme-toggle').hidden`, 'Returning from the simulator did not restore its theme choice');

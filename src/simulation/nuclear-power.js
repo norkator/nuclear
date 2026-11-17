@@ -33,6 +33,10 @@ import computerStyles from './nuclear-power-computers.css?inline';
 import { EquipmentStations, electricalTab, stationTabs, stationPanels } from './nuclear-power-stations.js';
 import { EQUIPMENT_STATIONS, equipmentStation } from './nuclear-power-stations-config.js';
 import stationStyles from './nuclear-power-stations.css?inline';
+import { MobileLayout } from './nuclear-power-mobile-layout.js';
+import mobileStyles from './nuclear-power-mobile-layout.css?inline';
+import { SoundChoice } from './nuclear-power-sound-choice.js';
+import soundChoiceStyles from './nuclear-power-sound-choice.css?inline';
 
 const PLANT_TABS = ['reactor', 'maintenance', 'electrical', 'computers', ...EQUIPMENT_STATIONS.filter(station => station.id !== 'electrical').map(station => station.id)];
 const STEAM_PATH = createPolylinePath([[610, 160], [790, 160], [790, 210]]);
@@ -262,6 +266,7 @@ export class NuclearPowerConsole extends HTMLElement {
 
     connectedCallback() {
         if (!this.initialized) this.initialize();
+        this.mobileLayout?.connect();
         this.setOverview(this.overviewMode);
         this.setPlantTab(this.plantTab);
         this.computerConsole.connect();
@@ -278,7 +283,7 @@ export class NuclearPowerConsole extends HTMLElement {
         this.intersectionObserver.observe(this);
         this.overviewObserver = new IntersectionObserver(entries => {
             this.overviewIntersecting = entries.at(-1).isIntersecting;
-            this.overviewScene?.setVisible(this.overviewIntersecting);
+            this.overviewScene?.setVisible(this.overviewIntersecting && !this.mobileLayout?.occludesScene);
             if (this.overviewIntersecting) {
                 this.drawProcessMotion();
                 if (this.overviewMode === 'schematic') this.updateSchematicState();
@@ -289,9 +294,12 @@ export class NuclearPowerConsole extends HTMLElement {
         this.updateActivity();
         this.update();
         this.game?.attach();
+        this.soundChoice?.connect();
     }
 
     disconnectedCallback() {
+        this.soundChoice?.disconnect();
+        this.mobileLayout?.disconnect();
         this.finishWorkspacePanelTransitions?.();
         if (this.game) this.game.detaching = this.game.detach();
         disconnectSession(this);
@@ -321,7 +329,7 @@ export class NuclearPowerConsole extends HTMLElement {
     initialize() {
         this.initialized = true;
         this.setAttribute('lang', 'en');
-        this.shadowRoot.innerHTML = `<style>${styles}\n${lightStyles}\n${generationStyles}\n${companionStyles}\n${gameStyles}\n${layoutStyles}\n${computerStyles}\n${stationStyles}</style>
+        this.shadowRoot.innerHTML = `<style>${styles}\n${lightStyles}\n${generationStyles}\n${companionStyles}\n${gameStyles}\n${layoutStyles}\n${computerStyles}\n${stationStyles}\n${mobileStyles}\n${soundChoiceStyles}</style>
         <main class="console">
           <header class="masthead">
             <div class="brand-mark">${radiation}</div>
@@ -638,6 +646,7 @@ export class NuclearPowerConsole extends HTMLElement {
         initializeCompanion(this);
         initializeDesktopLayout(this);
         initializeGame(this);
+        if (!this.companion) { this.mobileLayout = new MobileLayout(this); this.soundChoice = new SoundChoice(this); }
         this.inspect('reactor', false);
     }
 
@@ -712,10 +721,11 @@ export class NuclearPowerConsole extends HTMLElement {
         this.overviewIntersecting = rect.width > 0 && rect.height > 0
             && rect.bottom > 0 && rect.top < window.innerHeight
             && rect.right > 0 && rect.left < window.innerWidth;
-        this.overviewScene?.setVisible(this.overviewIntersecting);
+        this.overviewScene?.setVisible(this.overviewIntersecting && !this.mobileLayout?.occludesScene);
     }
 
     updateOverview(force = false) {
+        if (this.mobileLayout?.occludesScene) return;
         if (!this.isConnected || !this.intersecting || !this.overviewIntersecting || document.hidden) return;
         if (this.plantTab !== 'reactor' || this.overviewMode !== '3d' || !this.overviewScene) return;
         const sim = this.simulation;
@@ -747,6 +757,7 @@ export class NuclearPowerConsole extends HTMLElement {
 
     setPlantTab(tab) {
         this.plantTab = PLANT_TABS.includes(tab) ? tab : 'reactor';
+        this.mobileLayout?.tabChanged();
         this.plantAudio?.setScene(this.plantTab);
         this.dataset.plantTab = this.plantTab;
         for (const name of PLANT_TABS) {
@@ -860,6 +871,7 @@ export class NuclearPowerConsole extends HTMLElement {
 
 
     openFloatingDialog(dialog) {
+        this.mobileLayout?.beforeDialog(dialog);
         // Reopening an existing window brings it to the front without rebuilding its controls.
         if (dialog.matches(':popover-open')) dialog.hidePopover();
         dialog.showPopover();
@@ -874,6 +886,7 @@ export class NuclearPowerConsole extends HTMLElement {
         if (dialog.classList.contains('trends-dialog')) this.updateTrend();
         this.positionFloatingDialog(dialog);
         for (const trigger of this.shadowRoot.querySelectorAll(`[aria-controls="${dialog.id}"]`)) trigger.setAttribute('aria-expanded', 'true');
+        if (this.mobileLayout?.active) this.mobileLayout.refreshScenes();
     }
 
     closeFloatingDialog(dialog, restoreFocus = true) {
@@ -882,6 +895,7 @@ export class NuclearPowerConsole extends HTMLElement {
         if (dialog.classList.contains('core-dialog')) dialog.querySelectorAll('.fuel-exchanging').forEach(channel => channel.classList.remove('fuel-exchanging'));
         this.floatingDialogs = this.floatingDialogs.filter(item => item !== dialog);
         for (const trigger of this.shadowRoot.querySelectorAll(`[aria-controls="${dialog.id}"]`)) trigger.setAttribute('aria-expanded', 'false');
+        if (this.mobileLayout?.dialogClosed(dialog, restoreFocus)) return;
         if (restoreFocus && this.isConnected) {
             const trigger = dialog.classList.contains('computer-dialog') ? this.computerConsole.trigger() : dialog.classList.contains('game-dialog') ? this.shadowRoot.querySelector(this.game?.career ? '.game-entry [data-game-action="open"]' : '.game-entry [data-game-action="start"]') : dialog.dataset.dieselDialog ? this.equipmentTrigger(`diesel${dialog.dataset.dieselDialog}`) : dialog.classList.contains('electrical-supply-dialog') ? this.equipmentTrigger('grid') : dialog.classList.contains('spent-fuel-dialog') ? this.equipmentTrigger('spentFuel') : dialog.dataset.componentDialog ? this.equipmentTrigger(dialog.dataset.componentDialog) : dialog.classList.contains('core-dialog') ? this.equipmentTrigger('reactor') : this.shadowRoot.querySelector(dialog.classList.contains('exercises-dialog') ? '[data-action="exercises"]' : dialog.classList.contains('trends-dialog') ? '.trend-panel' : dialog.classList.contains('meltdown-banner') ? '[data-action="meltdown-view"]' : '[data-action="power-supply"]');
             trigger?.focus({ preventScroll: true });
@@ -889,6 +903,7 @@ export class NuclearPowerConsole extends HTMLElement {
     }
 
     positionFloatingDialog(dialog, left, top) {
+        if (this.mobileLayout?.active) return;
         if (!dialog?.matches(':popover-open')) return;
         const rect = dialog.getBoundingClientRect();
         const x = left ?? (dialog.style.left ? rect.left : dialog.classList.contains('core-dialog') ? innerWidth - rect.width - 20 : 20);
@@ -901,6 +916,7 @@ export class NuclearPowerConsole extends HTMLElement {
         const header = dialog.querySelector('.core-dialog-titlebar');
         let drag;
         header.addEventListener('pointerdown', event => {
+            if (this.mobileLayout?.active) return;
             if (event.button !== 0 || event.target.closest('button')) return;
             this.openFloatingDialog(dialog);
             const rect = dialog.getBoundingClientRect();
@@ -914,6 +930,7 @@ export class NuclearPowerConsole extends HTMLElement {
         });
         for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) header.addEventListener(type, () => { drag = null; });
         header.addEventListener('keydown', event => {
+            if (this.mobileLayout?.active) return;
             const deltas = { ArrowLeft: [-16, 0], ArrowRight: [16, 0], ArrowUp: [0, -16], ArrowDown: [0, 16] };
             if (event.target !== header || !deltas[event.key]) return;
             event.preventDefault();
@@ -1101,6 +1118,7 @@ export class NuclearPowerConsole extends HTMLElement {
     }
 
     hasVisualMotion() {
+        if (this.mobileLayout?.occludesScene) return Boolean(this.shadowRoot.querySelector('.equipment-dialog:popover-open'));
         const sim = this.simulation;
         if (this.computerConsole?.hasMotion()) return true;
         if (this.plantTab === 'electrical' && this.equipmentStations?.canDraw() && sim.supply.factor > 0) return true;
@@ -1112,7 +1130,7 @@ export class NuclearPowerConsole extends HTMLElement {
     }
 
     drawMotion(seconds) {
-        if (this.overviewIntersecting && this.plantTab === 'reactor' && this.overviewMode === '3d') this.fuelTransfer.advance(seconds);
+        if (!this.mobileLayout?.occludesScene && this.overviewIntersecting && this.plantTab === 'reactor' && this.overviewMode === '3d') this.fuelTransfer.advance(seconds);
         for (const pump of PUMPS) {
             const previous = this.motion[pump.key], actual = this.simulation.components.items[pump.id].actual;
             const flowMotion = advancePumpMotion(previous, actual.flow, seconds);
@@ -1133,6 +1151,7 @@ export class NuclearPowerConsole extends HTMLElement {
     }
 
     drawInstrumentMotion(seconds = 0) {
+        if (this.mobileLayout?.active && this.mobileLayout.kind !== 'instruments') return;
         const sim = this.simulation;
         if (!sim.computers.instrumentsAvailable) return;
         const nodes = this.instrumentMotionNodes ||= {
@@ -1184,7 +1203,7 @@ export class NuclearPowerConsole extends HTMLElement {
             leakActivity: Math.max(...leakSources(sim).map(source => source.rate)),
         }, seconds);
         if (!draw) return;
-        if (this.overviewIntersecting && this.plantTab === 'reactor' && this.overviewMode === 'schematic') this.drawSchematicMotion();
+        if (!this.mobileLayout?.occludesScene && this.overviewIntersecting && this.plantTab === 'reactor' && this.overviewMode === 'schematic') this.drawSchematicMotion();
         if (this.shadowRoot.querySelector('.electrical-supply-dialog').matches(':popover-open')) this.drawSupplyMotion();
     }
 
@@ -1374,6 +1393,7 @@ export class NuclearPowerConsole extends HTMLElement {
     }
 
     stationAudioVisible() {
+        if (this.mobileLayout?.occludesScene) return false;
         if (this.plantTab === 'computers') return Boolean(this.computerConsole?.visible);
         if (equipmentStation(this.plantTab)) return Boolean(this.equipmentStations?.visible.get(this.plantTab));
         return this.plantTab === 'reactor';
@@ -1682,6 +1702,7 @@ export class NuclearPowerConsole extends HTMLElement {
         this.updateEvents();
         this.updateTrend();
         this.game?.update(fromTimer);
+        this.mobileLayout?.update();
         this.updateActivity();
         updateSessionControls(this);
         if (!fromTimer) publishSession(this);

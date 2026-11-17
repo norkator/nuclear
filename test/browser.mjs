@@ -24,6 +24,8 @@ import { commissionPlant } from './plant-fixtures.mjs';
 import { checkPlantAudio } from './plant-audio.browser.mjs';
 import { checkComputerSystems } from './computer-systems.browser.mjs';
 import { captureConsoleLayout, checkConsoleLayout, checkBatchedConsoleVisibility } from './console-layout.browser.mjs';
+import { checkMobileConsole } from './mobile-console.browser.mjs';
+import { checkSoundChoice } from './sound-choice.browser.mjs';
 
 const dist = fileURLToPath(new URL('../dist/', import.meta.url));
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -154,12 +156,13 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         const focusedCooling = process.env.NUCLEAR_BROWSER_FOCUS === 'cooling';
         const focusedGame = process.env.NUCLEAR_BROWSER_FOCUS === 'game';
         const focusedLayout = process.env.NUCLEAR_BROWSER_FOCUS === 'layout';
+        const focusedMobile = process.env.NUCLEAR_BROWSER_FOCUS === 'mobile';
         const focusedStations = process.env.NUCLEAR_BROWSER_FOCUS === 'stations';
         const focusedGrid = process.env.NUCLEAR_BROWSER_FOCUS === 'grid';
         const focusedAudio = process.env.NUCLEAR_BROWSER_FOCUS === 'audio';
         const focusedComputers = process.env.NUCLEAR_BROWSER_FOCUS === 'computers';
         const focusedSeo = process.env.NUCLEAR_BROWSER_FOCUS === 'seo';
-        if (!focusedEquipment && !focusedCooling && !focusedGame && !focusedLayout && !focusedComputers && !focusedStations && !focusedAudio && !focusedGrid) {
+        if (!focusedEquipment && !focusedCooling && !focusedGame && !focusedLayout && !focusedMobile && !focusedComputers && !focusedStations && !focusedAudio && !focusedGrid) {
             // Check the actual shipped HTML with JavaScript disabled, as a crawler sees it.
             await page('Emulation.setScriptExecutionDisabled', { value: true });
             for (const entry of pages) {
@@ -215,7 +218,15 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         }
         await page('Page.navigate', { url: new URL('/reactor/', baseUrl).href });
         await until(`!!document.querySelector('nuclear-power-console')?.shadowRoot?.querySelector('.console')`, 'Control room did not render');
+        await checkSoundChoice({ consoleCode, page, until, screenshot });
         assert.equal(await consoleCode('return c.equipmentStations.scenes.size;'), 0, 'Station renderers remain lazy at initial load');
+        if (focusedMobile) {
+            await checkMobileConsole({ consoleCode, page, until, screenshot });
+            assert.deepEqual(exceptions, []);
+            console.log(`Phone landscape browser checks passed; artifacts: ${artifacts}`);
+            await send('Browser.close');
+            return;
+        }
         if (focusedAudio) {
             await checkPlantAudio({ consoleCode, action, page, advance, until, resetWithoutDispatch, warmOperatingPoint, send });
             assert.deepEqual(exceptions, []);
@@ -1696,6 +1707,7 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         await page('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] });
         await until(`!!document.querySelector('nuclear-power-console').animationFrame`, 'Animation did not resume after reduced motion');
         assert.ok(await consoleCode('return Boolean(c.animationFrame);'));
+        if (!process.env.NUCLEAR_BROWSER_FOCUS) await checkMobileConsole({ consoleCode, page, until, screenshot });
         await consoleCode(`c.style.display='none';`);
         await until(`document.querySelector('nuclear-power-console').timer === null`, 'Hiding the console did not suspend simulation');
         assert.equal(await consoleCode('return c.timer;'), null);

@@ -15,6 +15,7 @@ export function initializeDesktopLayout(host) {
     try { preferences = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { /* Layout also works without storage. */ }
     if (typeof preferences !== 'object' || Array.isArray(preferences)) preferences = {};
     const apply = (name, open, persist = true) => {
+        if (host.mobileLayout?.active) return;
         const panel = root.getElementById(panels[name]);
         const button = root.querySelector(`.workspace-tools [data-workspace-panel="${name}"]`);
         const wide = host.clientWidth >= 1400;
@@ -48,17 +49,24 @@ export function initializeDesktopLayout(host) {
         apply(name, preferences[name] !== false, false);
     }
     host.finishWorkspacePanelTransitions = () => {
+        if (host.mobileLayout?.active) return;
         for (const [name, id] of Object.entries(panels)) if (!preferences[name]) root.getElementById(id).hidden = true;
     };
+    host.restoreWorkspacePanels = () => {
+        for (const name of Object.keys(panels)) apply(name, preferences[name] !== false, false);
+    };
     root.addEventListener('transitionend', event => {
+        if (host.mobileLayout?.active) return;
         const name = Object.keys(panels).find(key => root.getElementById(panels[key]) === event.target);
         if (name && !preferences[name]) event.target.hidden = true;
     });
     root.addEventListener('click', event => {
+        if (host.mobileLayout?.active) return;
         const name = event.target.closest('[data-workspace-panel]')?.dataset.workspacePanel;
         if (Object.hasOwn(panels, name)) apply(name, !preferences[name]);
     });
     root.addEventListener('keydown', event => {
+        if (host.mobileLayout?.active) return;
         if (event.key !== 'Escape') return;
         const name = Object.keys(panels).find(key => root.getElementById(panels[key]).contains(event.target));
         if (name) { event.preventDefault(); apply(name, false); }

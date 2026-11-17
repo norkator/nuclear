@@ -121,6 +121,7 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
         if (await secondEvaluate('!!document.querySelector("nuclear-power-console")?.game?.hasSave')) break;
         await new Promise(resolve => setTimeout(resolve, 100));
     }
+    await secondEvaluate('document.querySelector("nuclear-power-console").shadowRoot.querySelector(".sound-choice-dialog[open] [data-sound-choice=no]")?.click();');
     const blocked = await secondEvaluate('(async()=>{const c=document.querySelector("nuclear-power-console");await c.game.action("continue");return {career:!!c.game.career,status:c.game.status};})()');
     assert.equal(blocked.career, false); assert.match(blocked.status, /another tab/);
     await send('Target.closeTarget', { targetId }); await page('Page.bringToFront');
@@ -133,6 +134,7 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
     assert.equal(await consoleCode('return [...c.plantAudio.nodes].filter(v=>v.assignment).length;'), 0, 'Switching plants stops assignment cues');
     await page('Page.reload');
     await ready('c?.game?.hasSave', 'Reload offers saved career');
+    await consoleCode('s.querySelector(".sound-choice-dialog[open] [data-sound-choice=no]")?.click();');
     assert.equal(await consoleCode('return !!c.game.career;'), false, 'Reload starts free operation');
     await gameAction('continue');
     await ready('c.game.career && !c.game.busy', 'Career restored');

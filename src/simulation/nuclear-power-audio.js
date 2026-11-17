@@ -53,6 +53,11 @@ export class PlantAudio {
 
     updateScene(sim, scene, { visible = true, pumpId = 'pumpA' } = {}) {
         this.setScene(scene);
+        if (!visible) {
+            for (const voice of this.nodes) if (!voice.ui && !voice.assignment) this.halt(voice);
+            this.dieselStates.clear(); this.completedStarts.clear();
+            return;
+        }
         if (scene === 'reactor') {
             this.updatePlant(plantSoundState(sim));
             this.updateDiesels(sim.supply.generators);

@@ -72,6 +72,7 @@ export class ComputerConsole {
     disconnect() { this.observer?.disconnect(); this.scene?.dispose(); this.scene = null; this.visible = false; }
     canDraw() {
         return this.host.isConnected && !this.host.companion && this.host.plantTab === 'computers' && !this.unavailable
+            && !this.host.mobileLayout?.occludesScene
             && this.visible && this.host.intersecting && !document.hidden;
     }
     activate() {
@@ -95,6 +96,7 @@ export class ComputerConsole {
         const status = this.root.querySelector('.computer-view-status');
         status.textContent = '3D rack unavailable. Use the unit buttons to inspect and maintain equipment.';
         status.hidden = false;
+        this.host.mobileLayout?.update();
     }
     trigger() { return this.host.plantTab === 'computers' ? this.root.querySelector(`.computer-unit-list [data-computer-open="${this.selected}"]`) : this.root.querySelector('#computers-tab'); }
     open(id) {

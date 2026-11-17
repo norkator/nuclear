@@ -73,6 +73,7 @@ test('desktop and companion share controls, grid/core readings and lifecycle acr
             };
             await call('Page.navigate', { url: url + path });
             await until(expectsConsole ? 'c?.initialized' : 'document.readyState === "complete"', expectsConsole ? 'Console initialized' : 'Landing loaded');
+            if (expectsConsole) await code('s.querySelector(".sound-choice-dialog[open] [data-sound-choice=no]")?.click();');
             return { call, code, until, action: action => code(`s.querySelector('[data-action="${action}"]').click();`), input: (selector, value) => code(`const input=s.querySelector(${JSON.stringify(selector)});input.value=${JSON.stringify(String(value))};input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));`), screenshot: async name => {
                 await call('Page.bringToFront');
                 await wait(200); // Let theme/hover transitions reach their final colors.
@@ -87,14 +88,17 @@ test('desktop and companion share controls, grid/core readings and lifecycle acr
         await host.screenshot('landing-screen-selection');
         await host.code('document.querySelector(".launcher-reactor").click();');
         await host.until('c?.initialized && location.pathname === "/reactor/"', 'Reactor card opens its own page');
+        await host.code('s.querySelector(".sound-choice-dialog[open] [data-sound-choice=no]")?.click();');
         const firstDocument = await host.code('return performance.timeOrigin;');
         await host.call('Page.reload');
         await host.until(`performance.timeOrigin !== ${firstDocument} && c?.initialized && location.pathname === "/reactor/"`, 'Reload stays on selected reactor page');
+        await host.code('s.querySelector(".sound-choice-dialog[open] [data-sound-choice=no]")?.click();');
         assert.equal(await host.code('return document.querySelector(".site-content, .launcher-card");'), null, 'Reactor contains no landing/SEO content');
         await host.code('history.back();');
         await host.until('location.pathname === "/" && !!document.querySelector(".launcher-reactor") && !c', 'Back returns to landing selection');
         await host.code('document.querySelector(".launcher-reactor").click();');
         await host.until('c?.initialized && location.pathname === "/reactor/"', 'Reactor can be selected again');
+        await host.code('s.querySelector(".sound-choice-dialog[open] [data-sound-choice=no]")?.click();');
         for (const [width,height] of [[1920,1080],[2560,1440]]) {
             await host.call('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
             await waitForConsoleLayout(host.code, 'Companion host layout');
@@ -113,6 +117,7 @@ test('desktop and companion share controls, grid/core readings and lifecycle acr
         await host.screenshot('desktop-panels-closed');
         await host.call('Page.reload');
         await host.until('c?.initialized && s.querySelector("#plant-instruments").hidden && s.querySelector("#plant-analysis").hidden', 'Desktop remembers closed panels after reload');
+        await host.code('s.querySelector(".sound-choice-dialog[open] [data-sound-choice=no]")?.click();');
         await host.code('s.querySelector(".workspace-tools [data-workspace-panel=instruments]").click();s.querySelector(".workspace-tools [data-workspace-panel=analysis]").click();s.querySelector("#plant-instruments button").focus();');
         await host.call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
         await host.call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });

@@ -180,6 +180,37 @@ operator console stay in place; long side panels and operator controls scroll
 within their columns. Panel choices are remembered in this browser. Smaller
 desktop windows retain the stacked, page-scrolling layout.
 
+## Landscape phones
+
+The full reactor console uses a dedicated layout on short landscape touch screens
+(up to 1100 × 600 CSS pixels). Its 3D overview or selected equipment station fills
+the space below a compact header, with the app icon, clock and actual run state.
+Phone labels use small, dark, translucent tags while retaining larger touch targets.
+Selecting equipment opens the same dedicated stations as on desktop.
+
+**Instruments** opens the left drawer with readings, Pump power source and Grid
+controller. **Controls** opens the right drawer with Start/Stop, covered emergency
+shutdown, pumps, rods and regulation settings. Tap the handles or swipe inward
+from them. Close with ×, a backdrop tap, Escape or an outward header swipe.
+Opening a drawer never pauses the plant.
+
+**Company** opens career entry or the existing inbox, assignments, achievements
+and save pages. **Trends** opens the accepted-assignment checklist, live chart and
+events. **More** provides all plant areas, core map, spent fuel, sound/theme,
+pairing and overview display controls. Pause remains in the header.
+
+Equipment views have a floating **Back to plant** button, preserving the overview
+camera, and **Parts** or **Units** for native controls. Inspection windows fill the
+available phone viewport and scroll inside their sheets. If 3D fails, the native
+part/unit list appears directly. Only one drawer or sheet accepts input at a time.
+
+This is the full `/reactor/` host, with local careers and saves. The paired
+`/companion/` screen keeps its existing behavior. Portrait phones, tablets and
+mouse-operated desktop windows retain the existing layouts. Rotation restores
+desktop panels and control placement without changing their saved preferences,
+plant targets or Pause choice. See [the implementation plan](MOBILE-LANDSCAPE-PLAN.md)
+for the layout boundaries and verification checkpoint.
+
 ## Companion screens
 
 **Connect screen** in the header
@@ -497,6 +528,13 @@ pause, hidden views, detach, Maintenance and reduced motion. Reset demo clears t
 damage/leaks and returns every pump to OFF.
 
 ### Plant sounds
+
+Opening the full reactor console asks **Enable plant sounds?** with **Yes** and
+**No** buttons on desktop and phone. Yes enables the existing sound system through
+that user gesture; No or Escape keeps it muted. The question appears once per
+page load, without changing Pause or saving a sound choice into a career. Reset,
+rotation, career changes and element reconnection do not ask again. The existing
+Enable/Mute control remains available in the desktop header or the phone's More menu.
 
 Control sounds use the bundled Kenney UI Audio and Interface Sounds packs. Pumps
 retain the original clicks; computers, electrical switching, heat-exchanger

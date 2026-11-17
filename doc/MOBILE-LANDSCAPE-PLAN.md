@@ -5,7 +5,9 @@ Licensed under the Pörssiohjain Personal Use License v1.0.
 -->
 # Phone landscape layout plan
 
-Status: proposal, 2026-11-17. This document does not describe an implemented UI.
+Status: implementation in progress, 2026-11-17. The layout is implemented;
+browser verification and final handoff are in progress. The design below records
+the intended behavior and implementation boundaries.
 Read [AGENTS.md](../AGENTS.md), [the plant specification](nuclear-power.md),
 [the equipment-station plan](EQUIPMENT-STATIONS-PLAN.md) and
 [the development guide](development.md) before implementation.
@@ -202,3 +204,17 @@ All paths below are relative to the repository root.
 The first implementation slice is layout isolation, button-operated drawers and
 retained overview/station navigation. Swipe polish follows after those paths and
 desktop restoration are verified. No publishing or deployment is part of this work.
+
+## Additional requested tasks
+
+- [x] Smaller, darker, more transparent mobile equipment tags. Their native
+  buttons retain 44-pixel touch targets; selected/focused cards remain readable.
+- [x] A 28-pixel app icon beside the mobile header's title and clock.
+- [x] Smaller mobile instrument numbers and load-target readouts. Other labels
+  and the control hit areas retain their sizes.
+- [x] An initial **Enable plant sounds?** dialog with **Yes** / **No** buttons on
+  both desktop and phone. `nuclear-power-sound-choice.js` uses the existing
+  gesture-driven Enable/Mute path and bounded audio. No/Escape keeps sounds muted.
+  It asks once per page load, without saving preferences or adding career/save/
+  transport fields; Reset, rotation, career changes and reconnect do not repeat
+  it. Shared browser checks exercise both choices with actual mouse/touch input.

@@ -25,7 +25,7 @@ also describe future work and must not be treated as entirely implemented.
 | Plant behavior and interlocks | [Plant specification](doc/nuclear-power.md) |
 | Company game, missions and saves | [Current implementation handoff](doc/game-development.md) and [product plan](doc/GAMEPLAY-PLAN.md) |
 | Development, tests and branch policy | [Development guide](doc/development.md) |
-| Phone landscape layout work | [Mobile layout proposal](doc/MOBILE-LANDSCAPE-PLAN.md); planned, not implemented |
+| Phone landscape layout work | [Mobile layout plan and checkpoint](doc/MOBILE-LANDSCAPE-PLAN.md) |
 | Docker, relay and reverse proxies | [Deployment guide](doc/deployment.md) |
 | Equipment stations and electrical grid | [Station plan](doc/EQUIPMENT-STATIONS-PLAN.md) and [grid plan](doc/ELECTRICAL-GRID-PLAN.md) |
 | Fuel handling and cooling tower | [Fuel-handling plan](doc/FUEL-HANDLING-PLAN.md) and [tower checkpoint](doc/COOLING-TOWER-PLAN.md) |
@@ -152,6 +152,24 @@ process equipment remains silent. No sound-only timers or saved fields. Use
 `npm run test:browser:audio`; focused/full checks share `plant-audio.browser.mjs`.
 
 ## UI changes and browser verification
+
+Short landscape touch viewports use the full host's dedicated mobile layout;
+`nuclear-power-mobile-layout.js` and its CSS own the header, popover drawers,
+bounded inspection sheets, focus/inert coordination, handle swipes and desktop
+restoration. Reuse the native controls, plant tab routes and cameras. Mobile UI
+state never writes desktop/companion preferences or career saves, and layout never
+changes Pause. Covering sheets suspend scene/audio work without stopping visible
+plant time. UI drawer motion must still finish when plant animation is paused.
+Native part/unit access survives WebGL loss. Preserve desktop layout outside this
+mode and the separate companion role. Run `npm run test:browser:mobile` for the
+shared phone checks; this is still a shared-shell change requiring the gates below.
+
+The full host also has a one-per-page-load native Yes/No sound dialog owned by
+`nuclear-power-sound-choice.js`; companions retain their existing pairing/audio
+path. Yes must unlock the existing audio through the user gesture; No/Escape keeps
+it muted. Do not repeat the question on Reset, rotation, career changes or element
+reconnection, or add a saved sound choice. Browser setup chooses No explicitly
+when testing other journeys; shared sound-choice checks test both answers.
 
 Shared console layout, breakpoints, panel motion, visibility, focus or lifecycle
 changes affect the full browser suite, even when their source diff is small.

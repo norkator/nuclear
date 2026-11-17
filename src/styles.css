@@ -26,6 +26,8 @@ body {
   min-height: 100dvh;
 }
 
+body:has(nuclear-power-console[data-layout="phone-landscape"]) { overflow: hidden; }
+
 :root:has(nuclear-power-console[data-theme="light"]),
 .nuclear-power-view:has(nuclear-power-console[data-theme="light"]) {
   color-scheme: light;
