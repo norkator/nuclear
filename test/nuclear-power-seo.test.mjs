@@ -21,6 +21,8 @@ test('every indexable page has static content, a unique title and matching canon
         assert.equal((html.match(/<h1>/g) || []).length, 1);
         assert.match(html, /<html lang="en">/);
         assert.match(html, /<main[>\s]/);
+        assert.match(html, /<label class="site-theme-toggle" hidden><input type="checkbox" role="switch" data-site-theme-toggle \/> Light theme<\/label>/);
+        assert.ok(html.indexOf("const key = 'porssiohjain.nuclear-power.theme'") < html.indexOf('rel="stylesheet"'), 'Saved theme must apply before the stylesheet');
         assert.ok(html.includes(`<h1>${page.heading}</h1>`));
         assert.ok(html.includes(`<link rel="canonical" href="${siteUrl}${page.path}"`));
         assert.ok(html.includes(`<meta property="og:url" content="${siteUrl}${page.path}"`));
@@ -64,7 +66,7 @@ test('landing offers reactor and companion cards; each console has an independen
         assert.equal(renderPage(source, path), source);
         assert.match(source, /id="root"/);
         assert.match(source, /src="\/src\/main\.tsx"/);
-        assert.doesNotMatch(source, /site-content|site-skip|site:content|application\/ld\+json|launcher-card/);
+        assert.doesNotMatch(source, /site-content|site-skip|site:content|application\/ld\+json|launcher-card|data-site-theme-toggle/);
     }
 });
 

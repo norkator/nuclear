@@ -26,7 +26,11 @@ mission catalogue are still planned.
   These console URLs are excluded from the sitemap and use `noindex, follow`;
   reload stays on the selected URL, and Back returns to the landing page.
 - `guides/*/index.html` are independent static entry points. They load the shared
-  stylesheet without React, Three.js or any other JavaScript.
+  stylesheet and a small inline theme script, without React or Three.js. The
+  homepage and every guide have a keyboard-accessible Light theme switch sharing
+  the simulator's browser-local preference; dark is the default. The saved palette
+  applies before the stylesheet loads. Content remains readable without JavaScript,
+  with the inactive switch hidden; switching also works when storage is blocked.
 - `public/robots.txt` permits crawling and advertises the sitemap.
 - `public/sitemap.xml` lists the homepage and all three guides. Vite copies both
   files unchanged to the root of `dist/`.
@@ -64,8 +68,9 @@ HTML and crawl files revalidate. The external HTTPS proxy must preserve these
 status codes and content types and redirect HTTP to the canonical HTTPS host.
 Nginx also compresses HTML, JavaScript, CSS and other text responses with gzip;
 guides never download the simulator bundle. The homepage only loads a small
-compatibility redirect for old `/?screen=companion` links; it does not download
-React or Three.js. Console pages never include the SEO article, even as hidden DOM.
+compatibility redirect for old `/?screen=companion` links and the shared inline
+theme script; it does not download React or Three.js. Console pages never include
+the SEO article, even as hidden DOM.
 
 ## Verification
 
@@ -79,6 +84,9 @@ npm run test:browser
 The browser regression checks the actual production HTML with JavaScript disabled,
 readable mobile layouts, guide stylesheets, crawl-file responses, social-image
 dimensions and missing-page status before exercising the interactive simulator.
+`npm run test:browser:seo` runs these landing/guide checks independently, including
+both themes, keyboard switching, reload/navigation persistence, console handoff
+and operation with storage blocked. The full browser run uses the same checks.
 It can also target the running container:
 
 ```sh

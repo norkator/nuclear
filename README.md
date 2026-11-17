@@ -16,8 +16,9 @@ styles, deterministic simulation modules, dialog behavior and audio
 lifecycle are retained under `src/simulation/`. Each reactor page owns its simulation;
 free-operation sessions are discarded on reload. Optional careers save the plant,
 company inbox and achieved goals locally; Continue game preserves the saved Pause choice.
-Reload ends any companion pairing session. The light/dark theme is also saved
-locally. The external Vaadin desktop and Start menu open this app in a separate tab.
+Reload ends any companion pairing session. The light/dark theme is saved locally
+and shared by the simulator, landing page and guides, each with a Light theme switch.
+The external Vaadin desktop and Start menu open this app in a separate tab.
 
 ## Company game: operations and maintenance
 

@@ -3,10 +3,12 @@
  * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
+import { readFileSync } from 'node:fs';
 import { pages, siteUrl, consolePaths } from './pages.mjs';
 
 const escape = value => value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 const preview = `${siteUrl}/images/nuclear-power-control-room.png`;
+const themeScript = readFileSync(new URL('./theme.js', import.meta.url), 'utf8');
 
 export function renderHead(page) {
     const url = siteUrl + page.path;
@@ -56,13 +58,15 @@ export function renderHead(page) {
     <meta name="twitter:description" content="${escape(page.description)}" />
     <meta name="twitter:image" content="${preview}" />
     <meta name="twitter:image:alt" content="Nuclear Power reactor control room" />
-    <script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }).replaceAll('<', '\\u003c')}</script>`;
+    <script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }).replaceAll('<', '\\u003c')}</script>
+    <script>${themeScript}</script>`;
 }
 
 const footer = `<footer class="site-footer"><p>A fictional browser simulation by <a href="https://porssiohjain.fi/">Pörssiohjain</a>.</p></footer>`;
+const themeToggle = `<label class="site-theme-toggle" hidden><input type="checkbox" role="switch" data-site-theme-toggle /> Light theme</label>`;
 
 const screenCards = `<section class="site-launcher" aria-label="Choose your control room screen">
-    <p class="launcher-brand">PÖRSSIOHJAIN</p>
+    <div class="site-topbar"><p class="launcher-brand">PÖRSSIOHJAIN</p>${themeToggle}</div>
     <p class="launcher-title">Nuclear Power</p>
     <nav class="launcher-cards" aria-label="Open a screen">
       <a class="launcher-card launcher-reactor" href="/reactor/">
@@ -83,7 +87,7 @@ const screenCards = `<section class="site-launcher" aria-label="Choose your cont
 export function renderContent(page) {
     if (page.path === '/') return `${screenCards}<article id="about" class="site-content" aria-label="About the nuclear reactor simulator">${page.body}${footer}</article>`;
     return `<article class="site-content site-guide">
-        <nav class="site-breadcrumb" aria-label="Breadcrumb"><a href="/">Nuclear Power simulator</a><span aria-hidden="true">/</span><span>${escape(page.heading)}</span></nav>
+        <div class="site-topbar site-guide-topbar"><nav class="site-breadcrumb" aria-label="Breadcrumb"><a href="/">Nuclear Power simulator</a><span aria-hidden="true">/</span><span>${escape(page.heading)}</span></nav>${themeToggle}</div>
         <p class="site-eyebrow">NUCLEAR POWER · CONTROL-ROOM GUIDE</p>
         <h1>${escape(page.heading)}</h1>
         <a class="site-button" href="/reactor/">Open the simulator</a>

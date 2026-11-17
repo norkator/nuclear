@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { join, extname, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pages, siteUrl } from '../site/pages.mjs';
+import { checkSiteThemes } from './site-theme.browser.mjs';
 import { checkGenerationConsoles } from './generation-consoles.browser.mjs';
 import { checkTurbineOverload } from './turbine-overload.browser.mjs';
 import { checkCoolingTower } from './cooling-tower.browser.mjs';
@@ -157,6 +158,7 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         const focusedGrid = process.env.NUCLEAR_BROWSER_FOCUS === 'grid';
         const focusedAudio = process.env.NUCLEAR_BROWSER_FOCUS === 'audio';
         const focusedComputers = process.env.NUCLEAR_BROWSER_FOCUS === 'computers';
+        const focusedSeo = process.env.NUCLEAR_BROWSER_FOCUS === 'seo';
         if (!focusedEquipment && !focusedCooling && !focusedGame && !focusedLayout && !focusedComputers && !focusedStations && !focusedAudio && !focusedGrid) {
             // Check the actual shipped HTML with JavaScript disabled, as a crawler sees it.
             await page('Emulation.setScriptExecutionDisabled', { value: true });
@@ -178,6 +180,7 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
                     assert.ok(await evaluate('document.querySelector("article.site-content").textContent.length > 2000'));
                 }
                 assert.equal(await evaluate('document.querySelector("nuclear-power-console")'), null);
+                assert.equal(await evaluate('document.querySelector(".site-theme-toggle").getBoundingClientRect().height'), 0, 'Inactive theme switches stay hidden without JavaScript');
                 assert.ok(await evaluate('document.querySelector("link[rel=stylesheet]").sheet.cssRules.length > 0'));
                 await page('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
                 assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Static content must fit a phone');
@@ -202,6 +205,13 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
             assert.equal(previewBytes.readUInt32BE(20), 630);
             assert.equal((await fetch(new URL('/this-page-does-not-exist', baseUrl))).status, 404);
             await page('Emulation.setScriptExecutionDisabled', { value: false });
+            await checkSiteThemes({ evaluate, page, until, screenshot, baseUrl });
+        }
+        if (focusedSeo) {
+            assert.deepEqual(exceptions, []);
+            console.log(`Landing and guide browser checks passed; artifacts: ${artifacts}`);
+            await send('Browser.close');
+            return;
         }
         await page('Page.navigate', { url: new URL('/reactor/', baseUrl).href });
         await until(`!!document.querySelector('nuclear-power-console')?.shadowRoot?.querySelector('.console')`, 'Control room did not render');
