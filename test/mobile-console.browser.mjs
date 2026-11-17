@@ -156,8 +156,10 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot 
 
     // Career screens retain host ownership, pinned goals and the existing save path.
     await tap('[data-mobile-open="company"]');
+    await tap('.game-difficulty label:has([value="easy"])');
     await tap('[data-game-action="begin"]');
     await ready('c.game.career && !c.game.busy', 'Career starts on the phone host');
+    assert.equal(await consoleCode('return c.game.career.state.difficulty;'), 'easy');
     await consoleCode('c.game.tab="assignments";c.game.open();');
     await tap('[data-game-action="accept"]'); await ready('!c.game.busy', 'Phone accepts assignment');
     await consoleCode(`(${commissionPlant.toString()})(c.simulation);c.simulation.setGridDispatchEnabled(false);c.simulation.togglePump('A');c.simulation.togglePump('B');for(let i=0;i<32;i++)c.simulation.tick(.25);c.simulation.start();for(let i=0;i<720;i++){c.simulation.tick(.25);c.game.career.advance(c.simulation);}c.update();`);
