@@ -67,22 +67,26 @@ export class GridDispatcher {
         this.remaining = 45;
         this.sequence = 0;
         this.lastRequest = null;
+        this.exercise = false;
+        this.manualRequests = false;
     }
 
     setEnabled(sim, enabled) {
         if (this.enabled === Boolean(enabled)) return;
         this.enabled = Boolean(enabled);
         if (this.enabled) this.remaining = 45;
-        sim.record(`Simulated grid requests ${this.enabled ? 'enabled; Auto electrical control follows incoming MW targets' : 'disabled; current electrical target retained'}.`, 'info', 'automation');
+        const enabledMessage = !sim.autoMode && this.manualRequests ? 'enabled; exercise requests are read-only in Manual'
+            : 'enabled; Auto electrical control follows incoming MW targets';
+        sim.record(`Simulated grid requests ${this.enabled ? enabledMessage : 'disabled; current electrical target retained'}.`, 'info', 'automation');
     }
 
     readiness(sim) {
         if (!this.enabled) return { ready: false, reason: 'Not following grid requests' };
         if (sim.condition.meltdown) return { ready: false, reason: 'Meltdown / dispatch suspended' };
         if (sim.tripped) return { ready: false, reason: 'Trip latched / dispatch suspended' };
-        if (!sim.autoMode) return { ready: false, reason: 'Waiting for Auto mode' };
+        if (!sim.autoMode && !this.manualRequests) return { ready: false, reason: 'Waiting for Auto mode' };
         if (!sim.computers.automationAvailable) return { ready: false, reason: 'Process computers unavailable / dispatch suspended' };
-        if (sim.autoObjective !== 'power') return { ready: false, reason: 'Select Electrical output regulation' };
+        if (sim.autoMode && sim.autoObjective !== 'power') return { ready: false, reason: 'Select Electrical output regulation' };
         if (!sim.running) return { ready: false, reason: 'Waiting for reactor Start' };
         if (sim.paused) return { ready: false, reason: 'Simulation paused' };
         if (!sim.circulationReady()) return { ready: false, reason: 'Waiting for coolant circulation' };
@@ -90,9 +94,10 @@ export class GridDispatcher {
         return { ready: true, reason: '' };
     }
 
-    request(sim) {
+    request(sim, scheduled = false) {
+        if (this.exercise && !scheduled) return null;
         if (!this.readiness(sim).ready) return null;
-        const previousTargetMw = sim.autoElectricalTarget;
+        const previousTargetMw = sim.autoMode ? sim.autoElectricalTarget : this.lastRequest?.targetMw ?? Math.round(sim.electricalOutput / 5) * 5;
         const capacityMw = gridDispatchCapacity(sim);
         let change = CHANGES_MW[this.sequence % CHANGES_MW.length];
         let targetMw = Math.max(0, Math.min(capacityMw, previousTargetMw + change));
@@ -108,8 +113,10 @@ export class GridDispatcher {
         this.lastRequest = { id, direction, previousTargetMw, targetMw, ...targets, capacityMw,
             time: sim.elapsed, source: 'SIMULATED_GRID_CONTROLLER', message };
         this.remaining = 60;
-        sim.setAutoTargets(targets.coreLimitC, targets.circulationPercent);
-        sim.setElectricalTarget(targetMw);
+        if (sim.autoMode) {
+            sim.setAutoTargets(targets.coreLimitC, targets.circulationPercent);
+            sim.setElectricalTarget(targetMw);
+        }
         sim.record(`Simulated grid controller — ${message}`, 'info', 'automation');
         return this.lastRequest;
     }
@@ -117,13 +124,14 @@ export class GridDispatcher {
     advance(sim, seconds) {
         if (!this.readiness(sim).ready || !Number.isFinite(seconds) || seconds <= 0) return;
         this.remaining = Math.max(0, this.remaining - seconds);
-        if (this.remaining === 0) this.request(sim);
+        if (this.remaining === 0) this.request(sim, true);
     }
 
     status(sim) {
         const readiness = this.readiness(sim);
         if (!readiness.ready) return readiness.reason;
         if (!this.lastRequest) return 'Waiting for first grid message';
+        if (!sim.autoMode) return Math.abs(sim.electricalOutput - this.lastRequest.targetMw) <= 5 ? 'Manual request reached' : 'Read-only request: adjust Manual controls';
         if (sim.regulationLimit) return `Limited: ${sim.regulationLimit}`;
         if (sim.autoElectricalTarget !== this.lastRequest.targetMw || sim.autoTemperature !== this.lastRequest.coreLimitC || sim.autoFlow !== this.lastRequest.circulationPercent) return 'Operator targets changed';
         return Math.abs(sim.electricalOutput - this.lastRequest.targetMw) <= 5 ? 'Requested output reached' : 'Following grid target';

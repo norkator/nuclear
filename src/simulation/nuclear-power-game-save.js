@@ -8,8 +8,9 @@ import { FuelTransferAnimation } from './nuclear-power-refuelling.js';
 import { validObjective } from './nuclear-power-missions.js';
 import { MONITORED_EQUIPMENT, WORK_EQUIPMENT, WORK_TEST_SECONDS } from './nuclear-power-work.js';
 import { PlantComputers, COMPUTER_IDS } from './nuclear-power-computers-model.js';
+import { syncOperations, validateOperationsEvidence } from './nuclear-power-assignment-operations.js';
 
-export const CAREER_SAVE_VERSION = 4;
+export const CAREER_SAVE_VERSION = 5;
 const ROOT_FIELDS = ['elapsed', 'startSequence', 'running', 'tripped', 'paused', 'demand', 'controlRods', 'autoAllowed',
     'operatingRodTargets', 'power', 'temperature', 'returnTemperature', 'secondaryTemperature',
     'secondaryReturnTemperature', 'pumpA', 'pumpA2', 'pumpB', 'pumpB2', 'pumpASpeed', 'pumpA2Speed',
@@ -54,7 +55,7 @@ export function captureCareer(sim, transfer, career) {
 // Migrations only add newly introduced state. Existing heat, damage, rotor samples,
 // objective terms, achievements and IDs are copied without being recalculated.
 export function migrateCareerBundle(source) {
-    if (!source || ![1, 2, 3, CAREER_SAVE_VERSION].includes(source.schemaVersion)) throw new Error('Unsupported career save version.');
+    if (!source || ![1, 2, 3, 4, CAREER_SAVE_VERSION].includes(source.schemaVersion)) throw new Error('Unsupported career save version.');
     validateData(source);
     const bundle = structuredClone(source);
     if (bundle.schemaVersion === 1) {
@@ -82,6 +83,11 @@ export function migrateCareerBundle(source) {
             online: bundle.plant.computers.source !== 'OFF',
         };
         bundle.schemaVersion = 4;
+    }
+    if (bundle.schemaVersion === 4) {
+        if (!Array.isArray(bundle.career?.assignments)) throw new Error('Invalid legacy assignments.');
+        for (const assignment of bundle.career.assignments) assignment.evidence = null;
+        bundle.schemaVersion = 5;
     }
     return bundle;
 }
@@ -184,6 +190,7 @@ export function restoreCareerBundle(source) {
         const definition = assignment.definition, objective = definition?.objective;
         if (!['assigned', 'active', 'ready', 'completed'].includes(assignment.status)
             || !validObjective(objective)
+            || !validateOperationsEvidence(assignment, bundle.plant)
             || !Number.isFinite(assignment.held) || assignment.held < 0 || assignment.held > objective.seconds
             || !counter(assignment.baselineStarts) || typeof assignment.reason !== 'string'
             || !['baselineInspections', 'baselineOrders', 'baselineSamples'].every(key => counter(assignment[key]))
@@ -222,6 +229,7 @@ export function restoreCareerBundle(source) {
         || transfer.job && (!fuelIds.has(transfer.job.id) || !Number.isInteger(transfer.job.slotIndex)
             || transfer.job.slotIndex < 0 || transfer.job.slotIndex >= 35 || !Number.isFinite(transfer.job.elapsed)
             || !Number.isFinite(transfer.job.x) || !Number.isFinite(transfer.job.z))) throw new Error('Invalid fuel transfer record.');
+    syncOperations(state.assignments.find(item => ['assigned', 'active', 'ready'].includes(item.status)), sim);
     return { simulation: sim, transfer, state: structuredClone(state) };
 }
 

@@ -36,23 +36,28 @@ export class FuelInventory {
 
     advance(sim, dt) {
         if (!sim.reacting || sim.power <= 0) return;
+        for (const assembly of this.assemblies) this.advanceAssembly(sim, assembly, dt, this.rate);
+    }
+
+    // Shared consumption path for normal inventory and the disclosed selective
+    // Career exercise. Extra exposure changes no thermal clock or other assembly.
+    advanceAssembly(sim, a, dt, rate) {
+        if (!sim.reacting || sim.power <= 0 || dt <= 0 || rate <= 0) return;
         const openMean = Math.max(1, 100 - sim.rods);
-        for (const a of this.assemblies) {
-            let open = 0, weights = 0;
-            for (const rod of sim.controlRods) {
-                const w = 1 / (1 + (rod.x - a.x) ** 2 + (rod.y - a.y) ** 2);
-                open += (100 - rod.position) * w;
-                weights += w;
-            }
-            const spatial = 0.85 + ((a.x * 13 + a.y * 7 + 100) % 19) / 60;
-            const exposure = dt / 3600 * this.rate * sim.power / 100 * clamp(open / weights / openMean, 0.25, 2) * spatial;
-            a.exposure += exposure;
-            a.remaining = Math.max(0, a.remaining - exposure / 6 * 100);
-            const state = a.remaining <= 0 ? 'spent' : a.remaining <= 20 ? 'low' : 'normal';
-            if (state !== a.announced) {
-                a.announced = state;
-                sim.record(`${a.id} fuel ${state === 'spent' ? 'depleted' : 'reserve below 20%'}. Manual replacement required after cooldown.`, 'warning', 'process');
-            }
+        let open = 0, weights = 0;
+        for (const rod of sim.controlRods) {
+            const w = 1 / (1 + (rod.x - a.x) ** 2 + (rod.y - a.y) ** 2);
+            open += (100 - rod.position) * w;
+            weights += w;
+        }
+        const spatial = 0.85 + ((a.x * 13 + a.y * 7 + 100) % 19) / 60;
+        const exposure = dt / 3600 * rate * sim.power / 100 * clamp(open / weights / openMean, 0.25, 2) * spatial;
+        a.exposure += exposure;
+        a.remaining = Math.max(0, a.remaining - exposure / 6 * 100);
+        const state = a.remaining <= 0 ? 'spent' : a.remaining <= 20 ? 'low' : 'normal';
+        if (state !== a.announced) {
+            a.announced = state;
+            sim.record(`${a.id} fuel ${state === 'spent' ? 'depleted' : 'reserve below 20%'}. Manual replacement required after cooldown.`, 'warning', 'process');
         }
     }
 

@@ -1590,7 +1590,7 @@ export class NuclearPowerConsole extends HTMLElement {
             if (value !== undefined && element.textContent !== value) element.textContent = value;
         }
         this.shadowRoot.querySelector('#follow-grid').checked = sim.gridDispatch.enabled;
-        this.shadowRoot.querySelector('[data-action="grid-request"]').disabled = !sim.gridDispatch.readiness(sim).ready;
+        this.shadowRoot.querySelector('[data-action="grid-request"]').disabled = sim.gridDispatch.exercise || !sim.gridDispatch.readiness(sim).ready;
         this.shadowRoot.querySelector('.grid-dispatch-panel').dataset.following = String(sim.gridDispatch.enabled);
         this.dataset.state = sim.tripped ? 'tripped' : sim.running ? 'running' : 'stopped';
         this.dataset.overheated = String(sim.temperature > 335);

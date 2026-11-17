@@ -44,11 +44,14 @@ Pörssiohjain Spring project. The external desktop link remains unchanged.
 Free operation is still the default. Start game creates a separate cold career
 with its clock running. Continue/import/reconnect preserve the user's Pause choice.
 New careers choose Easy (Auto or
-Manual) or Hard (Manual only, enforced at the host command boundary). Eight
+Manual) or Hard (Manual only, enforced at the host command boundary). The original eight
 assignments cover startup (200 ± 5 gross MW for 30 seconds after explicit Start),
 five reliable minutes, condition rounds, pump A service, water quality,
 purification-filter service, cooling-water intake service and a 60-second return
-to generation. Briefs disable grid following for fixed-output work. Auto holds
+to generation. Sixteen continuation assignments add pump/standby proofs, grid
+shifts, low/high demand, rack/mechanical service, selective fuel work and a warned
+bearing failure, bringing the total to twenty-four. Existing completions and
+achievements remain intact. Briefs disable grid following for fixed-output work. Auto holds
 are continuous; Manual accumulates qualifying actual time, retaining it outside
 the envelope with no failure deadline. Old issued briefs keep their original
 terms. Objectives use actual readings and existing interlocks; pause freezes time.
@@ -68,14 +71,17 @@ end pairing and stop old audio/motion; companion plant commands remain host owne
 Schema-1 saves migrate through schema 2 with healthy new water systems and Easy
 difficulty; schema-1/2 saves then migrate to schema 3 with a healthy computer
 rack, preserving existing plant/progress/issued requirements. Schema 3→4 adds the
-instrument server without changing existing rack units. New saves
+instrument server without changing existing rack units. Schema 4→5 adds null
+assignment evidence to the original records without changing their progress;
+new objectives retain validated proof timers and pinned scenario identities. New saves
 retain water inventories, inspection/sample records, work-order stages and test
-time. Reset demo is unavailable in Career. Money, bankruptcy and further assignments are
+time. Reset demo is unavailable in Career. Money, bankruptcy and further catalogue ideas are
 planned in [GAMEPLAY-PLAN.md](GAMEPLAY-PLAN.md), not implemented yet.
 
 For the exact implementation, save schema/limitations, source map and next work,
 read [the game-development handoff](game-development.md). The 20-mission product
-plan is not a list of implemented assignments.
+plan is not a list of implemented assignments; the [assignment expansion](ASSIGNMENT-EXPANSION-PLAN.md)
+and handoff distinguish the playable continuation from further ideas.
 
 Run `npm run test:browser:game` for game entry, company messages, reports,
 achievements, mobile/light rendering, two-tab ownership, reload and reconnect.
@@ -1030,7 +1036,10 @@ and circulation settings are owned by each incoming request; alarm/damage
 thresholds, cooling/fuel capability and manual pump/rod overrides remain authoritative.
 Messages cannot activate/reset emergency shutdown, start equipment, close breakers or change alarm/damage thresholds.
 Countdown and request delivery suspend during Stop, trip/meltdown, pause, Manual
-mode or temperature regulation. Hiding the console freezes simulated time as usual.
+mode or temperature regulation. The two active Career grid exercises explicitly
+allow read-only requests in Manual/Hard, without writing operating targets;
+ordinary Manual free operation still suspends dispatch. Request now is blocked
+during these exercises. Hiding the console freezes simulated time as usual.
 No request can reset a trip, start a reactor/turbine, refuel or repair equipment.
 Resume after a stop/trip still requires the existing explicit operator actions.
 

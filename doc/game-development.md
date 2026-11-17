@@ -12,7 +12,7 @@ below run from this repository root. Read [AGENTS.md](../AGENTS.md), this file,
 before continuing. The plan describes the intended game; this file describes the
 code that exists and the work still needed.
 
-## Current playable operations and maintenance chapter
+## Current playable operations and maintenance campaign
 
 Free operation remains the initial mode. **Start game → Begin career** creates
 a separate cold plant with its clock running immediately. Pause is operator-owned.
@@ -61,6 +61,54 @@ UI clicks, and add no saved fields or mission rules.
 | `cooling.intake-service` | New intake order, both loops isolated, service and restored cooling-water test | `cooling-service-qualified` |
 | `operation.return-to-service` | Explicit Start, then 200 ± 5 MW for 60 seconds with water healthy and work complete | `maintenance-chapter-complete` |
 
+The original eight remain unchanged. The sixteen-assignment continuation is
+issued after that maintenance certificate, including for existing completed
+careers; it does not revoke earlier goals or alter active/ready issued terms.
+
+| Stable mission ID | Actual criterion | Capability earned on report |
+| --- | --- | --- |
+| `pumps.acceptance-tests` | Four separate stopped pump proofs, ten seconds each; restore main duty | `pump-tests-qualified` |
+| `grid.first-contract` | 180 qualifying seconds within 10 MW of new requests, at least three served | `dispatch-qualified` |
+| `operation.low-demand` | 100 ± 5 gross MW for 120 seconds | `low-demand-qualified` |
+| `pumps.primary-backup` | Ten actual seconds on A2 with A stopped, then restore A duty | `primary-transfer-qualified` |
+| `pumps.secondary-backup` | Ten actual seconds on B2 with B stopped, then restore B duty | `backup-transfer-qualified` |
+| `diesel.standby-proof` | Each diesel actually running for ten seconds; finish on normal AC, engines stopped/armed/fuelled | `standby-qualified` |
+| `computers.redundancy-check` | New healthy online diagnostics of all six units | `rack-inspected` |
+| `computers.server-service` | New server A order through explicit return | `server-service-qualified` |
+| `computers.ups-service` | New UPS order with actual AC-bypass and test interlocks | `ups-service-qualified` |
+| `computers.cooling-service` | New cooling-tray order with actual fan stop and airflow proof | `rack-service-qualified` |
+| `exchanger.planned-clean` | New exchanger order, both loops isolated and actual generation test | `exchanger-service-qualified` |
+| `turbine.service-window` | New turbine order, shaft coast-down and explicit generation test | `turbine-service-qualified` |
+| `operation.high-demand` | 250 ± 5 gross MW for 120 seconds | `high-demand-qualified` |
+| `fuel.selective-outage` | Two pinned random assemblies deplete at 120×, then actual manual replacements | `selective-fuel-qualified` |
+| `maintenance.warned-pump-failure` | Saved 45-second warning, real one-time bearing failure, backup proof, new returned order and 60 healthy generation seconds | `incident-recovery-qualified` |
+| `grid.load-following` | 900 qualifying seconds within 10 MW, at least ten different new requests served | `extended-operations-complete` |
+
+Grid exercises accumulate qualifying delivery in both modes; outside requirements
+pauses credit, with no deadline, score tariff or fine. Their saved countdown uses
+the existing 45/60-second dispatcher. While active, Manual/Hard receives read-only
+requests without writing any plant targets; Request now is blocked at the model
+boundary. This policy is derived from the active assignment, restored before the
+first tick and removed at verification. Ordinary Manual free operation retains
+the suspended dispatcher. These exercises are not the planned monetary contracts.
+
+Selective fuel evidence pins two distinct IDs and replacement counters. Only
+those assemblies receive extra consumption through the normal inventory path,
+up to a total 120× rate while reacting; each stops receiving extra wear once
+depleted. Depletion must precede an actual replacement. Counter evidence does
+not depend on crane deposition, camera, reduced motion or a transfer callback.
+Paid fuel and pool-logistics missions still require authoritative batch receipts.
+
+The warned incident pins one eligible main pump and its backup from the random
+career UUID. The warning advances only during healthy generation with that pump
+delivering flow, a healthy backup and no open orders. It pauses during Stop or
+an outage; once eligible for 45 seconds, retained bearing damage stops the actual
+motor. There is one injection and one failure message. Backup proof needs ten
+actual seconds with the failed pump OFF/stopped. Repair still requires the
+existing stopped/cooled checks and a new post-failure order; final recovery needs
+an explicit restart, restored main duty and stopped backup. No random background
+incident director, concurrent incidents or preventive-avoidance variant exists yet.
+
 Generation tests require Auto/electrical regulation at 200 MW or actual Manual
 operation (Hard requires Manual), grid following disabled, running/no trip,
 no active faults or damage under the existing model
@@ -74,11 +122,12 @@ archives the saved requirements/result, sends follow-up mail and issues eligible
 next work. Email read state does not determine plant success.
 
 Current saved lifecycle values are `assigned`, `active`, `ready`, `completed`.
-Objective kinds are `generation-hold`, `condition-rounds`, `work-order` and
-`water-quality`. Post-acceptance baselines use monotonic inspection, sample and
+Objective kinds are `generation-hold`, `condition-rounds`, `work-order`,
+`water-quality`, `pump-proof`, `diesel-proof`, `rack-diagnostics`,
+`grid-following`, `fuel-selective` and `pump-recovery`. Post-acceptance baselines use monotonic inspection, sample and
 order sequences. Requested switches, old samples and unclosed work orders cannot
 substitute for actual success. Work tests need ten continuous plant seconds.
-The remaining original catalogue, economic lifecycle, costs, monetary rewards,
+The remaining economic catalogue, economic lifecycle, costs, monetary rewards,
 contracts and bankruptcy remain planned. Service, repairs, refuelling and dispatch
 remain free.
 
@@ -94,7 +143,9 @@ Hard restrictions through their existing plant controls.
 
 | File | Responsibility |
 | --- | --- |
-| `src/simulation/nuclear-power-missions.js` | Eight definitions, catalogue validation, capabilities, pinned evidence and reports |
+| `src/simulation/nuclear-power-missions.js` | Original eight definitions, combined catalogue, capabilities, pinned terms and reports |
+| `src/simulation/nuclear-power-mission-catalogue.js` | Sixteen authored continuation assignments |
+| `src/simulation/nuclear-power-assignment-operations.js` | Actual-state proofs, grid delivery, targeted fuel, warned failure and evidence validation |
 | `src/simulation/nuclear-power-game.js` | Entry/return, company UI, lock ownership, autosave, JSON backup and plant switching |
 | `src/simulation/nuclear-power-game-audio.js` | Presentation-only assignment/step cue deduplication from actual checklist evidence |
 | `src/simulation/nuclear-power-game-save.js` | Explicit plant/pool serialization, validation/hydration and IndexedDB revision writes |
@@ -103,6 +154,8 @@ Hard restrictions through their existing plant controls.
 | `src/simulation/nuclear-power-model.js` | Reactor commands/read-backs; `startSequence` increments only on successful Start |
 | `test/nuclear-power-game.test.mjs` | Mission timing/evidence, content insertion, pinned terms, hydration and invalid saves |
 | `test/company-game.browser.mjs` | UI/reload/ownership/layout/lifecycle/save-failure checks reused by the browser harness |
+| `test/company-assignment-expansion.browser.mjs` | Shared browser continuation through all sixteen new assignments, preserving original reports |
+| `test/nuclear-power-assignment-expansion.test.mjs` | Original-progress migration, new objective behavior and exact scenario continuation |
 | `test/game-browser.mjs` | Focused browser entry selected by `npm run test:browser:game` |
 
 `CompanyCareer.advance(sim)` consumes advanced plant elapsed time. The host calls
@@ -123,8 +176,8 @@ Computer-rack support is in `nuclear-power-computers-model.js` (pure rack model)
 `nuclear-power-computers.js`/CSS (3D-only tab and floating inspection). The main
 console owns the shared frame loop. A rack-only observer suspends offscreen GPU
 work; detach disposes resources. Existing work orders accept all six rack units,
-with dedicated hardware isolation and actual online proof. There are no extra
-authored missions yet; the current eight remain unchanged. Rack commands and
+with dedicated hardware isolation and actual online proof. The continuation adds
+rack diagnostics and server/UPS/cooling service assignments. Rack commands and
 records stay desktop-owned; companion hydration retains model methods and
 blocks Auto while host process computing is unavailable.
 
@@ -145,8 +198,8 @@ visibility, actual damage/motion and fallback are covered by
 
 ## Saved-state contract and known gaps
 
-- Save schema: `CAREER_SAVE_VERSION = 4`; content metadata:
-  `MISSION_CONTENT_VERSION = 2`. There is no economy rules version yet.
+- Save schema: `CAREER_SAVE_VERSION = 5`; content metadata:
+  `MISSION_CONTENT_VERSION = 3`. There is no economy rules version yet.
 - IndexedDB: `porssiohjain-nuclear-career`, database version 1, object store
   `career`, keys `current` and `previous`. Keep this namespace when changing
   repository/UI names, or provide an explicit migration. Saves belong to the
@@ -171,9 +224,12 @@ visibility, actual damage/motion and fallback are covered by
   and Easy difficulty to schema 1, preserving old plant state, issued terms and
   achievements. The schema-2-to-3 step adds healthy computer defaults; schema 3→4
   adds a healthy instrument server without changing the five existing rack units.
-  Schema 4
-  retains rack power/boot/fault/thermal state, UPS inventory and diagnostics, and
-  validates water bounds, order IDs/stage timestamps,
+  Schema 4 retains rack power/boot/fault/thermal state, UPS inventory and diagnostics.
+  Schema 4→5 adds explicit null assignment evidence to old records, preserving
+  all definitions, holds, completions, achievements and capabilities. New kinds
+  save validated proof timers, diagnostic/request baselines, served request IDs,
+  selected fuel/replacement evidence and warned-failure identity/stage. Validation
+  checks water bounds, order IDs/stage timestamps,
   evidence types and difficulty/Auto consistency. Manual trend samples can have
   null electrical targets. Continue commits the migrated revision. Unknown
   versions are rejected; previous-revision recovery UI remains planned.
@@ -188,8 +244,10 @@ visibility, actual damage/motion and fallback are covered by
   an authoritative purchase/service/transport ledger. Start can cancel a transfer
   before a sample is deposited. Resolve this before charging for replacement or
   awarding a fuel-logistics mission; see the product plan's Career batch proposal.
-- No incident director, seeded campaign randomness, repair invoices, paid fuel,
+- No general incident director, repair invoices, paid fuel,
   contracted export model, premium, credit facility or economic failure exists.
+  The one authored bearing incident and selective fuel exercise use saved,
+  deterministic choices; a general random campaign director is still planned.
   Debug scenario controls and fuel acceleration are still available in Career;
   gate their economic effects before releasing monetary contracts.
 
@@ -212,7 +270,7 @@ For an extension:
    together. Retain support for the saved version-1 hold definitions.
 3. Add any new plant/economy/receipt fields to the explicit serializer and a
    tested migration from existing versions. Never silently fill missing required
-   schema-4 fields; legacy additions belong only in explicit migrations.
+   schema-5 fields; legacy additions belong only in explicit migrations.
 4. Update the introduction, progression copy and actual-state checklist. Adding
    a definition alone does not implement new objective behavior or paid contracts.
 5. Test insertion before issuance, during active/ready work and after completion;
@@ -235,8 +293,8 @@ dispatch response envelopes and economic balance have not yet been calibrated.
    quantities. Gross electrical readings/targets stay unchanged. Prove the
    auxiliary-load deduction, MW-seconds/MWh conversion, interval boundaries,
    bounded premium and duplicate-payment protection.
-3. Implement grid-contract objective evidence and the next company assignment,
-   preserving existing careers through a tested migration.
+3. Extend the existing qualifying grid exercises to measured financial contracts,
+   preserving their pinned non-monetary terms and old career progress.
 4. Extend current preventive work orders to assigned mechanical defects and
    priced work, retaining actual tests and one host-side guard/event path
    for desktop, component and companion commands.

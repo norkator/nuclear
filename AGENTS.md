@@ -23,7 +23,7 @@ also describe future work and must not be treated as entirely implemented.
 | --- | --- |
 | Controls, equipment and companion screens | [Control-room guide](doc/control-room-guide.md) |
 | Plant behavior and interlocks | [Plant specification](doc/nuclear-power.md) |
-| Company game, missions and saves | [Current implementation handoff](doc/game-development.md) and [product plan](doc/GAMEPLAY-PLAN.md) |
+| Company game, missions and saves | [Current implementation handoff](doc/game-development.md), [product plan](doc/GAMEPLAY-PLAN.md) and [assignment expansion](doc/ASSIGNMENT-EXPANSION-PLAN.md) |
 | Development, tests and branch policy | [Development guide](doc/development.md) |
 | Phone landscape layout work | [Mobile layout plan and checkpoint](doc/MOBILE-LANDSCAPE-PLAN.md) |
 | Docker, relay and reverse proxies | [Deployment guide](doc/deployment.md) |
@@ -56,9 +56,11 @@ behavior from the larger product plan.
 Free operation remains the default. Start game creates a separate cold career with
 its clock running; Continue/import/reconnect preserve the user's saved Pause choice.
 Only user commands change Pause; closed/hidden careers still never advance offline.
-Eight company assignments cover
+Twenty-four company assignments retain the original eight covering
 startup, reliability, condition rounds, pump service, water quality, filter/intake
-service and return to generation. New careers choose Easy (Auto/Manual) or Hard
+service and return to generation, then add pump/standby proofs, grid shifts,
+low/high demand, rack/mechanical service, selective fuel replacement and a warned
+pump failure. New careers choose Easy (Auto/Manual) or Hard
 (Manual only, enforced by the host model on every screen). Manual power tasks
 accumulate qualifying time and pause outside requirements, with no failure
 deadline; verified success stays ready until reported. Old issued terms stay
@@ -81,7 +83,7 @@ rotor tolerances, pool records, and no offline advancement. Switching sessions
 ends pairing and clears local motion/audio; companions never tick a career.
 Keep accepting/reporting/import/export and new-career actions desktop owned.
 Company inbox/mission/finance summaries on companions are still planned.
-Save schema version 4 has tested version-1/2/3 migrations preserving old progress,
+Save schema version 5 has tested version-1/2/3/4 migrations preserving old progress,
 terms, heat/damage/trips and sampled rotor tolerance; older careers become Easy.
 Previous-revision recovery UI and career restart checkpoints remain planned.
 Add tested migrations before changing required saved fields or introducing
@@ -117,11 +119,11 @@ online proof. The instrument server and network must be online for the six main
 plant instruments; cold/reset displays show OFF with a darkened screen style.
 Local inspections, Manual controls and ESD remain independent. Servers, switch and
 UPS have activity LEDs on the shared frame loop; pause/offscreen freeze them and
-reduced motion uses steady lamps. Preserve schema-4 rack state and explicit v1→v2→v3→v4 migrations,
+reduced motion uses steady lamps. Preserve rack state and explicit v1→v2→v3→v4→v5 migrations,
 companion prototypes, shared frame ownership, offscreen suspension, reduced motion,
 separate camera, keyboard picking, floating-window focus and GPU disposal/reconnect.
 Use `npm run test:browser:computers` during iteration; the full browser harness
-runs the same rack checks. Existing authored career count remains eight.
+runs the same rack checks. The authored career now has twenty-four assignments.
 
 The overview's server warehouse (left of the cooling tower) navigates to Computer
 systems. Overview/schematic pump, exchanger, turbine/generator and condenser

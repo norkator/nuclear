@@ -4,8 +4,10 @@
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
 import { MONITORED_EQUIPMENT, WORK_EQUIPMENT, WORK_NAMES } from './nuclear-power-work.js';
+import { CONTINUATION_MISSIONS } from './nuclear-power-mission-catalogue.js';
+import { advanceOperations, createOperationsEvidence, isOperationsObjective, operationsSteps, syncOperations, validOperationsObjective } from './nuclear-power-assignment-operations.js';
 // Stable content IDs and saved objective terms allow later missions to be inserted.
-export const MISSION_CONTENT_VERSION = 2;
+export const MISSION_CONTENT_VERSION = 3;
 export const MISSIONS = [
     {
         id: 'startup.first-shift', version: 2, order: 10, requires: [], grants: ['commissioned'],
@@ -63,6 +65,7 @@ export const MISSIONS = [
         objective: { kind: 'generation-hold', seconds: 60, targetMw: 200, toleranceMw: 5, needsStart: true, manualAllowed: true, needsWorkComplete: true },
         completion: 'Operations, condition rounds, planned service and water-treatment checks are complete. Your reports and plant are saved. Further assignments can extend this career.',
     },
+    ...CONTINUATION_MISSIONS,
 ];
 
 export function validObjective(objective) {
@@ -76,7 +79,7 @@ export function validObjective(objective) {
     if (objective.kind === 'condition-rounds') return Array.isArray(objective.equipment) && objective.equipment.length > 0
         && new Set(objective.equipment).size === objective.equipment.length && objective.equipment.every(id => MONITORED_EQUIPMENT.includes(id));
     if (objective.kind === 'work-order') return WORK_EQUIPMENT.includes(objective.equipment);
-    return objective.kind === 'water-quality';
+    return objective.kind === 'water-quality' || validOperationsObjective(objective);
 }
 
 export function validateMissionCatalogue(catalogue) {
@@ -118,7 +121,8 @@ export function assignmentSteps(assignment, sim) {
     if (!assignment || !['active', 'ready', 'completed'].includes(assignment.status)) return [];
     const objective = assignment.definition.objective;
     const verified = assignment.status === 'ready' || assignment.status === 'completed';
-    if (objective.kind !== 'generation-hold') return maintenanceSteps(assignment, sim).map(step => ({ ...step, done: verified || step.done }));
+    if (objective.kind !== 'generation-hold') return (isOperationsObjective(objective) ? operationsSteps(assignment, sim)
+        : maintenanceSteps(assignment, sim)).map(step => ({ ...step, done: verified || step.done }));
     const checks = generationHoldConditions(assignment, sim);
     return [
         { id: 'regulation', label: `${objective.manualOnly ? 'Manual operation' : objective.manualAllowed ? 'Auto or Manual' : 'Auto → Electrical output'}: ${objective.targetMw} MW; Follow requests off`, done: checks.regulation && checks.following },
@@ -188,6 +192,7 @@ export class CompanyCareer {
         const assignment = { definition, status: 'assigned', held: 0,
             issuedAt: this.state.lastElapsed, acceptedAt: null, completedAt: null,
             baselineStarts: 0, baselineInspections: 0, baselineOrders: 0, baselineSamples: 0,
+            evidence: null,
             reason: 'Read the briefing and accept the assignment.' };
         this.state.assignments.push(assignment);
         this.message(`assignment:${next.id}`, next.title, definition.brief, next.sender, assignment.issuedAt, next.id);
@@ -202,6 +207,14 @@ export class CompanyCareer {
         assignment.baselineInspections = sim.work.inspectionSequence;
         assignment.baselineOrders = sim.work.sequence;
         assignment.baselineSamples = sim.water.sampleSequence;
+        assignment.evidence = createOperationsEvidence(assignment, sim, this.state.id);
+        syncOperations(assignment, sim);
+        if (assignment.definition.objective.kind === 'pump-recovery') {
+            const { pump, backup } = assignment.evidence;
+            this.message(`warning:${assignment.definition.id}`, 'Maintenance bearing warning',
+                `${WORK_NAMES[pump]} has a reported bearing concern. Inspect it and prepare ${WORK_NAMES[backup]}. The warned failure follows ${assignment.definition.objective.warningSeconds} eligible operating seconds. Stop/isolation or an unavailable backup holds that warning clock. Repair still requires a stopped, cooled work window.`,
+                assignment.definition.sender, sim.elapsed, assignment.definition.id);
+        }
         this.state.lastElapsed = sim.elapsed;
         assignment.reason = 'Waiting for the assignment’s operating conditions.';
         return true;
@@ -211,15 +224,22 @@ export class CompanyCareer {
         const dt = Math.max(0, Math.min(1, sim.elapsed - this.state.lastElapsed));
         this.state.lastElapsed = sim.elapsed;
         const assignment = this.current;
+        syncOperations(assignment, sim);
         if (!assignment || assignment.status !== 'active' || dt === 0) return false;
         const objective = assignment.definition.objective;
         let reason = '';
-        if (objective.kind !== 'generation-hold') {
+        let ready = false;
+        if (isOperationsObjective(objective)) {
+            const result = advanceOperations(assignment, sim, dt, (event, subject, body) =>
+                this.message(`${event}:${assignment.definition.id}`, subject, body, assignment.definition.sender, sim.elapsed, assignment.definition.id));
+            reason = result.reason; ready = result.ready;
+        } else if (objective.kind !== 'generation-hold') {
             const steps = maintenanceSteps(assignment, sim);
             const requirements = steps.filter(step => step.id !== 'hold');
             const met = requirements.every(step => step.done);
             assignment.held = met ? Math.min(objective.seconds, assignment.held + dt) : 0;
             reason = met ? 'Requirements met; verifying on plant time.' : requirements.find(step => !step.done).label;
+            ready = assignment.held >= objective.seconds;
         } else {
             const checks = generationHoldConditions(assignment, sim);
             if (!checks.start) reason = 'Explicitly start the reactor after accepting this assignment.';
@@ -230,10 +250,12 @@ export class CompanyCareer {
             else if (!checks.cooling || !checks.circulation) reason = 'Restore circulation and healthy cooling.';
             else if (!checks.output) reason = `Waiting for actual output within ${objective.targetMw} ± ${objective.toleranceMw} MW.`;
             assignment.held = reason ? (!sim.autoMode && objective.manualAllowed ? assignment.held : 0) : Math.min(objective.seconds, assignment.held + dt);
+            ready = assignment.held >= objective.seconds;
         }
         assignment.reason = reason || 'Holding stable generation. Pause freezes this timer.';
-        if (assignment.held < objective.seconds) return false;
+        if (!ready) return false;
         assignment.status = 'ready';
+        syncOperations(assignment, sim);
         assignment.verifiedAt = sim.elapsed;
         assignment.reason = 'Verified. Send your report to the plant manager.';
         this.message(`verified:${assignment.definition.id}`, `Ready to report: ${assignment.definition.title}`,
