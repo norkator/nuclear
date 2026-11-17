@@ -207,33 +207,31 @@ desktop restoration are verified. No publishing or deployment is part of this wo
 
 ## Additional requested tasks
 
-Reported 2026-11-17 during assignment expansion; these two follow-ups are queued,
-not implemented by the assignment work. The reported device/browser is
-**Firefox on Android**; use it as the primary real-device verification target:
+Reported 2026-11-17 for **Firefox on Android**. Both features are implemented;
+automated browser checks use native touch input and fullscreen in Chromium.
+Verification on a physical Android/Firefox device remains a manual check.
 
-- [ ] **Pinch to zoom all 3D views.** Two-finger gestures currently do not zoom
-  the model on a touch screen. The overview camera accepts one pointer for orbit
-  or pan and a mouse wheel for zoom; its active drag rejects a second pointer.
-  The rack also has no two-pointer distance tracking. Add camera zoom using the
-  distance between two active touches in the overview, equipment/grid stations
-  and computer rack, respecting each camera's zoom limits and independent pose.
-  Preserve one-finger orbit, picking and native ± controls. Pinching, pointer
-  cancellation or lifting one finger must not accidentally pick equipment or
-  operate controls. Do not capture gestures outside a canvas or disable ordinary
-  page zoom/scrolling. Clear touch state on hide, rotation, context loss and detach.
-  Cover actual two-touch input, transitions between one/two fingers and camera
-  retention in the shared station/rack/mobile checks; verify on a real phone.
-- [ ] **Mobile Full screen / Exit full screen control.** Add a discoverable
-  control, preferably in More for landscape, with access in portrait too, for
-  the full console when supported. A tap should
-  request fullscreen for the complete application so the header, drawers and
-  inspection windows remain accessible. Use native fullscreen state/events for
-  the label and exit behavior, handle rejected/unsupported requests visibly and
-  leave the normal layout usable. Entry/exit, Android Back/browser exit and
-  rotation must settle viewport geometry without resetting a camera, changing
-  Pause, touching career saves or changing the simulation/companion role. Verify
-  on Firefox for Android and another mobile browser; check support at runtime
-  rather than assuming every mobile browser provides the same API.
+- [x] **Pinch to zoom all 3D views.** `nuclear-power-touch-zoom.js` tracks two
+  pointers in the overview, equipment/grid stations and rack, respecting their
+  independent cameras and zoom limits. It covers overview labels as well as the
+  canvas, while single taps retain inspection. A pinch suppresses picking until
+  all fingers lift; cancel, hide, resize and detach clear input/capture. Mouse,
+  keyboard, one-finger orbit and ordinary page scrolling outside the model remain
+  available. Native pointerdown is not cancelled, preserving subsequent UI taps.
+- [x] **Mobile Full screen / Exit full screen control.**
+  `nuclear-power-fullscreen.js` adds the full host's native toggle to settings:
+  More in landscape, header settings in portrait. It requests the whole page so
+  controls and inspections remain usable. Native state/events update the label;
+  successful transitions reconcile mobile popovers and focus. Unsupported or
+  rejected requests show a usable fallback. Owned and late fullscreen requests
+  are cleaned up on detach/reconnect. Entry, exit and rotation preserve cameras,
+  actual plant state, Pause, preferences, career saves and the companion role.
+
+`npm run test:browser:mobile-input` runs the shared focused checks for seven
+actual two-touch cameras, release/cancel, subsequent orbit/control taps, native
+fullscreen entry/exit and portrait rotation. Mobile and full browser journeys
+call the same checks. Seven unit cases cover bounds, third fingers, cancellation,
+mouse/keyboard continuity, rejected/unsupported requests and late detach cleanup.
 
 Fullscreen requires a user gesture; the page cannot enter it automatically merely
 because it loads or rotates. See the [MDN requestFullscreen reference](https://developer.mozilla.org/en-US/docs/Web/API/Element/requestFullscreen)

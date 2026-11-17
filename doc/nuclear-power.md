@@ -579,7 +579,7 @@ See [the cooling tower checkpoint](COOLING-TOWER-PLAN.md). Focused checks:
 `npm run test:browser:cooling`; equipment browser checks include these scenarios.
 
 The taller viewport starts at 120% zoom. Drag to orbit within bounded angles, use
-the mouse wheel or +/− buttons to zoom (65–300%), and select **Reset view** to restore
+the mouse wheel, a two-finger pinch or +/− buttons to zoom (65–300%), and select **Reset view** to restore
 the initial camera, including its center. Hold the mouse wheel and drag to pan
 in the camera plane; Shift+drag also pans. Panning is bounded to eight scene
 units in the unified 3D view. When the canvas has keyboard focus, arrow

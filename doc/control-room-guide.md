@@ -102,6 +102,19 @@ pump, warning, failure and work evidence.
 
 ## 3D equipment stations
 
+On a touch screen, spread two fingers to zoom in and bring them together to zoom
+out. This works in the overview, equipment/electrical stations and computer rack,
+including touches over overview labels. One finger still rotates the model;
+a tap selects equipment. Finishing or cancelling a pinch cannot select a part.
+Each view retains its own camera.
+
+On phones and other small touch viewports, **Full screen** is in **More** in
+landscape and in the header settings in portrait. Tap it to request fullscreen
+for the entire control room; use **Exit full screen** or the browser's own exit
+action to leave. The button follows actual browser fullscreen state. Unsupported
+browsers show **Full screen unavailable**; rejected requests show an explanation.
+Fullscreen and rotation preserve the plant, Pause choice, camera and career.
+
 The reactor overview is also plant navigation. Select the small **server warehouse**
 left of the cooling tower to open Computer systems. Selecting a pump, heat
 exchanger, turbine/generator, condenser or cooling tower opens its dedicated

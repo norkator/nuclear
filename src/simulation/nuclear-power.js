@@ -34,6 +34,7 @@ import { EquipmentStations, electricalTab, stationTabs, stationPanels } from './
 import { EQUIPMENT_STATIONS, equipmentStation } from './nuclear-power-stations-config.js';
 import stationStyles from './nuclear-power-stations.css?inline';
 import { MobileLayout } from './nuclear-power-mobile-layout.js';
+import { ConsoleFullscreen } from './nuclear-power-fullscreen.js';
 import mobileStyles from './nuclear-power-mobile-layout.css?inline';
 import { SoundChoice } from './nuclear-power-sound-choice.js';
 import soundChoiceStyles from './nuclear-power-sound-choice.css?inline';
@@ -267,6 +268,7 @@ export class NuclearPowerConsole extends HTMLElement {
     connectedCallback() {
         if (!this.initialized) this.initialize();
         this.mobileLayout?.connect();
+        this.fullscreen?.connect();
         this.setOverview(this.overviewMode);
         this.setPlantTab(this.plantTab);
         this.computerConsole.connect();
@@ -298,6 +300,7 @@ export class NuclearPowerConsole extends HTMLElement {
     }
 
     disconnectedCallback() {
+        this.fullscreen?.disconnect();
         this.soundChoice?.disconnect();
         this.mobileLayout?.disconnect();
         this.finishWorkspacePanelTransitions?.();
@@ -646,7 +649,10 @@ export class NuclearPowerConsole extends HTMLElement {
         initializeCompanion(this);
         initializeDesktopLayout(this);
         initializeGame(this);
-        if (!this.companion) { this.mobileLayout = new MobileLayout(this); this.soundChoice = new SoundChoice(this); }
+        if (!this.companion) {
+            this.fullscreen = new ConsoleFullscreen(this);
+            this.mobileLayout = new MobileLayout(this); this.soundChoice = new SoundChoice(this);
+        }
         this.inspect('reactor', false);
     }
 

@@ -173,6 +173,17 @@ it muted. Do not repeat the question on Reset, rotation, career changes or eleme
 reconnection, or add a saved sound choice. Browser setup chooses No explicitly
 when testing other journeys; shared sound-choice checks test both answers.
 
+`nuclear-power-touch-zoom.js` owns two-touch camera zoom in the overview,
+equipment/grid stations and rack, including overview labels. Preserve single
+touch orbit/inspection, keyboard/mouse input, zoom bounds and independent cameras.
+Pinches suppress picking until all fingers lift; hide/resize/cancel/detach clears
+input and capture. Keep native UI taps working after a pinch. The full host's
+`nuclear-power-fullscreen.js` provides Full screen / Exit full screen in phone
+settings (More in landscape). Use native state/events and a user gesture, handle
+unsupported/rejected/late requests, and retain controls, camera, Pause and saves.
+No new saved or transport fields. Focused iteration:
+`npm run test:browser:mobile-input`; assertions are shared by mobile/full checks.
+
 Shared console layout, breakpoints, panel motion, visibility, focus or lifecycle
 changes affect the full browser suite, even when their source diff is small.
 Run `npm run build` and `npm run test:browser:layout` during layout iteration;

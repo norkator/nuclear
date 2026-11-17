@@ -78,6 +78,13 @@ the test. Tests do not need the Spring application.
 
 ## Landscape phone verification
 
+`npm run test:browser:mobile-input` is the shorter iteration check for real
+two-touch camera input across all seven 3D views and native fullscreen entry,
+exit and rotation. Its assertions are shared with the complete mobile journey
+and full suite. `node --test test/nuclear-power-mobile-input.test.mjs` covers
+cancelled gestures, mouse/keyboard continuity, rejected/unsupported fullscreen
+and asynchronous detach cleanup without a browser.
+
 For the landscape-phone host layout, run `npm run test:browser:mobile`. The checks
 are shared with the full browser suite and use actual touch input, viewport and
 drawer geometry, focus, cold startup, career controls and rotation/reconnection.
