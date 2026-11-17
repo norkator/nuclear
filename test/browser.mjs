@@ -112,7 +112,7 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
             const layout = await captureConsoleLayout(consoleCode);
             console.log('Browser failure layout:', JSON.stringify(layout));
             writeFileSync(join(artifacts, 'failure-context.json'), JSON.stringify({ layout, exceptions }, null, 2));
-            const result = await page('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+            const result = await page('Page.captureScreenshot', { format: 'png', captureBeyondViewport: !layout.mobile.active });
             writeFileSync(join(artifacts, 'failure.png'), Buffer.from(result.data, 'base64'));
         };
         const action = action => consoleCode(`s.querySelector('[data-action="${action}"]').click();`);
@@ -142,8 +142,10 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
             await wait(200); // Let palette/hover transitions settle before capturing.
             // Keep simulator captures focused on the console, without the guide below it.
             const clip = await evaluate(`(()=>{const c=document.querySelector('nuclear-power-console');if(!c)return null;
-                return {x:0,y:0,width:document.documentElement.scrollWidth,height:Math.max(innerHeight,c.getBoundingClientRect().bottom+scrollY),scale:1};})()`);
-            const result = await page('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, ...(clip ? { clip } : {}) });
+                return {x:0,y:0,width:document.documentElement.scrollWidth,height:Math.max(innerHeight,c.getBoundingClientRect().bottom+scrollY),scale:1,mobile:!!c.mobileLayout?.active};})()`);
+            const mobile = !!clip?.mobile;
+            if (clip) delete clip.mobile;
+            const result = await page('Page.captureScreenshot', { format: 'png', captureBeyondViewport: !mobile, ...(!mobile && clip ? { clip } : {}) });
             writeFileSync(join(artifacts, `${name}.png`), Buffer.from(result.data, 'base64'));
         };
         await page('Runtime.enable');

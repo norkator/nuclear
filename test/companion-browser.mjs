@@ -118,7 +118,7 @@ test('desktop and companion share controls, grid/core readings and lifecycle acr
         await host.call('Page.reload');
         await host.until('c?.initialized && s.querySelector("#plant-instruments").hidden && s.querySelector("#plant-analysis").hidden', 'Desktop remembers closed panels after reload');
         await host.code('s.querySelector(".sound-choice-dialog[open] [data-sound-choice=no]")?.click();');
-        await host.code('s.querySelector(".workspace-tools [data-workspace-panel=instruments]").click();s.querySelector(".workspace-tools [data-workspace-panel=analysis]").click();s.querySelector("#plant-instruments button").focus();');
+        await host.code('s.querySelector(".workspace-tools [data-workspace-panel=instruments]").click();s.querySelector(".workspace-tools [data-workspace-panel=analysis]").click();s.querySelector("#plant-instruments .side-panel-heading button").focus();');
         await host.call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
         await host.call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
         await host.until('s.querySelector("#plant-instruments").hidden && s.activeElement.dataset.workspacePanel === "instruments"', 'Escape closes a focused panel and returns focus to its edge tab');

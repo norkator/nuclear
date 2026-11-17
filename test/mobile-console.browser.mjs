@@ -84,12 +84,13 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot 
     await page('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{x:750,y:160}] });
     await page('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await ready('!c.mobileLayout.current', 'Backdrop closes instruments');
-    console.log('Backdrop focus:', await consoleCode('return {active:s.activeElement?.outerHTML.slice(0,150),trigger:c.mobileLayout.returnTo?.outerHTML.slice(0,150),visible:c.mobileLayout.visible(c.mobileLayout.returnTo),inert:c.mobileLayout.returnTo?.closest("[inert]")?.outerHTML.slice(0,100),frame:c.mobileLayout.focusFrame};'));
     await ready('s.activeElement?.dataset.mobileOpen==="instruments"', 'Backdrop restores focus to its visible handle');
     assert.equal(await consoleCode('return c.plantTab;'), 'reactor');
     assert.equal(await consoleCode('return s.activeElement.dataset.mobileOpen;'), 'instruments');
 
+    await consoleCode(`window.mobileTrace=[];for(const name of ['open','close']){const original=c.mobileLayout[name];c.mobileLayout[name]=function(...args){window.mobileTrace.push({name,kind:args[0],current:this.current?.id,stack:new Error().stack.slice(0,240)});return original.apply(this,args);};}`);
     await tap('[data-mobile-open="operator"]');
+    console.log('Operator transition:',await consoleCode('return {kind:c.mobileLayout.kind,trace:window.mobileTrace,focus:s.activeElement?.outerHTML.slice(0,100)};'));
     const emergency = await consoleCode('const r=s.querySelector(".emergency-station").getBoundingClientRect();return {top:r.top,bottom:r.bottom,height:innerHeight};');
     assert.ok(emergency.top >= 0 && emergency.bottom <= emergency.height, `Covered ESD fits the first drawer screen: ${JSON.stringify(emergency)}`);
     assert.equal(await consoleCode('return s.querySelector("[data-action=trip]").disabled && !c.tripCoverOpen;'), true);
