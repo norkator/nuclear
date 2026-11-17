@@ -6,6 +6,7 @@
 import assert from 'node:assert/strict';
 import { commissionPlant } from './plant-fixtures.mjs';
 import { waitForConsoleLayout } from './console-layout.browser.mjs';
+import { checkAssignmentExpansion } from './company-assignment-expansion.browser.mjs';
 
 export async function checkCompanyGame({ consoleCode, action, input, page, evaluate, until, screenshot, send, baseUrl }) {
     const gameAction = name => consoleCode(`s.querySelector('[data-game-action="${name}"]').click();`);
@@ -202,7 +203,7 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
     await acceptNext(); await maintenance('s.querySelector("[data-plant-tab=reactor]").click();');
     await action('start'); await advance(180); await reportNext();
     assert.equal(await consoleCode('return c.game.career.state.achievements.length;'), 8);
-    assert.equal(await consoleCode('return c.game.career.current;'), undefined);
+    await checkAssignmentExpansion({ consoleCode, action, advance, acceptNext, reportNext, gameAction, ready, screenshot });
     // A failed write remains visible outside the company window and cannot claim success.
     assert.equal(await consoleCode('window.originalCareerWriter=c.game.store.write.bind(c.game.store);c.game.store.write=async()=>{throw new Error("Test storage unavailable");};return c.game.save(true);'), false);
     assert.ok(await consoleCode('return !s.querySelector(".game-error").hidden && s.querySelector(".game-error").textContent.includes("storage unavailable");'));

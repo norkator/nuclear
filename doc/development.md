@@ -57,6 +57,13 @@ day in `browser-failure-evidence`, excluding browser profiles.
 session tests. Game changes normally use `node --test test/nuclear-power-game.test.mjs`,
 `npm run build`, then `npm run test:browser:game`. Use the companion check when
 shared controls change.
+
+For continuation objectives and save compatibility, include
+`node --test test/nuclear-power-assignment-expansion.test.mjs`. The shared company
+browser journey operates all twenty-four assignments and checks that the original
+eight reports survive the continuation. Run browser harnesses separately when
+software WebGL rendering competes for resources; retain their existing assertions
+and readiness checks.
 The browser regression serves `dist/` on a temporary loopback port and tests the
 actual React production build, including responsive layouts, themes, dialogs,
 controls, exports, animations and cleanup, including 3D picking, zoom, view switching,
@@ -70,6 +77,13 @@ Screenshot and export artifacts are written to the temporary directory printed b
 the test. Tests do not need the Spring application.
 
 ## Landscape phone verification
+
+`npm run test:browser:mobile-input` is the shorter iteration check for real
+two-touch camera input across all seven 3D views and native fullscreen entry,
+exit and rotation. Its assertions are shared with the complete mobile journey
+and full suite. `node --test test/nuclear-power-mobile-input.test.mjs` covers
+cancelled gestures, mouse/keyboard continuity, rejected/unsupported fullscreen
+and asynchronous detach cleanup without a browser.
 
 For the landscape-phone host layout, run `npm run test:browser:mobile`. The checks
 are shared with the full browser suite and use actual touch input, viewport and

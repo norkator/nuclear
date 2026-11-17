@@ -6,8 +6,9 @@
 import assert from 'node:assert/strict';
 import { waitForConsoleLayout } from './console-layout.browser.mjs';
 import { commissionPlant } from './plant-fixtures.mjs';
+import { checkMobileInput } from './mobile-input.browser.mjs';
 
-export async function checkMobileConsole({ consoleCode, page, until, screenshot }) {
+export async function checkMobileConsole({ consoleCode, page, until, screenshot, inputOnly = false }) {
     const ready = (condition, label) => until(`(()=>{const c=document.querySelector('nuclear-power-console');const s=c?.shadowRoot;return ${condition};})()`, label);
     const viewport = async (width, height, touch = true) => {
         await page('Emulation.setTouchEmulationEnabled', { enabled: touch, maxTouchPoints: touch ? 5 : 1 });
@@ -20,9 +21,13 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot 
         await waitForConsoleLayout(consoleCode, `Scrolled touch target ${selector}`);
         const point = await consoleCode(`const n=s.querySelector(${JSON.stringify(selector)}),r=n.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,hit=s.elementFromPoint(x,y);return {x,y,disabled:!!n.disabled,inert:!!n.closest('[inert]'),width:r.width,height:r.height,covered:!n.contains(hit),hit:hit?.outerHTML.slice(0,150)};`);
         assert.ok(!point.disabled && !point.inert && !point.covered && point.width > 0 && point.height > 0, `Touch control reachable: ${selector}: ${JSON.stringify(point)}`);
+        // Layout can settle before native touch click synthesis finishes.
+        // Dedicated swipe handles deliberately use touchend instead of click.
+        await consoleCode(`const n=s.querySelector(${JSON.stringify(selector)});window.mobileTapAbort?.abort();window.mobileTapAbort=new AbortController();window.mobileTapActivated=false;document.addEventListener(n.matches('.mobile-edge')?'touchend':'click',event=>{if(event.isTrusted&&event.composedPath().includes(n)){window.mobileTapActivated=true;window.mobileTapAbort.abort();}},{capture:true,signal:window.mobileTapAbort.signal});`);
         await page('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: point.x, y: point.y }] });
         await consoleCode('return new Promise(requestAnimationFrame);');
         await page('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await ready('window.mobileTapActivated', `Native touch activates ${selector}`);
         await waitForConsoleLayout(consoleCode, `After touch ${selector}`);
     };
     const close = async () => {
@@ -45,6 +50,14 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot 
         }
         await page('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     };
+
+    if (inputOnly) {
+        await viewport(844, 390);
+        await consoleCode('c.setPlantTab("reactor");c.setOverview("3d");if(!c.simulation.paused)c.act("pause");');
+        await ready('c.mobileLayout.active && c.overviewScene?.visible', 'Phone input setup is visible');
+        await checkMobileInput({ consoleCode, page, ready, tap, viewport, screenshot });
+        return;
+    }
 
     await viewport(1920, 1080, false);
     await consoleCode(`for(const d of [...c.floatingDialogs])c.closeFloatingDialog(d,false);c.setPlantTab('reactor');c.setOverview('3d');c.setSceneLabels('compact');c.inspect('pumpA2');c.closeFloatingDialog(s.querySelector('[data-component-dialog=pumpA2]'),false);c.act('reset');if(!c.simulation.paused)c.act('pause');window.mobilePlant=c.simulation;window.mobilePreferences=localStorage.getItem('porssiohjain.nuclear-power.panels');window.mobilePanelState={...s.querySelector('.console-layout').dataset};`);
@@ -153,6 +166,8 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot 
     await ready(`c.simulation.elapsed>${elapsed}`, 'Plant time continues behind a covering sheet');
     assert.equal(await consoleCode('return c.overviewScene.renderer.info.render.frame;'), coveredFrames);
     await close(); await paused(true);
+
+    await checkMobileInput({ consoleCode, page, ready, tap, viewport, screenshot });
 
     // Career screens retain host ownership, pinned goals and the existing save path.
     await tap('[data-mobile-open="company"]');

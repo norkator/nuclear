@@ -17,6 +17,7 @@ import { buildExchangerCutaway, buildTurbineCutaway, buildCondenserCutaway, upda
 import { buildCoolingScene, updateCoolingScene, COOLING_LABELS } from './nuclear-power-cooling-scene.js';
 import { buildServerBuilding, updateServerBuilding, SERVER_BUILDING } from './nuclear-power-server-building.js';
 import { equipmentStation } from './nuclear-power-stations-config.js';
+import { CameraTouchZoom } from './nuclear-power-touch-zoom.js';
 
 const TAU = Math.PI * 2;
 const DEFAULT_ZOOM = 1.2;
@@ -71,8 +72,8 @@ export class PlantOverviewScene {
         canvas.className = 'plant-scene-canvas';
         canvas.tabIndex = 0;
         canvas.setAttribute('role', 'group');
-        canvas.setAttribute('aria-label', 'Interactive 3D plant. Drag or use arrow keys to rotate. Hold the mouse wheel and drag to pan; Shift+drag or Shift+arrow keys also pan. Scroll or use plus and minus to zoom; Home resets the view. Equipment buttons open component consoles.');
-        canvas.title = 'Drag to orbit · hold mouse wheel and drag to pan · Shift+drag or Shift+arrows to pan · scroll to zoom · Home to reset';
+        canvas.setAttribute('aria-label', 'Interactive 3D plant. Drag or use arrow keys to rotate. Hold the mouse wheel and drag to pan; Shift+drag or Shift+arrow keys also pan. Pinch, scroll or use plus and minus to zoom; Home resets the view. Equipment buttons open component consoles.');
+        canvas.title = 'Drag to orbit · pinch or scroll to zoom · wheel-drag or Shift+drag to pan · Home to reset';
         host.replaceChildren(canvas);
         try {
             this.build();
@@ -334,7 +335,7 @@ export class PlantOverviewScene {
         caption.textContent = 'UNIT 01 / CUTAWAY';
         const hint = document.createElement('span');
         hint.className = 'plant-scene-hint';
-        hint.textContent = 'Drag: orbit · wheel-drag: pan · scroll: zoom';
+        hint.textContent = 'Drag: orbit · pinch/scroll: zoom · wheel-drag: pan';
         this.host.append(layer, caption, hint);
         const labels = [...this.labels.values(), ...this.featureLabels];
         const byButton = new Map(labels.map(label => [label.button, label]));
@@ -394,13 +395,18 @@ export class PlantOverviewScene {
     bindCamera() {
         const canvas = this.renderer.domElement;
         const options = { signal: this.abort.signal };
+        this.touchZoom = new CameraTouchZoom(canvas, { ...options, surface: this.host,
+            getZoom: () => this.zoom, setZoom: zoom => this.setZoom(zoom),
+            cancelDrag: () => { this.drag = null; delete canvas.dataset.dragging; },
+            enabled: () => this.visible && !this.disposed,
+        });
         canvas.addEventListener('wheel', event => {
             event.preventDefault();
             const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? this.height : 1);
             this.setZoom(this.zoom * Math.exp(-clamp(delta, -300, 300) * .0015));
         }, { ...options, passive: false });
         canvas.addEventListener('pointerdown', event => {
-            if (![0, 1].includes(event.button) || this.drag) return;
+            if (![0, 1].includes(event.button) || this.drag || this.touchZoom.active) return;
             const mode = event.button === 1 || event.shiftKey ? 'pan' : 'orbit';
             if (mode === 'pan') {
                 event.preventDefault(); // Suppress middle-button browser autoscroll.
@@ -493,6 +499,7 @@ export class PlantOverviewScene {
 
     setVisible(visible) {
         this.visible = visible;
+        if (!visible) this.touchZoom?.reset();
     }
 
     pan(dx, dy, origin = this.target) {

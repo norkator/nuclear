@@ -4,6 +4,7 @@
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
 import * as THREE from 'three';
+import { CameraTouchZoom } from './nuclear-power-touch-zoom.js';
 
 export const RACK_SLOTS = [
     { id: 'rackCooling', y: 7.05, height: .55 },
@@ -32,7 +33,7 @@ export class ComputerRackScene {
             const canvas = this.renderer.domElement;
             canvas.className = 'computer-rack-canvas'; canvas.tabIndex = 0;
             canvas.setAttribute('role', 'group');
-            canvas.setAttribute('aria-label', '3D server rack. Drag or use arrow keys to orbit. Wheel or plus/minus to zoom; Home resets. Select a rack unit to inspect, or use the unit buttons alongside.');
+            canvas.setAttribute('aria-label', '3D server rack. Drag or use arrow keys to orbit. Pinch, wheel or plus/minus to zoom; Home resets. Select a rack unit to inspect, or use the unit buttons alongside.');
             host.replaceChildren(canvas);
             this.build(); this.bind(canvas);
             canvas.addEventListener('webglcontextlost', event => { event.preventDefault(); unavailable(); }, { signal: this.abort.signal });
@@ -130,18 +131,23 @@ export class ComputerRackScene {
 
     bind(canvas) {
         const options = { signal: this.abort.signal };
+        this.touchZoom = new CameraTouchZoom(canvas, { ...options, surface: this.host,
+            getZoom: () => this.zoom, setZoom: zoom => this.setZoom(zoom),
+            cancelDrag: () => { this.drag = null; }, enabled: () => this.visible && !this.disposed,
+        });
         canvas.addEventListener('pointerdown', event => {
-            if (event.button !== 0) return;
-            this.drag = { x: event.clientX, y: event.clientY, yaw: this.yaw, pitch: this.pitch, moved: false };
+            if (event.button !== 0 || this.drag || this.touchZoom.active) return;
+            this.drag = { id: event.pointerId, x: event.clientX, y: event.clientY, yaw: this.yaw, pitch: this.pitch, moved: false };
             canvas.setPointerCapture(event.pointerId); canvas.focus({ preventScroll: true });
         }, options);
         canvas.addEventListener('pointermove', event => {
-            if (!this.drag) return;
+            if (!this.drag || this.drag.id !== event.pointerId) return;
             const dx = event.clientX - this.drag.x, dy = event.clientY - this.drag.y;
             this.drag.moved ||= Math.hypot(dx, dy) > 5;
             if (this.drag.moved) { this.yaw = clamp(this.drag.yaw - dx * .008, -1.25, 1.25); this.pitch = clamp(this.drag.pitch + dy * .005, -.15, .8); this.render(); }
         }, options);
         canvas.addEventListener('pointerup', event => {
+            if (!this.drag || this.drag.id !== event.pointerId) return;
             if (this.drag && !this.drag.moved && this.visible) {
                 const rect = canvas.getBoundingClientRect();
                 this.raycaster.setFromCamera(new THREE.Vector2((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1), this.camera);
@@ -165,7 +171,7 @@ export class ComputerRackScene {
 
     setZoom(value) { this.zoom = clamp(value, .7, 1.35); this.resize(); }
     resetCamera() { this.yaw = .42; this.pitch = .18; this.zoom = 1; this.resize(); }
-    setVisible(value) { this.visible = value; if (!value) this.drag = null; }
+    setVisible(value) { this.visible = value; if (!value) { this.drag = null; this.touchZoom?.reset(); } }
     resize() {
         if (this.disposed || !this.host.clientWidth || !this.host.clientHeight) return;
         this.width = this.host.clientWidth; this.height = this.host.clientHeight;

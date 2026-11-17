@@ -23,16 +23,17 @@ import { checkElectricalGrid } from './electrical-grid.browser.mjs';
 import { commissionPlant } from './plant-fixtures.mjs';
 import { checkPlantAudio } from './plant-audio.browser.mjs';
 import { checkComputerSystems } from './computer-systems.browser.mjs';
-import { captureConsoleLayout, checkConsoleLayout, checkBatchedConsoleVisibility } from './console-layout.browser.mjs';
+import { captureConsoleLayout, checkConsoleLayout, checkBatchedConsoleVisibility, waitForConsoleLayout } from './console-layout.browser.mjs';
 import { checkMobileConsole } from './mobile-console.browser.mjs';
 import { checkSoundChoice } from './sound-choice.browser.mjs';
 
 const dist = fileURLToPath(new URL('../dist/', import.meta.url));
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-// Software WebGL, rack/equipment stations, audio and fuel/lifecycle checks cover
-// several independent 3D views and can exceed ten minutes on software renderers.
-test('3D overview, core map, centered pumps, automatic control, trip recovery and logs work in browser', { timeout: 1200000 }, async () => {
+// Software WebGL, the full 24-assignment campaign, independent equipment views
+// and phone lifecycle checks took 20m30s locally. Keep each readiness wait bounded
+// separately; the overall budget allows this expanded regression to finish.
+test('3D overview, core map, centered pumps, automatic control, trip recovery and logs work in browser', { timeout: 1500000 }, async () => {
     const artifacts = mkdtempSync(join(tmpdir(), 'nuclear-power-check-'));
     const appUrl = process.env.NUCLEAR_POWER_APP_URL;
     if (appUrl) {
@@ -159,12 +160,13 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         const focusedGame = process.env.NUCLEAR_BROWSER_FOCUS === 'game';
         const focusedLayout = process.env.NUCLEAR_BROWSER_FOCUS === 'layout';
         const focusedMobile = process.env.NUCLEAR_BROWSER_FOCUS === 'mobile';
+        const focusedMobileInput = process.env.NUCLEAR_BROWSER_FOCUS === 'mobile-input';
         const focusedStations = process.env.NUCLEAR_BROWSER_FOCUS === 'stations';
         const focusedGrid = process.env.NUCLEAR_BROWSER_FOCUS === 'grid';
         const focusedAudio = process.env.NUCLEAR_BROWSER_FOCUS === 'audio';
         const focusedComputers = process.env.NUCLEAR_BROWSER_FOCUS === 'computers';
         const focusedSeo = process.env.NUCLEAR_BROWSER_FOCUS === 'seo';
-        if (!focusedEquipment && !focusedCooling && !focusedGame && !focusedLayout && !focusedMobile && !focusedComputers && !focusedStations && !focusedAudio && !focusedGrid) {
+        if (!focusedEquipment && !focusedCooling && !focusedGame && !focusedLayout && !focusedMobile && !focusedMobileInput && !focusedComputers && !focusedStations && !focusedAudio && !focusedGrid) {
             // Check the actual shipped HTML with JavaScript disabled, as a crawler sees it.
             await page('Emulation.setScriptExecutionDisabled', { value: true });
             for (const entry of pages) {
@@ -220,10 +222,11 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         }
         await page('Page.navigate', { url: new URL('/reactor/', baseUrl).href });
         await until(`!!document.querySelector('nuclear-power-console')?.shadowRoot?.querySelector('.console')`, 'Control room did not render');
-        await checkSoundChoice({ consoleCode, page, until, screenshot });
+        if (focusedMobileInput) await consoleCode('s.querySelector(".sound-choice-dialog[open] [data-sound-choice=no]")?.click();');
+        else await checkSoundChoice({ consoleCode, page, until, screenshot });
         assert.equal(await consoleCode('return c.equipmentStations.scenes.size;'), 0, 'Station renderers remain lazy at initial load');
-        if (focusedMobile) {
-            await checkMobileConsole({ consoleCode, page, until, screenshot });
+        if (focusedMobile || focusedMobileInput) {
+            await checkMobileConsole({ consoleCode, page, until, screenshot, inputOnly: focusedMobileInput });
             assert.deepEqual(exceptions, []);
             console.log(`Phone landscape browser checks passed; artifacts: ${artifacts}`);
             await send('Browser.close');
@@ -1411,10 +1414,12 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         await action('spent-fuel');
         assert.equal(await consoleCode('return s.querySelector(".spent-fuel-dialog").matches(":popover-open");'), true, 'Pool controls must work without the 3D scene');
         await page('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false });
-        await wait(150);
-        assert.ok(await consoleCode('const d=s.querySelector(".spent-fuel-dialog");return d.scrollWidth<=d.clientWidth&&d.getBoundingClientRect().right<=innerWidth;'));
+        await waitForConsoleLayout(consoleCode, 'Spent-fuel portrait resize');
+        const poolFit = await consoleCode('const d=s.querySelector(".spent-fuel-dialog"),r=d.getBoundingClientRect();return {scroll:d.scrollWidth,client:d.clientWidth,right:r.right,viewport:innerWidth};');
+        assert.ok(poolFit.scroll <= poolFit.client && poolFit.right <= poolFit.viewport, `Spent-fuel dialog must fit: ${JSON.stringify(poolFit)}`);
         await screenshot('spent-fuel-mobile');
         await page('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
+        await waitForConsoleLayout(consoleCode, 'Spent-fuel desktop restoration');
         await consoleCode('s.querySelector("[data-pool-action=close]").click();');
         await action('overview-3d');
         await consoleCode(`for(let i=0;i<35;i++)c.fuelTransfer.start('FA-01',1,true);c.update();`);

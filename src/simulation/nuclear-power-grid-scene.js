@@ -13,7 +13,7 @@ import { PUMPS } from './nuclear-power-pumps.js';
 export class ElectricalGridScene extends PlantOverviewScene {
     constructor(host, options) {
         super(host, options);
-        this.renderer.domElement.setAttribute('aria-label', '3D electrical grid. Select transformer, switchgear, bus or diesel to inspect. Drag to orbit; wheel to zoom; Home resets. Part buttons provide the same controls.');
+        this.renderer.domElement.setAttribute('aria-label', '3D electrical grid. Select transformer, switchgear, bus or diesel to inspect. Drag to orbit; pinch or wheel to zoom; Home resets. Part buttons provide the same controls.');
     }
 
     build() {

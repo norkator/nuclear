@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import { NuclearPowerSimulation, CORE_CHANNELS } from '../src/simulation/nuclear-power-model.js';
 import { CompanyCareer } from '../src/simulation/nuclear-power-missions.js';
 import { FuelTransferAnimation } from '../src/simulation/nuclear-power-refuelling.js';
-import { captureCareer, restoreCareerBundle } from '../src/simulation/nuclear-power-game-save.js';
+import { captureCareer, restoreCareerBundle, CAREER_SAVE_VERSION } from '../src/simulation/nuclear-power-game-save.js';
 import { captureSessionState, restoreSessionState, remoteSimulation } from '../src/simulation/nuclear-power-session-state.js';
 import { applySessionCommand } from '../src/simulation/nuclear-power-session-protocol.js';
 import { ComputerRackScene } from '../src/simulation/nuclear-power-computers-scene.js';
@@ -218,7 +218,7 @@ test('schema-3 migration adds only the instrument server and preserves exact pau
     expected.plant.computers.units.instrumentServer = new PlantComputers().units.instrumentServer;
     assert.deepEqual(saved, expected);
     assert.equal(source.plant.computers.units.instrumentServer, undefined, 'Migration never mutates its input');
-    assert.equal(saved.schemaVersion, 4);
+    assert.equal(saved.schemaVersion, CAREER_SAVE_VERSION);
     const cold = bundle(new NuclearPowerSimulation()); cold.schemaVersion = 3;
     delete cold.plant.computers.units.instrumentServer;
     const oldCold = restoreCareerBundle(cold).simulation;

@@ -207,6 +207,36 @@ desktop restoration are verified. No publishing or deployment is part of this wo
 
 ## Additional requested tasks
 
+Reported 2026-11-17 for **Firefox on Android**. Both features are implemented;
+automated browser checks use native touch input and fullscreen in Chromium.
+Verification on a physical Android/Firefox device remains a manual check.
+
+- [x] **Pinch to zoom all 3D views.** `nuclear-power-touch-zoom.js` tracks two
+  pointers in the overview, equipment/grid stations and rack, respecting their
+  independent cameras and zoom limits. It covers overview labels as well as the
+  canvas, while single taps retain inspection. A pinch suppresses picking until
+  all fingers lift; cancel, hide, resize and detach clear input/capture. Mouse,
+  keyboard, one-finger orbit and ordinary page scrolling outside the model remain
+  available. Native pointerdown is not cancelled, preserving subsequent UI taps.
+- [x] **Mobile Full screen / Exit full screen control.**
+  `nuclear-power-fullscreen.js` adds the full host's native toggle to settings:
+  More in landscape, header settings in portrait. It requests the whole page so
+  controls and inspections remain usable. Native state/events update the label;
+  successful transitions reconcile mobile popovers and focus. Unsupported or
+  rejected requests show a usable fallback. Owned and late fullscreen requests
+  are cleaned up on detach/reconnect. Entry, exit and rotation preserve cameras,
+  actual plant state, Pause, preferences, career saves and the companion role.
+
+`npm run test:browser:mobile-input` runs the shared focused checks for seven
+actual two-touch cameras, release/cancel, subsequent orbit/control taps, native
+fullscreen entry/exit and portrait rotation. Mobile and full browser journeys
+call the same checks. Seven unit cases cover bounds, third fingers, cancellation,
+mouse/keyboard continuity, rejected/unsupported requests and late detach cleanup.
+
+Fullscreen requires a user gesture; the page cannot enter it automatically merely
+because it loads or rotates. See the [MDN requestFullscreen reference](https://developer.mozilla.org/en-US/docs/Web/API/Element/requestFullscreen)
+and [Fullscreen guide](https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API/Guide).
+
 - [x] Smaller, darker, more transparent mobile equipment tags. Their native
   buttons retain 44-pixel touch targets; selected/focused cards remain readable.
 - [x] A 28-pixel app icon beside the mobile header's title and clock.

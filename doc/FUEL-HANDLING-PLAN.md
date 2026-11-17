@@ -18,6 +18,13 @@ replacement runs through the desktop; pool dispatch remains desktop-only.
 Career saves preserve current transfer/batch state, but there are no paid fuel
 tasks or authoritative purchase/service receipts yet.
 
+The free Career selective-fuel assignment now chooses two saved random assembly
+IDs, applies disclosed gradual accelerated exposure and verifies depletion followed
+by increased actual replacement counters. Its success is independent of the
+cosmetic transfer/pool callbacks. Paid replacement and pool-collection assignments
+still need the authoritative representative records described below; see the
+[game handoff](game-development.md) and [assignment expansion](ASSIGNMENT-EXPANSION-PLAN.md).
+
 [GAMEPLAY-PLAN.md](GAMEPLAY-PLAN.md) is the company-game product plan and
 [the game-development handoff](game-development.md) is its current continuation
 handoff. Their representative business-batch approach supersedes any earlier

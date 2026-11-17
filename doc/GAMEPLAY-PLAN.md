@@ -5,13 +5,19 @@ Licensed under the Pörssiohjain Personal Use License v1.0.
 -->
 # Nuclear Power game and company progression plan
 
-Status: extended 2026-11-14. Eight operations/maintenance assignments, Easy/Hard
-careers, condition monitoring, work orders, water treatment, reports, the Computer systems rack and schema-3
-local saves with version-1 migration are implemented. Economy, bankruptcy and
+Status: extended 2026-11-17. Twenty-four operations/maintenance assignments, Easy/Hard
+careers, condition monitoring, work orders, water treatment, reports, the Computer systems rack and schema-5
+local saves with version-1/2/3/4 migrations are implemented. Economy, bankruptcy and
 the remaining original catalogue are still planned. See [the control-room guide](control-room-guide.md)
 and [the game-development handoff](game-development.md) for current behavior. The catalogue below remains the
 larger economy roadmap; the implemented maintenance qualification sequence is
 listed in the handoff.
+
+The [assignment expansion](ASSIGNMENT-EXPANSION-PLAN.md), requested 2026-11-17,
+extends the older catalogue with a sixteen-assignment operations continuation
+and a larger idea backlog. It adds operational grid exercises before financial
+contracts, two gradually depleted random fuel assemblies and a warned pump
+failure. Economy phases below retain their separate calibration and release gates.
 
 ## 1. Agreed direction
 
@@ -50,7 +56,7 @@ and company summaries on companions are requirements, not shipped features.
 | Area | Already available | Game work needed |
 | --- | --- | --- |
 | Startup | Cold plant, explicit pumps, startup checks and assigned startup hold | Further commissioning/operating assignments |
-| Objectives | Eight missions using generation, condition-round, work-order and water-quality evidence; capabilities, reports and achievements | Grid contracts, economic consequences and monetary rewards |
+| Objectives | Twenty-four missions, including grid delivery, pump/standby proofs, diagnostics, selective fuel and warned pump recovery; capabilities, reports and achievements | Paid grid contracts, economic consequences and monetary rewards |
 | Grid controller | Capacity-aware gross MW requests, Auto following and status | Contracts, response scoring, electricity settlement and company messages |
 | Equipment | Four independent pumps, cutaways, condition rounds, isolated work orders and functional tests | Further diagnosis and paid work orders |
 | Failures | Symptom-first scenarios, progressive faults, wear and retained damage | Scheduled incidents, diagnosis tasks and repair costs |
@@ -211,7 +217,7 @@ these are not twenty copies of the same stable-output timer.
 
 The current free maintenance chapter additionally implements condition rounds,
 preventive pump/filter/intake orders, water-quality proof and return to generation.
-Its eight current assignments are listed in `doc/game-development.md`. The table
+The original eight and sixteen continuation assignments are listed in `doc/game-development.md`. The table
 below continues to describe the larger economic catalogue; assigned paid faults,
 contracts and fuel logistics remain planned.
 
@@ -261,8 +267,10 @@ pretend the plant can reach a target faster than its actual dynamics allow.
   fuel, without changing a saved career.
 - Only assign repair when a real defect/damage/service need exists. Healthy
   equipment gets an inspection variant; do not force the player to break it.
-- Seed the fuel tutorial with a disclosed low-reserve assembly at career creation,
-  or wait for natural reserve decline. Do not abruptly drain fuel to unlock a task.
+- Seed a practice fixture with disclosed low-reserve fuel, wait for natural
+  decline, or use the accepted selective exercise's two pinned random assemblies
+  with disclosed gradual accelerated exposure. Do not abruptly drain fuel to
+  unlock a task or accelerate the entire core without the operator's command.
 - Pump tests can begin stopped. Running duty transfers unlock later; never teach
   turning both parallel pumps to full speed as the required solution.
 - Supply-loss briefs must distinguish grid availability, turbine auxiliary feed

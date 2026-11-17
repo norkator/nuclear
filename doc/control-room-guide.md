@@ -28,9 +28,13 @@ The external Vaadin desktop and Start menu open this app in a separate tab.
 
 Free operation remains the default. Choose **Start game → Begin career** for a
 separate cold plant with its clock running immediately. Choose **Easy** for Auto or Manual operation, or **Hard** for
-Manual only; Hard blocks Auto on the desktop and paired companions. Eight
+Manual only; Hard blocks Auto on the desktop and paired companions. The first eight
 assignments cover startup, reliable operation, condition rounds, pump service,
 water quality, filter service, cooling-water intake service and return to generation.
+Sixteen continuation assignments bring the campaign to twenty-four: pump and
+standby proofs, variable grid requests, 100/250 MW demand, computer and mechanical
+service, selective fuel replacement and a warned pump failure. Existing completed
+careers receive the continuation with their original reports and achievements intact.
 Accept work in the company inbox, satisfy actual plant criteria and report verified
 results. Service is free; electricity trading, expenses and bankruptcy remain
 planned in [GAMEPLAY-PLAN.md](GAMEPLAY-PLAN.md). For continuation,
@@ -59,7 +63,7 @@ Careers save to IndexedDB with one writer tab, complete plant/pool state and sam
 rotor tolerances. **Save & return to free operation** restores the parked free
 plant on this page. Reload starts free operation; **Continue game** restores the
 career with the user's Pause choice preserved, without offline progress. Export/import JSON backups from Save.
-Schema-1 saves migrate as Easy careers; schema-1/2/3 saves upgrade to schema 4, preserving issued terms,
+Schema-1 saves migrate as Easy careers; schema-1/2/3/4 saves upgrade to schema 5, preserving issued terms,
 progress, heat, damage, trips and rotor samples. New saves also retain work orders,
 inspection/sample records, water state and difficulty. Maintenance management
 and sampling are desktop-owned; companions remain plant-control followers.
@@ -74,7 +78,42 @@ Mission IDs and saved objective terms support inserting new assignments in later
 updates without deleting completed goals or changing an issued assignment.
 Focused verification: `npm run test:browser:game`.
 
+The first grid exercise needs three qualifying minutes and three new served
+requests; the longer shift needs fifteen qualifying minutes and ten requests.
+Both use actual output within 10 MW and healthy circulation/cooling. Outside the
+requirements, time pauses in either mode. Manual/Hard receives read-only requests
+and the operator adjusts the controls; Auto follows in Electrical output mode.
+Request now cannot skip exercise intervals. These are free training exercises,
+without the financial contracts and deadlines planned for later.
+
+The selective fuel assignment saves two random assembly IDs in its checklist.
+Only those assemblies wear at a total 120× exposure rate during generation; the
+thermal clock stays normal. Observe depletion, stop and cool, then replace each
+specified assembly manually. Replacing unrelated or not-yet-depleted fuel does
+not prove this work. The crane is cosmetic and does not decide completion.
+
+The warned pump assignment identifies a main pump and its backup in a company
+message. After 45 eligible operating seconds its bearing fails once. The clock
+waits during Stop, open work or an unavailable backup. Enable the backup, stop
+the failed pump and prove backup flow; then arrange a stopped/cooled repair
+window and complete a new work order through explicit return. Restore main duty
+and explicitly restart for the final generation proof. Continue keeps the same
+pump, warning, failure and work evidence.
+
 ## 3D equipment stations
+
+On a touch screen, spread two fingers to zoom in and bring them together to zoom
+out. This works in the overview, equipment/electrical stations and computer rack,
+including touches over overview labels. One finger still rotates the model;
+a tap selects equipment. Finishing or cancelling a pinch cannot select a part.
+Each view retains its own camera.
+
+On phones and other small touch viewports, **Full screen** is in **More** in
+landscape and in the header settings in portrait. Tap it to request fullscreen
+for the entire control room; use **Exit full screen** or the browser's own exit
+action to leave. The button follows actual browser fullscreen state. Unsupported
+browsers show **Full screen unavailable**; rejected requests show an explanation.
+Fullscreen and rotation preserve the plant, Pause choice, camera and career.
 
 The reactor overview is also plant navigation. Select the small **server warehouse**
 left of the cooling tower to open Computer systems. Selecting a pump, heat
@@ -150,11 +189,12 @@ service. All state follows plant time, including while another tab is selected;
 rack drawing suspends offscreen, hidden or detached. Pause and reduced motion
 freeze fan animation while camera and inspection controls remain usable.
 
-Schema-3 career saves retain rack state, diagnostics, boot/test progress and UPS
+Career saves retain rack state, diagnostics, boot/test progress and UPS
 inventory. Older saves receive healthy rack defaults without changing previous
 plant state or issued goals. Rack management is desktop-owned; companions receive
-read-back and obey the host's automation availability. The career remains eight
-assignments; rack targets are available for optional work orders and future missions.
+read-back and obey the host's automation availability. The twenty-four-assignment
+campaign includes diagnostics and server/UPS/cooling work; other rack targets
+remain available for optional work orders.
 Focused checks: `npm run test:browser:computers`.
 
 ## Landing and console pages
