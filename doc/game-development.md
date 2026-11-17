@@ -309,6 +309,22 @@ handling just to deliver this first financial/mission loop.
 
 ## Verification and branch policy
 
+Assignment continuation checkpoint (2026-11-17): all 207 model/session checks,
+the production build, the focused company browser journey through all twenty-four
+assignments and the focused companion check pass. The full browser run passed
+the campaign and reached the spent-fuel portrait fit assertion; its fixed 150 ms
+resize delay was replaced by `waitForConsoleLayout`, retaining the fit assertion
+and adding target geometry diagnostics. A focused resize reproduction passes.
+The final full run completed every assertion, including the pool fit, phone and
+WebGL lifecycle checks, and printed its verification finish in 20m30s. Its test
+wrapper had already cancelled at the old 20-minute cap, so the command was not a
+green TAP pass. The overall budget is now 25 minutes for the expanded campaign;
+assertions and individual readiness limits are unchanged. That budget-only edit
+has syntax/whitespace validation and has not triggered another full replay.
+Pinch zoom and mobile fullscreen
+are recorded separately as unimplemented follow-ups in the
+[mobile work list](MOBILE-LANDSCAPE-PLAN.md#additional-requested-tasks).
+
 For game work, from the root:
 
 ```sh
