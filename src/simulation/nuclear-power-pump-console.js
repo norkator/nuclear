@@ -61,7 +61,7 @@ export function initializePumpConsoles(host) {
             host.componentMessages ||= {};
             host.componentMessages[id] = accepted ? '' : 'Auto owns motor speed. Enable Manual override to adjust this pump.';
             state.preview = null; input.value = requested(host.simulation, id, state.selected);
-            if (accepted) host.playUiSound('adjust'); host.update();
+            if (accepted) host.playUiSound('adjust', 'pumps'); host.update();
         };
         root.addEventListener('click', event => {
             const tab = event.target.closest('[data-pump-select]'); if (tab) select(tab.dataset.pumpSelect);

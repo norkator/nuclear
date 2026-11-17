@@ -16,6 +16,7 @@ export async function checkComputerSystems({ consoleCode, action, input, page, u
     assert.equal(await consoleCode('return !!c.computerConsole.scene;'), false, 'Rack renderer is lazy');
     await ready('c.overviewScene?.width>0', 'Overview ready before independent camera check');
     await checkColdRack({ consoleCode, action, tab, click, advance });
+    await checkComputerSwitchSounds({ consoleCode, action, page, ready, tab, click, advance });
     const mainCamera = await consoleCode('return [c.overviewScene.yaw,c.overviewScene.pitch,c.overviewScene.zoom];');
     await tab('maintenance');
     await consoleCode('s.querySelector("#maintenance-tab").focus();s.querySelector("#maintenance-tab").dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowRight",bubbles:true}));s.querySelector("#electrical-tab").dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowRight",bubbles:true}));');
@@ -62,6 +63,7 @@ export async function checkComputerSystems({ consoleCode, action, input, page, u
             assert.ok(geometry.rack.right <= geometry.list.left, 'Rack and unit controls do not overlap');
             assert.ok(geometry.rack.bottom <= geometry.note.top && geometry.list.bottom <= geometry.note.top, `Rack and scrollable unit list stay above the instructions: ${JSON.stringify(geometry)}`);
             assert.ok(await consoleCode('const list=s.querySelector(".computer-unit-list");list.scrollTop=list.scrollHeight;const last=list.lastElementChild.getBoundingClientRect(),r=list.getBoundingClientRect();const reachable=last.bottom<=r.bottom+1;list.scrollTop=0;return reachable;'), 'All six rack unit controls remain reachable');
+            assert.ok(await consoleCode('return [...s.querySelectorAll(".computer-quick-power")].every(button=>{const r=button.getBoundingClientRect();return r.width>=44 && r.height>=44 && button.querySelector(".pump-rocker-face .rocker-on") && button.querySelector(".rocker-off") && getComputedStyle(button).backgroundImage!=="none";});'), 'Rack controls have physical rocker faces and usable touch targets in both themes');
             assert.ok(geometry.panel.bottom <= geometry.footer.top, 'Computer tab fits the remaining viewport');
             await screenshot(`computer-rack-${width}-${theme}`);
         }
@@ -156,6 +158,45 @@ export async function checkComputerSystems({ consoleCode, action, input, page, u
     await page('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1120, deviceScaleFactor: 1, mobile: false });
     await consoleCode('c.setTheme("dark");'); await tab('reactor'); await action('reset');
     await waitForConsoleLayout(consoleCode, 'Plant restored after rack checks');
+}
+
+async function checkComputerSwitchSounds({ consoleCode, action, page, ready, tab, click, advance }) {
+    await tab('computers');
+    await waitForConsoleLayout(consoleCode, 'Computer power switches');
+    const wasEnabled = await consoleCode('return !!c.soundEnabled;');
+    if (!wasEnabled) {
+        const point = await consoleCode('const r=s.querySelector("[data-action=sound]").getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};');
+        await page('Input.dispatchMouseEvent', { type: 'mousePressed', ...point, button: 'left', clickCount: 1 });
+        await page('Input.dispatchMouseEvent', { type: 'mouseReleased', ...point, button: 'left', clickCount: 1 });
+    }
+    await consoleCode('return c.plantAudio.preloadUi();');
+    await ready('c.alarmAudio.state==="running"', 'Opted-in computer audio ready');
+    await consoleCode('window.rackButtonCues=[];window.originalRackUi=c.plantAudio.ui.bind(c.plantAudio);c.plantAudio.ui=(kind,profile)=>{const played=window.originalRackUi(kind,profile);if(played)window.rackButtonCues.push({kind,profile,sample:[...c.plantAudio.nodes].find(v=>v.ui)?.sample});return played;};');
+    const throttleReady = () => ready('c.alarmAudio.currentTime-c.plantAudio.lastUiAt>=.08', 'Computer switch sound throttle expired');
+    const check = async (selector, enabled) => {
+        await throttleReady();
+        const result = await consoleCode(`s.querySelector('${selector}').click();const voice=[...c.plantAudio.nodes].find(v=>v.ui);return {enabled:c.simulation.computers.units.serverA.enabled,checked:s.querySelector('${selector}').getAttribute('aria-checked'),profile:voice?.profile,sample:voice?.sample};`);
+        assert.deepEqual(result, { enabled, checked: String(enabled), profile: 'computers', sample: enabled ? 'click_004' : 'click_005' });
+    };
+    await check('[data-computer-power=serverA]', false);
+    await throttleReady();
+    await consoleCode('s.querySelector("[data-computer-power=serverA]").focus();');
+    await page('Input.dispatchKeyEvent', { type: 'keyDown', key: ' ', code: 'Space', windowsVirtualKeyCode: 32 });
+    await page('Input.dispatchKeyEvent', { type: 'keyUp', key: ' ', code: 'Space', windowsVirtualKeyCode: 32 });
+    assert.deepEqual(await consoleCode('return window.rackButtonCues.at(-1);'), { kind: 'on', profile: 'computers', sample: 'click_004' }, 'Keyboard power ON plays the matching computer button sample');
+    assert.match(await consoleCode('return s.querySelector("[data-computer-state=serverA]").textContent;'), /BOOT/);
+    assert.equal(await consoleCode('return c.simulation.computers.units.serverA.online;'), false, 'Rocker request and actual boot remain separate');
+    await click('[data-computer-open=serverA]');
+    await check('[data-computer-toggle]', false);
+    await check('[data-computer-toggle]', true);
+    await action('sound');
+    await click('[data-computer-toggle]');
+    assert.equal(await consoleCode('return c.plantAudio.nodes.size;'), 0, 'Muted rack switching stays quiet');
+    await click('[data-computer-toggle]');
+    await advance(6); await click('[data-computer-close]');
+    if (wasEnabled) await action('sound');
+    await consoleCode('c.plantAudio.ui=window.originalRackUi;delete window.originalRackUi;delete window.rackButtonCues;');
+    await tab('reactor');
 }
 
 async function checkColdRack({ consoleCode, action, tab, click, advance }) {

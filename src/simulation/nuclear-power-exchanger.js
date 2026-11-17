@@ -66,7 +66,7 @@ export function initializeExchanger(host) {
         host.componentMessages.exchanger = accepted ? '' : 'Cleaning requires a cooled, stopped, fault-free plant. Deposits have been retained.';
         state.preview = null;
         input.value = host.simulation.components.items.exchanger.settings[state.selected];
-        if (accepted) host.playUiSound('adjust');
+        if (accepted) host.playUiSound('adjust', 'exchanger');
         host.update();
     };
     root.addEventListener('click', event => {

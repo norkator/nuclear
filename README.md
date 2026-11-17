@@ -564,6 +564,20 @@ latches. Water spray and pump cutaways share the existing frame loop and respect
 pause, hidden views, detach, Maintenance and reduced motion. Reset demo clears the
 damage/leaks and returns every pump to OFF.
 
+Control sounds use the bundled Kenney UI Audio and Interface Sounds packs. Pumps
+retain the original clicks; computers, electrical switching, heat-exchanger
+controls, turbine/generator controls, condenser controls and rods use distinct
+sampled feedback. Computer cards and their inspection window share physical
+ON/OFF rockers with computer-specific clicks; requested power remains separate
+from actual boot/online status.
+
+In Career, newly satisfied checklist steps play a short confirmation, and verified
+assignments play a longer confirmation when ready to report. Simultaneous steps
+produce one cue; repeated updates and conditions returning to green do not repeat
+it. Continue/import prime existing progress silently. All cues share Enable/Mute
+plant sounds and stop on pause, hiding, detach or session changes. Missed or late
+loaded cues never replay; no audio history is added to career saves.
+
 **Enable plant sounds** also enables seamless steam/turbine/generator loops.
 Actual reactor output and turbine shaft speed drive the sound level; stress,
 damage, overheating, trips and actual component disturbances crossfade to a rough
@@ -722,7 +736,9 @@ docker run --rm -p 127.0.0.1:8080:80 nuclear
 ```
 
 The runtime is Nginx on port 80 serving static files, including bundled CC0 Kenney
-UI Audio under `public/audio/nuclear-power/kenney-ui/` with its license/source record.
+UI Audio under `public/audio/nuclear-power/kenney-ui/` and Interface Sounds under
+`public/audio/nuclear-power/kenney-interface/`, each with its original license and
+source record.
 It needs no environment variables, API proxy, database, or Java runtime.
 
 `.github/workflows/nuclear-container.yml` runs the unit tests, production build,

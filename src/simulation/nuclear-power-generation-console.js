@@ -104,7 +104,7 @@ export function initializeGenerationConsoles(host) {
             host.componentMessages ||= {};
             host.componentMessages[id] = accepted ? '' : 'Admission is locked by the turbine trip. Stop, cool and clear faults before resetting the trip.';
             state.preview = null;
-            if (accepted) host.playUiSound('adjust');
+            if (accepted) host.playUiSound('adjust', id);
             host.update();
         };
         root.addEventListener('click', event => {

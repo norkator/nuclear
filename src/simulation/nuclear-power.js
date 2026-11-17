@@ -7,6 +7,7 @@ import { CORE_CHANNELS, NuclearPowerSimulation } from './nuclear-power-model.js'
 import { advancePumpMotion, advanceProcessMotion, advanceInstrumentMotion, flowMarkerDistance, valveHandleAngle, SVG_FLOW_SCALE, createPolylinePath } from './nuclear-power-motion.js';
 import styles from './nuclear-power.css?inline';
 import { PlantAudio } from './nuclear-power-audio.js';
+import { uiSoundProfile } from './nuclear-power-ui-sounds.js';
 import { equipmentDialogs, initializeEquipment, updateEquipment, drawEquipmentMotion, exerciseDialog, initializeExercises, updateExercises } from './nuclear-power-equipment.js';
 import lightStyles from './nuclear-power-light.css?inline';
 import generationStyles from './nuclear-power-generation-console.css?inline';
@@ -620,18 +621,19 @@ export class NuclearPowerConsole extends HTMLElement {
             const input = event.target;
             if (!input.matches('input, select') || input.disabled || !input.checkValidity()) return;
             if (input.dataset.component && this.componentMessages?.[input.dataset.component]) return;
-            this.playUiSound(input.type === 'checkbox' ? input.checked ? 'on' : 'off' : 'adjust');
+            this.playUiSound(input.type === 'checkbox' ? input.checked ? 'on' : 'off' : 'adjust', uiSoundProfile(input));
         });
         this.shadowRoot.addEventListener('click', event => {
             const button = event.target.closest('button');
-            if (!button || button.disabled) return;
+            if (!button || button.disabled || button.matches('[data-computer-power], [data-computer-toggle]')) return;
             const action = button.dataset.action;
             if (['start','stop','trip','sound','pause','reset'].includes(action)) return;
-            if (pumpDefinition(action)) this.playUiSound(this.simulation[action] ? 'on' : 'off');
-            else if (action === 'manual' || action === 'auto') this.playUiSound(this.simulation.autoMode ? 'on' : 'off');
-            else if (button.classList.contains('diesel-run-switch')) this.playUiSound(button.getAttribute('aria-checked') === 'true' ? 'on' : 'off');
-            else if (button.dataset.componentAction === 'toggle') this.playUiSound(this.simulation[button.dataset.component] ? 'on' : 'off');
-            else this.playUiSound('adjust');
+            let kind = 'adjust';
+            if (pumpDefinition(action)) kind = this.simulation[action] ? 'on' : 'off';
+            else if (action === 'manual' || action === 'auto') kind = this.simulation.autoMode ? 'on' : 'off';
+            else if (button.classList.contains('diesel-run-switch')) kind = button.getAttribute('aria-checked') === 'true' ? 'on' : 'off';
+            else if (button.dataset.componentAction === 'toggle') kind = this.simulation[button.dataset.component] ? 'on' : 'off';
+            this.playUiSound(kind, uiSoundProfile(button));
         });
         initializeCompanion(this);
         initializeDesktopLayout(this);
@@ -949,14 +951,14 @@ export class NuclearPowerConsole extends HTMLElement {
         this.update();
     }
 
-    async playUiSound(kind) {
+    async playUiSound(kind, profile = 'general') {
         const allowed = () => this.soundEnabled && this.isConnected && this.intersecting && !document.hidden && !this.simulation.paused && (!this.companion || this.remoteReady);
         if (!allowed() || !this.plantAudio || !this.alarmAudio) return;
         const requestedAt = performance.now();
         try {
             if (this.alarmAudio.state !== 'running') await this.alarmAudio.resume();
             // Never replay a click delayed by autoplay restrictions or background suspension.
-            if (allowed() && performance.now() - requestedAt < 500) this.plantAudio.ui(kind);
+            if (allowed() && performance.now() - requestedAt < 500) this.plantAudio.ui(kind, profile);
         } catch { /* UI sounds must not affect controls. */ }
     }
 
@@ -1389,7 +1391,7 @@ export class NuclearPowerConsole extends HTMLElement {
         this.shadowRoot.querySelector('#mute-alert-sounds').setAttribute('aria-pressed', String(this.alertSoundsMuted));
         this.shadowRoot.querySelector('[data-value=alertSoundIndication]').textContent = this.alertSoundsMuted ? 'ALERTS SILENCED' : 'ALERT SOUND ON';
         const audioStates = [this.plantAudio?.uiState, this.plantAudio?.plantState, this.plantAudio?.dieselState,
-            this.plantAudio?.stationStates.get(this.plantTab)].filter(Boolean);
+            this.plantAudio?.stationStates.get(this.plantTab), this.game?.career ? this.plantAudio?.assignmentState : null].filter(Boolean);
         this.shadowRoot.querySelector('.ui-sound-status').textContent = !this.soundEnabled ? ''
             : audioStates.includes('unavailable') ? 'Some sound files unavailable'
                 : audioStates.every(state => state === 'ready') ? '' : 'Loading sounds…';

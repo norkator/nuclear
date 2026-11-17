@@ -23,11 +23,20 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
         assert.ok(await consoleCode('return s.querySelector(".console-footer").getBoundingClientRect().bottom <= innerHeight;'), 'Free-operation game entry retains wide-screen fit');
     }
     await page('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1120, deviceScaleFactor: 1, mobile: false });
+    await waitForConsoleLayout(consoleCode, 'Career audio opt-in');
+    if (await consoleCode('return !!c.soundEnabled;')) await action('sound');
+    const soundPoint = await consoleCode('const r=s.querySelector("[data-action=sound]").getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};');
+    await page('Input.dispatchMouseEvent', { type: 'mousePressed', ...soundPoint, button: 'left', clickCount: 1 });
+    await page('Input.dispatchMouseEvent', { type: 'mouseReleased', ...soundPoint, button: 'left', clickCount: 1 });
+    await consoleCode('return c.plantAudio.preloadUi();');
+    assert.equal(await consoleCode('return c.plantAudio.assignmentState;'), 'not-loaded', 'Free operation does not load assignment samples');
+    await consoleCode(`window.assignmentCues=[];const play=c.plantAudio.assignment.bind(c.plantAudio);c.plantAudio.assignment=kind=>{const played=play(kind);const voice=[...c.plantAudio.nodes].find(v=>v.assignment===kind);window.assignmentCues.push({kind,played,correctBuffer:voice?.oscillator.buffer===c.plantAudio.assignmentBuffers.get(kind),loop:voice?.oscillator.loop});return played;};`);
     await action('pumpA');
     await gameAction('start');
     assert.ok(await consoleCode('return s.querySelector(".game-page").textContent.includes("Your plant manager");'));
     await gameAction('begin');
     await ready('c.game.career && c.game.hasSave && !c.game.busy', 'New career saved');
+    await ready('c.plantAudio.assignmentState==="ready" && c.alarmAudio.state==="running"', 'Career confirmation samples decoded after opt-in');
     assert.equal(await consoleCode('return !c.simulation.paused && !c.simulation.running && !c.simulation.pumpA;'), true);
     assert.equal(await consoleCode('return s.querySelector("[data-game-action=resume]").hidden;'), true, 'New career never needs Resume');
     const startingTime = await consoleCode('return c.simulation.elapsed;');
@@ -40,13 +49,20 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
     assert.equal(await consoleCode('return s.querySelector(".game-dialog").matches(":popover-open");'), false, 'Accepting reveals the plant and checklist');
     assert.ok(await consoleCode('return s.querySelector(".game-tasks").nextElementSibling.classList.contains("trend-panel");'), 'Steps sit directly above Live trends');
     assert.deepEqual(await steps(), { regulation: false, circulation: false, start: false, condition: false, hold: false });
+    assert.deepEqual(await evaluate('window.assignmentCues'), [], 'Starting and accepting never replay progress cues');
     const pendingColor = await consoleCode('return getComputedStyle(s.querySelector(".game-task-list li")).color;');
     await consoleCode(`(${commissionPlant.toString()})(c.simulation);c.update();`);
     await consoleCode('s.querySelector("#follow-grid").checked=false;s.querySelector("#follow-grid").dispatchEvent(new Event("change",{bubbles:true}));');
+    assert.deepEqual(await evaluate('window.assignmentCues'), [{ kind: 'step', played: true, correctBuffer: true, loop: false }], 'Newly satisfied assignment step plays its local Kenney cue');
+    await consoleCode('c.update();c.game.render(true);');
+    assert.equal(await evaluate('window.assignmentCues.length'), 1, 'Rendering does not repeat completed steps');
     await action('pumpA'); await action('pumpB');
     assert.equal((await steps()).circulation, false, 'Switch requests alone do not complete the circulation step');
     await advance(6); await action('start'); await advance(150);
     assert.equal(await consoleCode('return c.game.career.current.status;'), 'ready');
+    assert.equal(await evaluate('window.assignmentCues.filter(cue=>cue.kind==="complete" && cue.played && cue.correctBuffer && !cue.loop).length'), 1, 'Verification sounds once before the report');
+    await consoleCode('c.update();c.game.render(true);');
+    assert.equal(await evaluate('window.assignmentCues.filter(cue=>cue.kind==="complete").length'), 1);
     assert.ok(Object.values(await steps()).every(Boolean), 'Verified steps all turn green');
     assert.notEqual(await consoleCode('return getComputedStyle(s.querySelector(".game-task-list li")).color;'), pendingColor);
     for (const [width, height] of [[1920, 1080], [2560, 1440]]) {
@@ -59,6 +75,7 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
     await page('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1120, deviceScaleFactor: 1, mobile: false });
     await gameAction('report');
     await ready('c.game.career.state.achievements.length===1 && !c.game.busy', 'First report archived');
+    assert.equal(await evaluate('window.assignmentCues.filter(cue=>cue.kind==="complete").length'), 1, 'Sending a report never repeats completion');
     assert.equal(await consoleCode('return s.querySelector(".game-tasks").hidden;'), true, 'Next assignment waits for acceptance');
     await gameAction('open'); await tab('assignments');
     await gameAction('accept'); await ready('!c.game.busy', 'Reliability assignment accepted');
@@ -113,6 +130,7 @@ export async function checkCompanyGame({ consoleCode, action, input, page, evalu
     assert.equal(await consoleCode('return s.querySelector(".game-tasks").hidden;'), true);
     assert.equal(await consoleCode('return c.simulation.pumpA;'), true, 'Original free plant retained');
     assert.equal(await consoleCode('return c.simulation.running;'), false);
+    assert.equal(await consoleCode('return [...c.plantAudio.nodes].filter(v=>v.assignment).length;'), 0, 'Switching plants stops assignment cues');
     await page('Page.reload');
     await ready('c?.game?.hasSave', 'Reload offers saved career');
     assert.equal(await consoleCode('return !!c.game.career;'), false, 'Reload starts free operation');

@@ -5,7 +5,7 @@ Licensed under the Pörssiohjain Personal Use License v1.0.
 -->
 # Continuing company-game development
 
-Updated 2026-11-14. This is the implementation handoff for the standalone
+Updated 2026-11-17. This is the implementation handoff for the standalone
 [norkator/nuclear](https://github.com/norkator/nuclear) repository. All commands
 below run from this repository root. Read [AGENTS.md](../AGENTS.md), this file,
 [the product plan](../GAMEPLAY-PLAN.md) and [the plant specification](nuclear-power.md)
@@ -39,6 +39,16 @@ On wide screens the checklist and trends share the independently hideable right
 side panel. Its contents scroll without overlapping or moving the process/header;
 the career status and Company inbox entry remain available when that panel is
 closed. Companion station presets do not add company pages or career commands.
+
+With plant sounds enabled, a newly satisfied checklist step plays a short Kenney
+Interface Sounds confirmation. Full verification plays a different, longer cue
+when the assignment becomes ready to report; reporting adds no second completion
+cue. Simultaneous newly green steps coalesce. An in-memory tracker prevents
+repeated updates or fluctuating conditions from replaying a step within the
+session. Accept/Continue/import prime the existing evidence silently. Muted,
+paused, hidden or unavailable-audio progress is consumed without queued playback.
+Cues share the existing audio context/cleanup, stay independent of machinery and
+UI clicks, and add no saved fields or mission rules.
 
 | Stable mission ID | Criterion | Capability earned on report |
 | --- | --- | --- |
@@ -86,6 +96,7 @@ Hard restrictions through their existing plant controls.
 | --- | --- |
 | `src/simulation/nuclear-power-missions.js` | Eight definitions, catalogue validation, capabilities, pinned evidence and reports |
 | `src/simulation/nuclear-power-game.js` | Entry/return, company UI, lock ownership, autosave, JSON backup and plant switching |
+| `src/simulation/nuclear-power-game-audio.js` | Presentation-only assignment/step cue deduplication from actual checklist evidence |
 | `src/simulation/nuclear-power-game-save.js` | Explicit plant/pool serialization, validation/hydration and IndexedDB revision writes |
 | `src/simulation/nuclear-power-game.css` | Company-window and game-status styles |
 | `src/simulation/nuclear-power.js` | Custom-element integration, host plant ticks, UI updates, cleanup and guarded Reset demo |

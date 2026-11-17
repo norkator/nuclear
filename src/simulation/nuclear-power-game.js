@@ -8,6 +8,7 @@ import { FuelTransferAnimation } from './nuclear-power-refuelling.js';
 import { assignmentSteps, CompanyCareer, MISSIONS } from './nuclear-power-missions.js';
 import { CareerStore, captureCareer, restoreCareerBundle } from './nuclear-power-game-save.js';
 import { disconnectSession } from './nuclear-power-companion.js';
+import { AssignmentSoundTracker } from './nuclear-power-game-audio.js';
 
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const time = seconds => `${Math.floor(seconds / 60)}m ${Math.floor(seconds % 60)}s`;
@@ -32,6 +33,7 @@ class GameController {
         this.pendingSave = Promise.resolve();
         this.lastSaved = -Infinity;
         this.root = host.shadowRoot;
+        this.progressSounds = new AssignmentSoundTracker();
         this.root.addEventListener('change', event => {
             if (event.target.matches('[name="career-difficulty"]')) this.difficulty = event.target.value;
         });
@@ -103,6 +105,7 @@ class GameController {
     install(restored) {
         if (!this.career) this.freeSession = { simulation: this.host.simulation, transfer: this.host.fuelTransfer };
         this.career = new CompanyCareer(restored.state);
+        this.progressSounds.reset(this.career, restored.simulation);
         this.switchPlant(restored.simulation, restored.transfer);
         this.career.state.lastElapsed = this.host.simulation.elapsed;
         this.lastSaved = -Infinity;
@@ -169,6 +172,7 @@ class GameController {
                 this.host.simulation.paused = false; this.host.update(); await this.save(true);
             }
             if (action === 'accept' && this.career?.accept(this.host.simulation)) {
+                this.progressSounds.reset(this.career, this.host.simulation);
                 await this.save(true);
                 this.host.closeFloatingDialog(this.root.querySelector('.game-dialog'));
             }
@@ -212,7 +216,15 @@ class GameController {
 
     update(fromTimer) {
         if (this.career) {
+            if (this.host.soundEnabled && this.host.plantAudio?.assignmentState === 'not-loaded') {
+                this.host.plantAudio.preloadAssignments().then(() => this.host.update());
+            }
             const changed = this.career.advance(this.host.simulation);
+            const cue = this.progressSounds.observe(this.career, this.host.simulation);
+            if (cue && this.owner && !this.attaching && this.host.soundEnabled && this.host.isConnected
+                    && this.host.intersecting && !document.hidden && !this.host.simulation.paused) {
+                this.host.plantAudio?.assignment(cue);
+            }
             this.save(changed || !fromTimer);
         }
         this.render();

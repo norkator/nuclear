@@ -7,6 +7,7 @@
  * mute and pause, and calls cue only after an accepted Start/Stop state change.
  * No context creation, alarm tones, command inference or deferred cue replay. */
 import { STATION_SOUNDS, stationSoundState } from './nuclear-power-station-audio.js';
+import { UI_SOUND_FILES, UI_SOUND_PROFILES } from './nuclear-power-ui-sounds.js';
 
 export function plantSoundState(sim) {
     const turbine = sim.components.items.turbine.actual;
@@ -27,6 +28,8 @@ export class PlantAudio {
         this.uiGain = 0.26;
         this.uiState = 'not-loaded';
         this.lastUiAt = -Infinity;
+        this.assignmentBuffers = new Map();
+        this.assignmentState = 'not-loaded';
         this.plantBuffers = new Map();
         this.plantState = 'not-loaded';
         this.dieselBuffers = new Map();
@@ -42,8 +45,8 @@ export class PlantAudio {
     setScene(scene) {
         if (this.scene === scene) return;
         this.scene = scene;
-        // Tab changes stop outgoing machinery immediately; shared UI sounds remain.
-        for (const voice of this.nodes) if (!voice.ui) this.halt(voice);
+        // Tab changes stop outgoing machinery; UI and assignment cues are shared.
+        for (const voice of this.nodes) if (!voice.ui && !voice.assignment) this.halt(voice);
         this.dieselStates.clear();
         this.completedStarts.clear();
     }
@@ -216,20 +219,20 @@ export class PlantAudio {
     preloadUi(fetcher = fetch) {
         if (this.uiLoading) return this.uiLoading;
         this.uiState = 'loading';
-        const files = {on:'switch1.wav', off:'switch2.wav', adjust:'click1.wav'};
-        this.uiLoading = Promise.all(Object.entries(files).map(async ([kind, file]) => {
+        this.uiLoading = Promise.all(Object.entries(UI_SOUND_FILES).map(async ([kind, path]) => {
             try {
-                const response = await fetcher(`/audio/nuclear-power/kenney-ui/${file}`);
+                const response = await fetcher(path);
                 if (!response.ok) return;
                 const buffer = await this.context.decodeAudioData(await response.arrayBuffer());
                 this.uiBuffers.set(kind, buffer);
             } catch { /* Missing/unsupported audio never blocks a process command. */ }
-        })).then(() => { this.uiState = this.uiBuffers.size === 3 ? 'ready' : 'unavailable'; });
+        })).then(() => { this.uiState = this.uiBuffers.size === Object.keys(UI_SOUND_FILES).length ? 'ready' : 'unavailable'; });
         return this.uiLoading;
     }
 
-    ui(kind = 'adjust') {
-        const buffer = this.uiBuffers.get(kind);
+    ui(kind = 'adjust', profile = 'general') {
+        const sample = UI_SOUND_PROFILES[profile]?.[kind] || kind;
+        const buffer = this.uiBuffers.get(sample);
         const now = this.context.currentTime;
         if (!buffer || this.context.state !== 'running' || now - this.lastUiAt < .08) return false;
         for (const voice of this.nodes) if (voice.ui) this.halt(voice);
@@ -239,11 +242,43 @@ export class PlantAudio {
         source.loop = false;
         gain.gain.setValueAtTime(this.uiGain, now);
         source.connect(gain); gain.connect(this.context.destination);
-        const voice = {oscillator:source, gain, ui:true};
+        const voice = {oscillator:source, gain, ui:true, profile, sample};
         this.nodes.add(voice);
         source.onended = () => this.release(voice);
         source.start(now);
         this.lastUiAt = now;
+        return true;
+    }
+
+    preloadAssignments(fetcher = fetch) {
+        if (this.assignmentLoading) return this.assignmentLoading;
+        this.assignmentState = 'loading';
+        const files = { step: 'confirmation_001.wav', complete: 'confirmation_002.wav' };
+        this.assignmentLoading = Promise.all(Object.entries(files).map(async ([kind, file]) => {
+            try {
+                const response = await fetcher(`/audio/nuclear-power/kenney-interface/${file}`);
+                if (response.ok) this.assignmentBuffers.set(kind, await this.context.decodeAudioData(await response.arrayBuffer()));
+            } catch { /* Mission progress never depends on audio availability. */ }
+        })).then(() => { this.assignmentState = this.assignmentBuffers.size === 2 ? 'ready' : 'unavailable'; });
+        return this.assignmentLoading;
+    }
+
+    assignment(kind) {
+        const buffer = this.assignmentBuffers.get(kind);
+        if (!buffer || this.context.state !== 'running') return false;
+        // One notification at a time. A final confirmation supersedes a step cue
+        // and remains audible through UI clicks or changes of equipment room.
+        const previous = [...this.nodes].find(voice => voice.assignment);
+        if (previous?.assignment === 'complete' && kind === 'step') return false;
+        if (previous) this.halt(previous);
+        const source = this.context.createBufferSource(), gain = this.context.createGain();
+        source.buffer = buffer; source.loop = false;
+        gain.gain.setValueAtTime(kind === 'complete' ? .26 : .20, this.context.currentTime);
+        source.connect(gain); gain.connect(this.context.destination);
+        const voice = { oscillator: source, gain, assignment: kind };
+        this.nodes.add(voice);
+        source.onended = () => this.release(voice);
+        source.start(this.context.currentTime);
         return true;
     }
 
@@ -274,7 +309,7 @@ export class PlantAudio {
         if (!['start', 'stop'].includes(command) || this.context.state !== 'running'
                 || !['reactor', 'pumps', 'exchanger', 'turbine', 'condenser'].includes(this.scene)) return;
         // One short command voice at a time, even during rapid operator actions.
-        for (const voice of this.nodes) if (!voice.plant && !voice.diesel && !voice.station) this.halt(voice);
+        for (const voice of this.nodes) if (!voice.plant && !voice.diesel && !voice.station && !voice.assignment) this.halt(voice);
         const voice = this.voice('sine');
         const now = this.context.currentTime;
         const starting = command === 'start';

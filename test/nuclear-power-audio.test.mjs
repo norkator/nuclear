@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs';
 import { PlantAudio, plantSoundState } from '../src/simulation/nuclear-power-audio.js';
 import { NuclearPowerSimulation } from '../src/simulation/nuclear-power-model.js';
 import { STATION_SOUNDS, stationSoundState } from '../src/simulation/nuclear-power-station-audio.js';
+import { UI_SOUND_FILES, UI_SOUND_PROFILES } from '../src/simulation/nuclear-power-ui-sounds.js';
 
 class Param {
     value = 0;
@@ -478,8 +479,8 @@ test('Kenney samples preload once, play quietly without looping, and replace ear
     const fetcher=async url=>{urls.push(url);return {ok:true,arrayBuffer:async()=>new ArrayBuffer(4)};};
     assert.equal(audio.ui('on'),false); // Loading never queues a click for later.
     await audio.preloadUi(fetcher); await audio.preloadUi(fetcher);
-    assert.equal(urls.length,3); assert.equal(audio.uiBuffers.size,3);
-    assert.ok(urls.every(url=>url.startsWith('/audio/nuclear-power/kenney-ui/')));
+    assert.equal(urls.length,Object.keys(UI_SOUND_FILES).length); assert.equal(audio.uiBuffers.size,urls.length);
+    assert.deepEqual(urls.sort(),Object.values(UI_SOUND_FILES).sort());
     assert.equal(audio.ui('on'),true);
     const [first]=audio.nodes;
     assert.equal(first.oscillator.loop,false);
@@ -507,4 +508,79 @@ test('finished samples disconnect and suspended contexts never play a UI click',
     assert.equal(audio.nodes.size,0);
     assert.equal(voice.gain.disconnected,true);
     assert.equal(voice.oscillator.disconnected,true);
+});
+
+test('equipment families use distinct samples with the same one-voice bound and pump/general fallback', async () => {
+    const context = new Context(), audio = new PlantAudio(context);
+    await audio.preloadUi(async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(4) }));
+    const adjustments = new Set();
+    for (const [profile, sounds] of Object.entries(UI_SOUND_PROFILES)) {
+        context.currentTime += .1;
+        assert.ok(audio.ui('adjust', profile));
+        const [voice] = audio.nodes;
+        assert.equal(voice.oscillator.buffer, audio.uiBuffers.get(sounds.adjust));
+        assert.equal(voice.profile, profile); assert.ok(!voice.oscillator.loop);
+        assert.ok(voice.gain.gain.value <= .26);
+        adjustments.add(voice.sample);
+        if (sounds.on) {
+            for (const kind of ['on', 'off']) {
+                context.currentTime += .1; assert.ok(audio.ui(kind, profile));
+                assert.equal([...audio.nodes][0].sample, sounds[kind]);
+            }
+        }
+        assert.equal(audio.nodes.size, 1);
+    }
+    assert.equal(adjustments.size, Object.keys(UI_SOUND_PROFILES).length);
+    context.currentTime += .1; audio.ui('off', 'pumps');
+    assert.equal([...audio.nodes][0].sample, 'off', 'Pumps retain their original switch sound');
+    audio.stop(); assert.ok(context.created.every(node => node.disconnected));
+});
+
+test('assignment samples cache without late playback; completion overrides steps and survives control clicks and room changes', async () => {
+    const context = new Context(), audio = new PlantAudio(context), urls = [];
+    let release;
+    const gate = new Promise(resolve => { release = resolve; });
+    const loading = audio.preloadAssignments(async url => {
+        urls.push(url); await gate;
+        return { ok: true, arrayBuffer: async () => new ArrayBuffer(4) };
+    });
+    assert.equal(audio.assignment('step'), false);
+    audio.stop(); release(); await loading; await audio.preloadAssignments();
+    assert.equal(urls.length, 2); assert.equal(audio.assignmentState, 'ready');
+    assert.equal(audio.nodes.size, 0, 'Decoding cannot replay missed achievements');
+    assert.equal(audio.assignment('step'), true);
+    const [step] = audio.nodes;
+    assert.equal(step.oscillator.buffer, audio.assignmentBuffers.get('step'));
+    assert.ok(!step.oscillator.loop && step.gain.gain.value <= .26);
+    assert.equal(audio.assignment('complete'), true);
+    const [complete] = audio.nodes;
+    assert.ok(step.oscillator.disconnected && step.gain.disconnected);
+    assert.notEqual(complete.oscillator.buffer, step.oscillator.buffer);
+    assert.equal(audio.assignment('step'), false, 'Final confirmation has priority');
+    await audio.preloadUi(async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(4) }));
+    audio.ui('on', 'computers'); audio.cue('start'); audio.setScene('maintenance');
+    assert.ok(audio.nodes.has(complete), 'Other cues and tabs never cut off assignment confirmation');
+    complete.oscillator.onended();
+    assert.ok(complete.oscillator.disconnected && complete.gain.disconnected);
+    context.state = 'suspended'; assert.equal(audio.assignment('complete'), false);
+    context.state = 'running'; audio.assignment('complete'); audio.stop();
+    assert.equal(audio.nodes.size, 0);
+    const failed = new PlantAudio(context);
+    await failed.preloadAssignments(async () => { throw new Error('Missing audio'); });
+    assert.equal(failed.assignmentState, 'unavailable'); assert.equal(failed.assignment('step'), false);
+});
+
+test('all selected Kenney samples and their original CC0 license are bundled locally', () => {
+    const paths = [...Object.values(UI_SOUND_FILES),
+        '/audio/nuclear-power/kenney-interface/confirmation_001.wav', '/audio/nuclear-power/kenney-interface/confirmation_002.wav'];
+    const waveforms = new Set();
+    for (const path of paths) {
+        const bytes = readFileSync(new URL(`../public${path}`, import.meta.url));
+        assert.equal(bytes.toString('ascii', 0, 4), 'RIFF');
+        assert.equal(bytes.toString('ascii', 8, 12), 'WAVE');
+        assert.ok(bytes.length > 1000);
+        waveforms.add(bytes.toString('base64'));
+    }
+    assert.equal(waveforms.size, paths.length, 'Different cues contain different recordings');
+    assert.match(readFileSync(new URL('../public/audio/nuclear-power/kenney-interface/LICENSE.txt', import.meta.url), 'utf8'), /Creative Commons Zero, CC0/);
 });

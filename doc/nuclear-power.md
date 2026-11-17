@@ -310,6 +310,26 @@ the included CC0 license/source record are under
 `public/audio/nuclear-power/kenney-ui`. Original pack:
 https://kenney.nl/assets/ui-audio; downloaded from the Calinou/kenney-ui-audio mirror
 because the original download returned 403. No external audio request occurs at runtime.
+Kenney Interface Sounds adds distinct local one-shots for computer power/diagnostics,
+electrical switching, exchanger controls, turbine/generator controls, condenser
+controls and core-map/rod adjustments. Pumps and general controls keep the earlier
+UI Audio clicks. Native sliders, cutaway drags, ± adjustments and keyboard changes
+use the same equipment profile, with the existing 80 ms throttle and one UI voice.
+The samples and original CC0 license/source record are in
+`public/audio/nuclear-power/kenney-interface`; its Kenney download also returned
+403, so unchanged WAVs come from Calinou/kenney-interface-sounds.
+
+Career step verification uses a short confirmation, and whole-assignment
+verification uses a distinct longer confirmation when ready to report. One
+assignment voice is allowed; completion supersedes a step and UI clicks/tab changes
+do not cut it off. Gains are bounded to 0.20 for steps and 0.26 for completion.
+Only an active opted-in career loads these two samples. A presentation-only
+tracker coalesces simultaneous steps and suppresses repeated/returning-green
+conditions. Existing progress is primed silently on accept/Continue/import;
+muted, paused, hidden or late-loaded events never replay. Pause/mute/hide/detach
+and session switching disconnect notification nodes along with all other sounds.
+No saved fields, new mission requirements or companion company UI are added.
+
 Opt-in operating audio now uses two original seamless 16-second stereo WAV loops
 under `public/audio/nuclear-power/plant-state`: steady steam/turbine/generator
 operation and a rough fault texture. Actual running reactor power and turbine
@@ -1068,6 +1088,10 @@ These are illustrative UI interlocks, not a real refuelling procedure.
 
 The fourth desktop plant tab contains a dedicated 3D rack with process servers A/B,
 a plant instrument server, control-network switch, UPS and cooling tray. The rack has only a 3D presentation.
+Each card's power control and its inspection-window control use a physical server
+rocker with I/ON and O/OFF faces, keyboard switch semantics and distinct computer
+ON/OFF samples after accepted changes. Disabled/interlocked actions do not click.
+Requested power stays separate from the existing actual boot/online reading.
 Each unit opens a shared movable inspection window with actual state, boot,
 temperature/hours, diagnostics and explicit work-order actions. Keyboard unit
 buttons remain available even if 3D is unavailable; the rack camera is independent of the

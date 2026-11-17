@@ -6,6 +6,7 @@
 import assert from 'node:assert/strict';
 import { commissionPlant } from './plant-fixtures.mjs';
 import { waitForConsoleLayout } from './console-layout.browser.mjs';
+import { UI_SOUND_FILES } from '../src/simulation/nuclear-power-ui-sounds.js';
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 export async function checkPlantAudio(options) {
@@ -25,11 +26,12 @@ export async function checkPlantAudio(options) {
     assert.equal(await consoleCode('return c.plantAudio.dieselState;'), 'ready');
     assert.equal(await consoleCode('return c.plantAudio.plantState;'), 'ready');
     assert.equal(await consoleCode('return [...c.plantAudio.nodes].filter(v=>v.plant).length;'), 0);
-    assert.equal(await consoleCode('return c.plantAudio.uiBuffers.size;'), 3);
+    assert.equal(await consoleCode('return c.plantAudio.uiBuffers.size;'), Object.keys(UI_SOUND_FILES).length);
     assert.equal(await consoleCode('return c.plantAudio.uiState;'), 'ready');
     assert.equal(await consoleCode('return c.plantAudio.uiGain;'), .26);
     await wait(400);
     assert.equal(await consoleCode('return c.alarmAudio.state;'), 'running');
+    await checkControlSoundProfiles({ consoleCode, until });
     await tab('reactor');
     assert.ok(await consoleCode('return [...c.plantAudio.nodes].some(voice=>voice.ui);'));
     await wait(400);
@@ -102,6 +104,38 @@ export async function checkPlantAudio(options) {
     await action('sound');
     assert.equal(await consoleCode('return c.plantAudio.nodes.size;'), 0);
     await checkStationAudio(options);
+}
+
+async function checkControlSoundProfiles({ consoleCode, until }) {
+    const throttleReady = () => until(`(()=>{const c=document.querySelector('nuclear-power-console');return c.alarmAudio.currentTime-c.plantAudio.lastUiAt>=.08;})()`, 'Previous control click throttle expired');
+    const check = async (code, profile, sample) => {
+        await throttleReady();
+        const voice = await consoleCode(`${code}const voice=[...c.plantAudio.nodes].find(v=>v.ui);return {profile:voice?.profile,sample:voice?.sample,loop:voice?.oscillator.loop};`);
+        assert.deepEqual(voice, { profile, sample, loop: false }, `${profile} control uses its own one-shot`);
+    };
+    for (const [id, select, step, original] of [
+        ['pumpA', '[data-pump-select=dischargeValve]', '[data-pump-step="-5"]', ['dischargeValve', 100]],
+        ['exchanger', '[data-hx-select=bypass]', '[data-hx-step="5"]', ['bypass', 0]],
+        ['turbine', '[data-generation-select=generatorLoading]', '[data-generation-step="-5"]', ['generatorLoading', 100]],
+        ['condenser', '[data-generation-select=coolingValve]', '[data-generation-step="-5"]', ['coolingValve', 100]],
+    ]) {
+        await consoleCode(`c.inspect('${id}');s.querySelector('[data-component-dialog="${id}"] ${select}').click();`);
+        await check(`s.querySelector('[data-component-dialog="${id}"] ${step}').click();`, id === 'pumpA' ? 'pumps' : id,
+            { pumpA: 'adjust', exchanger: 'pluck_001', turbine: 'click_001', condenser: 'tick_004' }[id]);
+        await consoleCode(`c.simulation.setComponentSetting('${id}',${JSON.stringify(original[0])},${original[1]});c.closeFloatingDialog(s.querySelector('[data-component-dialog="${id}"]'));`);
+    }
+    await consoleCode('c.openCoreMap();');
+    await check('const select=s.querySelector("#rod-select");select.value="CR-02";select.dispatchEvent(new Event("change",{bubbles:true}));', 'core', 'tick_001');
+    await consoleCode('c.closeCoreMap();c.openDiesel("A");');
+    const standby = await consoleCode('return c.simulation.supply.generators[0].automatic;');
+    if (standby) await consoleCode('s.querySelector("[data-diesel-auto=A]").click();');
+    await check('s.querySelector("[data-diesel-auto=A]").click();', 'electrical', 'switch_001');
+    await check('s.querySelector("[data-diesel-auto=A]").click();', 'electrical', 'switch_002');
+    if (standby) await consoleCode('s.querySelector("[data-diesel-auto=A]").click();');
+    await consoleCode('c.closeFloatingDialog(s.querySelector("[data-diesel-dialog=A]"));c.computerConsole.open("serverA");');
+    await check('s.querySelector("[data-computer-diagnose]").click();', 'computers', 'click_002');
+    await consoleCode('c.closeFloatingDialog(s.querySelector(".computer-dialog"));');
+    await throttleReady();
 }
 
 async function checkStationAudio({ consoleCode, action, page, advance, until, resetWithoutDispatch, warmOperatingPoint, send }) {
