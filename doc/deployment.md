@@ -27,6 +27,10 @@ container. Only Nginx is published. It proxies `/session` with WebSocket upgrade
 to the relay's internal port 8081. No database, Spring service or account is needed.
 The existing static-only frontend container can still run without the optional
 relay; its local simulation works normally and screen pairing reports unavailable.
+The bundled Android app connects to the public relay over WSS. The relay accepts
+its exact local origin, `https://appassets.androidplatform.net`, alongside the
+normal same-host and configured-origin checks. Pairing authentication, room
+isolation, stale locks and command ownership still apply.
 
 The relay writes one line to stdout when a WebSocket client connects and one when
 it disconnects, with a timestamp, connection ID and peer address. Disconnects
@@ -58,7 +62,7 @@ For **Nginx Proxy Manager**, first create `.env` with your public origin
 
 ```dotenv
 NUCLEAR_PORT=8080
-NUCLEAR_ALLOWED_ORIGINS=https://nuclear.porssiohjain.fi
+NUCLEAR_ALLOWED_ORIGINS=https://nuclear.porssiohjain.fi,https://appassets.androidplatform.net
 ```
 
 Replace the hostname if needed, then run `docker compose pull` followed by
@@ -68,6 +72,13 @@ Replace the hostname if needed, then run `docker compose pull` followed by
 include the public port when using a nonstandard port. This handles NPM versions
 that forward their upstream hostname in `Host`, avoiding WebSocket 403 errors.
 See [NPM's proxy configuration](https://github.com/NginxProxyManager/nginx-proxy-manager/blob/v2.17.0/docker/rootfs/etc/nginx/conf.d/include/proxy.conf).
+
+The Android origin in the example also supports older relay images without its
+built-in entry. After updating `.env`, apply it with
+`docker compose up -d --no-build session-server`. The Android app must also have
+the public HTTPS origin in its native bootstrap, so its session socket resolves
+to your WSS endpoint rather than the local assets. Android implementation notes
+live in the NuclearMobile repository's `doc/android.md`.
 
 Add a Proxy Host for your public Nuclear hostname:
 use scheme **http**, the Ubuntu Docker host's reachable LAN IP and forward port

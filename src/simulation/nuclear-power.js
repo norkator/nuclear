@@ -263,6 +263,12 @@ export class NuclearPowerConsole extends HTMLElement {
         this.intersecting = true;
         this.overviewIntersecting = true;
         this.onVisibilityChange = () => this.updateActivity();
+        this.onNativeResume = () => {
+            // Android suspends timers even if a companion keeps the host clock
+            // allocated. Refresh timestamps before native timers resume.
+            this.lastTick = performance.now(); this.lastFrame = this.lastTick;
+            this.updateActivity();
+        };
         this.onViewportResize = () => this.shadowRoot.querySelectorAll('.floating-dialog').forEach(dialog => this.positionFloatingDialog(dialog));
     }
 
@@ -277,6 +283,7 @@ export class NuclearPowerConsole extends HTMLElement {
         document.addEventListener('visibilitychange', this.onVisibilityChange);
         this.reducedMotion.addEventListener('change', this.onVisibilityChange);
         window.addEventListener('resize', this.onViewportResize);
+        window.addEventListener('nuclear-native-resume', this.onNativeResume);
         this.intersectionObserver = new IntersectionObserver(entries => {
             // Resizes/captures can queue several changes for this one target.
             // Apply the latest record so a stale hidden state cannot win.
@@ -324,6 +331,7 @@ export class NuclearPowerConsole extends HTMLElement {
         document.removeEventListener('visibilitychange', this.onVisibilityChange);
         this.reducedMotion.removeEventListener('change', this.onVisibilityChange);
         window.removeEventListener('resize', this.onViewportResize);
+        window.removeEventListener('nuclear-native-resume', this.onNativeResume);
         this.overviewScene?.dispose();
         this.overviewScene = null;
         this.computerConsole?.disconnect();

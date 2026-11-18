@@ -31,7 +31,8 @@ export function initializeCompanion(host) {
     host.companion = host.getAttribute('screen') === 'companion';
     host.dataset.screen = host.companion ? 'companion' : 'desktop';
     host.pendingSessionCommands = new Map();
-    root.querySelector('.companion-link').href = companionScreenUrl();
+    host.companionUrl = companionScreenUrl();
+    root.querySelector('.companion-link').href = host.companionUrl;
     if (host.companion) prepareCompanion(host);
     const status = value => {
         host.sessionStatus = value;
@@ -338,7 +339,7 @@ export function updateSessionControls(host) {
         code.textContent = info && host.sessionStatus === 'connected' ? `${info.code.slice(0, 4)} ${info.code.slice(4)}` : host.sessionStatus === 'connecting' ? 'Connecting…' : 'Offline';
         const remaining = info ? Math.max(0, Math.ceil((info.expiresAt - Date.now()) / 60_000)) : 0;
         root.querySelector('.pairing-status').textContent = host.sessionError || (info && host.sessionStatus === 'connected' ? `${host.connectedScreens || 0} connected screen(s) · ${remaining ? `code expires in ${remaining} min` : 'code expired; request a new code'}` : 'Session server unavailable. Start the Docker session service or local backend.');
-        root.querySelector('.pairing-open').href = companionScreenUrl(info?.code);
+        root.querySelector('.pairing-open').href = `${host.companionUrl}${info ? `#code=${encodeURIComponent(info.code)}` : ''}`;
     }
 }
 

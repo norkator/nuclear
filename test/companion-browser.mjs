@@ -135,6 +135,7 @@ test('desktop and companion share controls, grid/core readings and lifecycle acr
         await host.action('connect-screen');
         await host.until('c.pairingInfo?.code', 'Desktop has pairing code');
         const code = await host.code('return c.pairingInfo.code;');
+        assert.ok(await host.code('return s.querySelector(".pairing-open").href===location.origin+"/companion/#code="+c.pairingInfo.code;'), 'Browser companion links retain their same-origin public address');
         const tablet = await page('/companion/', 1180, 820);
         assert.equal(await tablet.code('return document.querySelector(".site-content, .launcher-card");'), null, 'Companion contains no landing/SEO content');
         await tablet.code('Object.defineProperty(crypto,"randomUUID",{value:undefined,configurable:true});');
@@ -167,6 +168,9 @@ test('desktop and companion share controls, grid/core readings and lifecycle acr
         await tablet.until('c.remoteReady && !s.querySelector(".companion-pairing-dialog").open', 'Live desktop state closes pairing');
         assert.ok(await tablet.code('return s.querySelector(".companion-join").closest("dialog") && !s.querySelector(".companion-connection .companion-join");'), 'Code form takes no inline console space');
         await host.until('c.connectedActiveScreens === 1', 'Desktop sees active companion');
+        const nativeResume = await host.code('const elapsed=c.simulation.elapsed,paused=c.simulation.paused;c.lastTick=performance.now()-30000;window.dispatchEvent(new Event("nuclear-native-resume"));return {age:performance.now()-c.lastTick,sameElapsed:c.simulation.elapsed===elapsed,samePause:c.simulation.paused===paused};');
+        assert.ok(nativeResume.age < 100 && nativeResume.sameElapsed && nativeResume.samePause,
+            `Native resume refreshes a paired host clock without catch-up or Pause changes: ${JSON.stringify(nativeResume)}`);
         const positions = await tablet.code('const left=s.querySelector(".companion-information").getBoundingClientRect(),right=s.querySelector(".companion-operator").getBoundingClientRect();return {left:left.right,right:right.left,overflow:document.documentElement.scrollWidth>innerWidth};');
         assert.ok(positions.left < positions.right, 'Information left and operator controls right');
         assert.equal(positions.overflow, false);
