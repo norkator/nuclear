@@ -30,7 +30,7 @@ There are no model, mission, save-schema, transport or relay changes.
 ## Proposed screen
 
 ```text
- Unit 01 / clock    Company    Trends / alarms    Pause    More
+ Unit 01 / clock    Company    Trends / alarms    GC    Pause    More
  ------------------------------------------------------------
              Current 3D overview or equipment station
  Instruments >                                    < Controls
@@ -44,12 +44,13 @@ than fitting every desktop label into the header.
 | Area | Proposed behavior |
 | --- | --- |
 | Main view | Existing overview, station or computer-rack renderer fills the height remaining below a compact header. |
-| Left edge | A labeled Instruments handle opens the existing readings, Pump power source and Grid controller in a left drawer. |
+| Left edge | A labeled Instruments handle opens the existing readings and Pump power source in a left drawer. |
 | Right edge | A labeled Controls handle opens the existing operator controls and regulation settings in a right drawer. |
 | Company button | In a career, opens the existing Inbox, Assignments, Achievements, Archive and Save pages. In free operation, offers existing Start/Continue actions. |
 | Assignment steps | Accepted work appears as small top-left text below the scene caption, with completion marks and a timer, without card styling. Touches pass through. The same DOM returns above Live trends outside phone mode. |
 | Trends button | Opens Live trends and access to alarms/events in a large sheet. Full briefings and reporting remain in Company. |
-| More button | Provides Maintenance, all equipment destinations, Core map, spent fuel, theme, sound and Connect screen. Native equipment navigation remains available without WebGL. |
+| GC button | Opens the existing Grid controller in its own sheet, with Follow requests, Request now and actual dispatch status. |
+| More button | Opens Plant menu with Maintenance and Spent fuel first, followed by a separate Other controls section for objectives, theme, sound, view tools and Connect screen. Equipment/Core map use overview selection; native menu shortcuts appear for the schematic/WebGL fallback. |
 | Back to plant | A floating, labeled button on every non-overview plant view, including Maintenance and Computer systems, returns to the retained overview. |
 | Parts / Units | Opens the current station's native part list or rack-unit controls without permanently consuming scene height. Show the native list directly if 3D is unavailable. |
 
@@ -73,6 +74,8 @@ Pause command changes Pause.
   intercepting the browser's back gesture.
 - Closing supports the handle, an explicit Close button, backdrop tap and Escape.
   Swipe-to-close uses a drawer handle/header rather than stealing slider gestures.
+- Accepted handle taps and swipes play the existing UI adjustment sound, using
+  the same opt-in, mute, Pause and visibility checks as other native controls.
 - Camera dragging and component picking retain their existing movement threshold.
   A canceled swipe or camera drag cannot also pick equipment or change a target.
 - Keep touch targets at least 44 CSS pixels. Preserve native ranges, rockers,

@@ -479,7 +479,7 @@ card beside the brand/title, leaving more room for the main overview:
 The full host has a separate landscape-phone presentation on touch viewports up
 to 1100 × 600 CSS pixels. `nuclear-power-mobile-layout.js` and its CSS own a
 compact icon/clock/status header, left instruments drawer, right operator drawer,
-Company/Trends/More access, floating overview return and native Parts/Units access.
+Company/Trends/GC/More access, floating overview return and native Parts/Units access.
 They reuse existing nodes, model commands, equipment routing and cameras. Existing
 inspection popovers become bounded sheets; the coordinator contains focus and
 inerts background controls. Explicit buttons and handle swipes share the same
@@ -495,6 +495,14 @@ the overview camera. Rotation restores the checklist above desktop Live trends.
 See [the phone layout plan and checkpoint](MOBILE-LANDSCAPE-PLAN.md) and run
 `npm run test:browser:mobile`. Portrait/tablet/mouse layouts retain their existing
 behavior; mobile roles never turn a full host into a companion.
+
+GC opens the retained Grid controller as a separate sheet, keeping Follow requests
+and Request now directly accessible during careers. Rotation restores the same
+controller beneath the desktop instruments. Plant menu starts with Maintenance
+and the original Spent fuel button, followed by other controls/settings. Equipment
+and Core map use overview selection; native menu shortcuts appear when the
+overview is schematic or unavailable. Accepted edge-handle taps/swipes use the
+existing UI sound path, including opt-in, mute, Pause and visibility guards.
 
 The operator console uses beveled metal mounting plates, round green/red Start
 and Stop pushbuttons, engraved labels and pilot lamps. Lamps use actual running

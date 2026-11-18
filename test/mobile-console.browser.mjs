@@ -40,7 +40,12 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot,
         await page('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
         await ready('!c.mobileLayout.current', 'Mobile surface closes');
     };
-    const area = async name => { await tap('[data-mobile-open="more"]'); await tap(`[data-mobile-tab="${name}"]`); };
+    const area = async name => {
+        if (name === 'maintenance') { await tap('[data-mobile-open="more"]'); await tap('[data-mobile-tab="maintenance"]'); return; }
+        await tap('.mobile-home');
+        const equipment = name === 'pumps' ? await consoleCode('return c.equipmentStations.selectedPump;') : name === 'electrical' ? 'grid' : name;
+        if (name !== 'reactor') await tap(`[data-scene-equipment="${equipment}"]`);
+    };
     const paused = async value => {
         if (await consoleCode('return c.simulation.paused;') !== value) await tap('[data-mobile-pause] [data-action="pause"]');
         await ready(`c.simulation.paused===${value}`, 'Pause button reflects the requested state');
@@ -67,6 +72,7 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot,
     await viewport(1920, 1080, false);
     await consoleCode(`for(const d of [...c.floatingDialogs])c.closeFloatingDialog(d,false);c.setPlantTab('reactor');c.setOverview('3d');c.setSceneLabels('compact');c.inspect('pumpA2');c.closeFloatingDialog(s.querySelector('[data-component-dialog=pumpA2]'),false);c.act('reset');if(!c.simulation.paused)c.act('pause');window.mobilePlant=c.simulation;window.mobilePreferences=localStorage.getItem('porssiohjain.nuclear-power.panels');window.mobilePanelState={...s.querySelector('.console-layout').dataset};`);
     const before = await consoleCode('return c.simulation.snapshot();');
+    await consoleCode('window.mobileGridController=s.querySelector(".grid-dispatch-panel");window.mobileSpentFuel=s.querySelector(".overview-toolbar [data-action=spent-fuel]");');
     const camera = await consoleCode('return [c.overviewScene.yaw,c.overviewScene.pitch,c.overviewScene.zoom,...c.overviewScene.target.toArray()];');
     await viewport(844, 390);
     await ready('c.mobileLayout.active && c.overviewIntersecting', 'Landscape touch layout activates');
@@ -87,6 +93,24 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot,
                 if (i) assert.ok(layout.header[i - 1].right <= r.x + 1, 'Header controls do not overlap');
             }
             await screenshot(`phone-${width}-${theme}`);
+            await tap('[data-mobile-open="grid-controller"]');
+            assert.equal(await consoleCode('return c.mobileLayout.current===window.mobileGridController && s.querySelectorAll("#follow-grid").length===1;'), true, 'GC opens the original controller with a single Follow requests control');
+            const grid = await consoleCode('const n=c.mobileLayout.current,r=n.getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,scroll:n.scrollWidth,width:n.clientWidth};');
+            assert.ok(grid.x>=0 && grid.y>=0 && grid.right<=width && grid.bottom<=height && grid.scroll<=grid.width, `Grid controller fits the phone: ${JSON.stringify(grid)}`);
+            await tap('.grid-dispatch-controls label');
+            assert.equal(await consoleCode('return c.simulation.gridDispatch.enabled;'), false, 'Follow requests can be disabled through a native phone tap');
+            await tap('.grid-dispatch-controls label');
+            assert.equal(await consoleCode('return c.simulation.gridDispatch.enabled && c.simulation.paused;'), true, 'Following can resume without changing Pause');
+            if (width===667) await screenshot(`phone-grid-controller-${theme}`);
+            await close();
+            assert.equal(await consoleCode('return s.activeElement.dataset.mobileOpen;'), 'grid-controller', 'Closing GC restores its visible header button');
+            assert.equal(await consoleCode('return s.querySelector("[data-mobile-open=grid-controller]").getAttribute("aria-expanded");'), 'false');
+            await tap('[data-mobile-open="more"]');
+            const menu = await consoleCode(`const buttons=[...s.querySelectorAll('.mobile-primary-actions button')],rect=n=>{const r=n.getBoundingClientRect();return {top:r.top,bottom:r.bottom,width:r.width,height:r.height};};return {actions:buttons.map(n=>n.dataset.mobileTab||n.dataset.action),rects:buttons.map(rect),other:rect(s.getElementById('mobile-other-controls')),fallback:s.querySelector('[data-mobile-equipment-fallback]').hidden,spent:s.querySelector('.mobile-primary-actions [data-action=spent-fuel]')===window.mobileSpentFuel};`);
+            assert.deepEqual(menu.actions, ['maintenance', 'spent-fuel'], 'Maintenance and spent fuel lead the plant menu');
+            assert.ok(menu.fallback && menu.spent && menu.rects.every(r=>r.top>=0 && r.bottom<=height && r.width>=44 && r.height>=44 && r.bottom<=menu.other.top), `Primary actions fit above the separate other controls: ${JSON.stringify(menu)}`);
+            if (width===667) await screenshot(`phone-plant-menu-${theme}`);
+            await close();
         }
     }
 
@@ -125,6 +149,40 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot,
     await swipe('#plant-instruments .mobile-surface-heading', -100);
     await ready('!c.mobileLayout.current', 'Header swipe closes instruments');
     assert.equal(await consoleCode('return c.plantTab;'), 'reactor', 'Drawer gestures never pick the scene');
+
+    await tap('[data-mobile-open="more"]');
+    await tap('.mobile-primary-actions [data-action="spent-fuel"]');
+    assert.equal(await consoleCode('return c.mobileLayout.current===s.getElementById("spent-fuel-window");'), true, 'The primary spent-fuel action opens its retained inspection');
+    await close(); await area('maintenance');
+    assert.equal(await consoleCode('return c.plantTab;'), 'maintenance', 'The first menu action opens maintenance');
+    await tap('.mobile-home');
+
+    // Touch handles suppress compatibility clicks; their accepted gestures still
+    // use the same opted-in, bounded UI audio as keyboard/mouse buttons.
+    await paused(false);
+    await tap('[data-mobile-open="more"]');
+    if (!await consoleCode('return c.soundEnabled;')) await tap('#mobile-more [data-action="sound"]');
+    await close();
+    await consoleCode('return c.plantAudio.preloadUi();');
+    for (const kind of ['instruments', 'operator']) {
+        await ready('c.alarmAudio?.state==="running" && c.plantAudio.uiState==="ready" && c.alarmAudio.currentTime-c.plantAudio.lastUiAt>=.08', 'UI audio is ready for a native drawer tap');
+        const sound = await consoleCode('return Number.isFinite(c.plantAudio.lastUiAt)?c.plantAudio.lastUiAt:-1;');
+        await tap(`[data-mobile-open="${kind}"]`);
+        const audio = await consoleCode('return {time:c.plantAudio.lastUiAt,enabled:c.soundEnabled,paused:c.simulation.paused,state:c.alarmAudio.state};');
+        assert.ok(Number.isFinite(audio.time) && audio.time > sound, `${kind} touch opening plays an actual UI voice: ${JSON.stringify({before:sound,...audio})}`);
+        await close();
+    }
+    await ready('c.alarmAudio.currentTime-c.plantAudio.lastUiAt>=.08', 'UI audio is ready for a drawer swipe');
+    const swipeSound = await consoleCode('return c.plantAudio.lastUiAt;');
+    await swipe('.mobile-edge-right', -100);
+    await ready('c.mobileLayout.kind==="operator"', 'Controls opens through its swipe handle');
+    assert.ok(await consoleCode('return c.plantAudio.lastUiAt;') > swipeSound, 'A drawer swipe plays an actual UI voice');
+    await close(); await tap('[data-mobile-open="more"]');
+    await tap('#mobile-more [data-action="sound"]'); await close();
+    const mutedSound = await consoleCode('return c.plantAudio.lastUiAt;');
+    await tap('[data-mobile-open="instruments"]');
+    assert.equal(await consoleCode('return c.plantAudio.lastUiAt;'), mutedSound, 'Muted drawer openings remain silent');
+    await close();
 
     // Exercise a complete cold startup through the actual touch controls.
     await paused(false);
@@ -219,10 +277,15 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot,
     const stationTasks=await consoleCode('const t=s.querySelector(".game-tasks").getBoundingClientRect(),b=s.querySelector(".mobile-back").getBoundingClientRect();return {textBottom:t.bottom,backTop:b.top};');
     assert.ok(stationTasks.textBottom<=stationTasks.backTop, 'Checklist clears the station return button');
     await tap('.mobile-home');
+    await tap('[data-mobile-open="grid-controller"]');
     await viewport(390,844);
+    assert.equal(await consoleCode('return !window.mobileGridController.matches(":popover-open") && !window.mobileGridController.hasAttribute("popover");'), true, 'Rotation closes GC and restores desktop presentation during a career');
     assert.equal(await consoleCode('return s.querySelector(".analysis-column > .game-tasks")===window.mobileTasks;'), true, 'Rotation restores the same desktop checklist');
     await viewport(844,390); await paused(false);
-    await consoleCode(`(${commissionPlant.toString()})(c.simulation);c.simulation.setGridDispatchEnabled(false);c.simulation.togglePump('A');c.simulation.togglePump('B');for(let i=0;i<32;i++)c.simulation.tick(.25);c.simulation.start();for(let i=0;i<720;i++){c.simulation.tick(.25);c.game.career.advance(c.simulation);}c.update();`);
+    await tap('[data-mobile-open="grid-controller"]'); await tap('.grid-dispatch-controls label');
+    assert.equal(await consoleCode('return c.simulation.gridDispatch.enabled;'), false, 'A career operator can turn Follow requests off from GC');
+    await close();
+    await consoleCode(`(${commissionPlant.toString()})(c.simulation);c.simulation.togglePump('A');c.simulation.togglePump('B');for(let i=0;i<32;i++)c.simulation.tick(.25);c.simulation.start();for(let i=0;i<720;i++){c.simulation.tick(.25);c.game.career.advance(c.simulation);}c.update();`);
     await ready('c.game.career.current.status==="ready"', 'Actual plant verifies assignment');
     const verifiedTasks=await checkTasks('Verified assignment overlay');
     assert.ok(verifiedTasks.items.every(n=>n.done==='true' && n.marker==='✓'), 'Verified steps show completion marks');
@@ -245,11 +308,22 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot,
     assert.equal(await consoleCode('return s.querySelector("[data-component-dialog=turbine]").matches(":popover-open");'), true);
     await close(); await tap('.mobile-back');
 
+    await consoleCode('c.setOverview("schematic");');
+    await tap('[data-mobile-open="more"]');
+    assert.equal(await consoleCode('return s.querySelector("[data-mobile-equipment-fallback]").hidden;'), false, 'Native equipment access remains available without the 3D overview');
+    await tap('[data-mobile-action="core-view"]');
+    assert.equal(await consoleCode('return c.mobileLayout.current===s.getElementById("core-map-window");'), true, 'Fallback access opens the core map');
+    await close(); await tap('[data-mobile-open="more"]'); await tap('[data-mobile-tab="electrical"]');
+    assert.equal(await consoleCode('return c.plantTab;'), 'electrical', 'Fallback equipment navigation opens the electrical station');
+    await tap('.mobile-home');
+    await tap('[data-mobile-open="more"]'); await tap('[data-action="overview-3d"]'); await close();
+
     // Rotation cancels open panels and restores desktop DOM and preferences.
     await tap('[data-mobile-open="operator"]'); await viewport(390, 844);
     assert.equal(await consoleCode('return c.mobileLayout.active;'), false);
     assert.equal(await consoleCode('return s.querySelector(".operator-column").hasAttribute("popover");'), false);
     assert.equal(await consoleCode('return !!s.querySelector(".masthead .automation-strip") && !!s.querySelector(".console-footer [data-action=pause]");'), true);
+    assert.equal(await consoleCode('return s.querySelector("#plant-instruments > .grid-dispatch-panel")===window.mobileGridController && !window.mobileGridController.hasAttribute("popover") && s.querySelector(".overview-toolbar [data-action=spent-fuel]")===window.mobileSpentFuel;'), true, 'Rotation restores the original grid controller and spent-fuel button to desktop');
     assert.equal(await consoleCode('return localStorage.getItem("porssiohjain.nuclear-power.panels")===window.mobilePreferences;'), true);
     await viewport(1024, 768); assert.equal(await consoleCode('return c.mobileLayout.active;'), false, 'Tablet keeps its existing layout');
     await viewport(844, 390, false); assert.equal(await consoleCode('return c.mobileLayout.active;'), false, 'A small mouse desktop retains its layout');

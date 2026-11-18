@@ -49,6 +49,14 @@ Manual accumulates qualifying time and pauses progress outside the requirements,
 with no failure deadline. Verified success stays ready until reported. Pause
 freezes all plant time. Previously issued version-1 briefs retain their pinned terms.
 
+On a landscape phone, tap **GC** beside **Trends** to open Grid controller and
+turn **Follow requests** off or on. **More** opens Plant menu with **Maintenance**
+and **Spent fuel** first; objectives, settings and view controls follow in a
+separate section. Select equipment or the reactor directly in the overview to
+open stations or Core map. Native equipment shortcuts appear in Plant menu when
+the overview uses its schematic fallback. The Instruments and Controls edge
+handles play the existing opted-in UI sound for taps and accepted swipes.
+
 In **Maintenance**, condition monitoring derives vibration, bearing temperature
 and lubricant readings from actual speed, stress, wear and damage. Record
 inspections, then use work orders to isolate, service, release for a ten-second

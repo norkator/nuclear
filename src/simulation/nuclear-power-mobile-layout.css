@@ -77,6 +77,12 @@
 :host([data-layout="phone-landscape"]) .analysis-column { grid-template-columns: minmax(0, 1fr); }
 :host([data-layout="phone-landscape"]) .analysis-column > :not(.mobile-surface-heading) { margin: 12px; }
 :host([data-layout="phone-landscape"]) .analysis-column .event-list { max-height: none; overflow: visible; }
+:host([data-layout="phone-landscape"]) [data-mobile-surface="grid-controller"] > .panel-heading { display: none; }
+:host([data-layout="phone-landscape"]) .grid-dispatch-content { padding: 14px; gap: 12px; }
+:host([data-layout="phone-landscape"]) .grid-dispatch-controls label { min-height: 44px; gap: 8px; font-size: 14px; }
+:host([data-layout="phone-landscape"]) .grid-dispatch-controls input { width: 20px; height: 20px; }
+:host([data-layout="phone-landscape"]) .grid-dispatch-content > :is(strong, span, small),
+:host([data-layout="phone-landscape"]) .grid-dispatch-message { font-size: 12px; }
 :host([data-layout="phone-landscape"]) .operator-column .operator-panel { border: 0; border-radius: 0; }
 :host([data-layout="phone-landscape"]) .operator-column .operator-panel > .panel-heading { display: none; }
 :host([data-layout="phone-landscape"]) .operator-content { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
@@ -88,7 +94,10 @@
 :host([data-layout="phone-landscape"]) .operator-column > .automation-strip { margin: 10px; }
 :host([data-layout="phone-landscape"]) .pump-controls { display: grid; grid-template-columns: 1fr; }
 :host([data-layout="phone-landscape"]) .mobile-menu-body { padding: 12px; display: grid; gap: 14px; }
-:host([data-layout="phone-landscape"]) :is(.mobile-destinations, .mobile-shortcuts) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+:host([data-layout="phone-landscape"]) .mobile-primary-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+:host([data-layout="phone-landscape"]) .mobile-menu-section { display: grid; gap: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
+:host([data-layout="phone-landscape"]) .mobile-menu-section h3 { margin: 0; color: var(--muted); font-size: 12px; font-weight: 500; }
+:host([data-layout="phone-landscape"]) .mobile-destinations { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 :host([data-layout="phone-landscape"]) .mobile-menu .header-settings { display: flex; flex-wrap: wrap; justify-content: start; gap: 12px; }
 :host([data-layout="phone-landscape"]) .mobile-menu .overview-toolbar { display: flex; flex-wrap: wrap; padding: 0; }
 :host([data-layout="phone-landscape"]) .mobile-menu [data-mobile-footer] > div { display: flex; flex-wrap: wrap; gap: 12px; }

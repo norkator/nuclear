@@ -19,6 +19,7 @@ export class MobileLayout {
           <span class="mobile-state" data-mobile-state></span>
           <button class="small-button" data-mobile-open="company" aria-controls="company-window" aria-expanded="false">Company <span data-mobile-unread></span></button>
           <button class="small-button" data-mobile-open="analysis" aria-controls="plant-analysis" aria-expanded="false">Trends <span data-mobile-alarms></span></button>
+          <button class="small-button" data-mobile-open="grid-controller" aria-label="Grid controller" title="Grid controller" aria-controls="mobile-grid-controller" aria-expanded="false">GC</button>
           <span data-mobile-pause></span><button class="small-button" data-mobile-open="more" aria-controls="mobile-more" aria-expanded="false">More</button>
         </header>
         <nav class="mobile-navigation mobile-only" aria-label="Phone plant navigation">
@@ -29,25 +30,32 @@ export class MobileLayout {
         </nav>`);
         console.insertAdjacentHTML('beforeend', `<section id="mobile-more" class="mobile-only mobile-menu" data-mobile-surface="more" aria-label="Plant menu">
           <div class="mobile-surface-heading" data-mobile-drag><h2>Plant menu</h2><button class="small-button" data-mobile-close aria-label="Close plant menu">×</button></div>
-          <div class="mobile-menu-body"><nav class="mobile-destinations" aria-label="Plant areas"></nav>
-          <div class="mobile-shortcuts"><button class="small-button" data-mobile-action="core-view">Core map</button><button class="small-button" data-mobile-action="spent-fuel">Spent fuel</button><button class="small-button" data-mobile-action="exercises">Objectives &amp; scenarios</button></div>
-          <div data-mobile-settings></div><div data-mobile-overview></div><div data-mobile-footer></div></div>
+          <div class="mobile-menu-body">
+          <nav class="mobile-primary-actions" aria-label="Plant tasks"><button class="small-button" data-mobile-tab="maintenance">Maintenance</button></nav>
+          <section class="mobile-menu-section" aria-labelledby="mobile-other-controls"><h3 id="mobile-other-controls">Other controls</h3>
+          <div class="mobile-shortcuts"><button class="small-button" data-mobile-action="exercises">Objectives &amp; scenarios</button></div>
+          <div data-mobile-settings></div><div data-mobile-overview></div><div data-mobile-footer></div></section>
+          <section class="mobile-menu-section" data-mobile-equipment-fallback hidden aria-labelledby="mobile-equipment-access"><h3 id="mobile-equipment-access">Equipment access</h3>
+          <nav class="mobile-destinations" aria-label="Plant areas"><button class="small-button" data-mobile-action="core-view">Core map</button></nav></section></div>
         </section>`);
         for (const tab of this.root.querySelectorAll('[data-plant-tab]')) {
+            if (['reactor', 'maintenance'].includes(tab.dataset.plantTab)) continue;
             const button = document.createElement('button');
             button.className = 'small-button'; button.dataset.mobileTab = tab.dataset.plantTab;
             button.textContent = tab.textContent.replace(/\s*0$/, '').trim();
             this.root.querySelector('.mobile-destinations').append(button);
         }
         this.root.querySelector('.operator-column').id = 'mobile-operator';
+        this.root.querySelector('.grid-dispatch-panel').id = 'mobile-grid-controller';
         this.surfaces = new Map([
             ['instruments', this.root.getElementById('plant-instruments')],
             ['operator', this.root.querySelector('.operator-column')],
             ['analysis', this.root.getElementById('plant-analysis')],
+            ['grid-controller', this.root.getElementById('mobile-grid-controller')],
             ['more', this.root.getElementById('mobile-more')],
         ]);
         for (const [kind, node] of this.surfaces) this.prepare(node, kind,
-            { instruments: 'Plant instruments', operator: 'Operator console', analysis: 'Trends & events', more: 'Plant menu' }[kind]);
+            { instruments: 'Plant instruments', operator: 'Operator console', analysis: 'Trends & events', 'grid-controller': 'Grid controller', more: 'Plant menu' }[kind]);
         for (const node of this.root.querySelectorAll('.station-part-list, .computer-unit-list')) {
             const tab = node.closest('[role="tabpanel"]').id.replace('-panel', '');
             this.prepare(node, 'parts', tab === 'computers' ? 'Computer units' : 'Equipment parts');
@@ -154,9 +162,11 @@ export class MobileLayout {
         this.move(this.root.querySelector('.session-clock'), this.root.querySelector('[data-mobile-clock]'));
         this.move(this.root.querySelector('.automation-strip'), this.surfaces.get('operator'));
         this.move(this.root.querySelector('.header-settings'), this.root.querySelector('[data-mobile-settings]'));
+        this.move(this.root.querySelector('.overview-toolbar [data-action="spent-fuel"]'), this.root.querySelector('.mobile-primary-actions'));
         this.move(this.root.querySelector('.overview-toolbar'), this.root.querySelector('[data-mobile-overview]'));
         this.move(this.root.querySelector('.console-footer > div'), this.root.querySelector('[data-mobile-footer]'));
         this.move(this.root.querySelector('.game-tasks'), this.root.querySelector('.process-panel'));
+        this.move(this.surfaces.get('grid-controller'), this.root.querySelector('.console'));
         this.tabChanged(); this.update(); this.refreshScenes();
     }
 
@@ -213,6 +223,7 @@ export class MobileLayout {
         if (!this.active) return;
         this.dismissalFocus = null;
         if (kind === 'company') { this.host.game?.action(this.host.game.career ? 'open' : 'start'); return; }
+        if (kind === 'more') this.update();
         const node = this.surfaces.get(kind === 'parts' ? `parts-${this.host.plantTab}` : kind);
         if (!node) return;
         if (node.dataset.mobileInline) { node.querySelector(focusable)?.focus({ preventScroll: true }); return; }
@@ -336,6 +347,7 @@ export class MobileLayout {
         if (!tap && (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy) * 1.5)) return;
         const left = swipe.handle.dataset.mobileOpen === 'instruments' || this.kind === 'instruments';
         if (!tap && (swipe.closing ? (left ? dx >= 0 : dx <= 0) : (left ? dx <= 0 : dx >= 0))) return;
+        this.host.playUiSound('adjust');
         const current = this.current;
         // Finish the native touch sequence before removing its top-layer target.
         // Otherwise the browser can suppress the next control's compatibility click.
@@ -374,6 +386,7 @@ export class MobileLayout {
         set('[data-mobile-alarms]', sim.alarms.length ? `(${sim.alarms.length})` : '');
         set('[data-mobile-unread]', this.host.game?.career ? this.root.querySelector('.game-unread').textContent : '');
         this.root.querySelector('[data-mobile-open="company"]').disabled = Boolean(this.host.game?.attaching);
+        this.root.querySelector('[data-mobile-equipment-fallback]').hidden = !this.host.sceneUnavailable && this.host.overviewMode === '3d';
         const tab = this.host.plantTab, source = this.surfaces.get(`parts-${tab}`);
         const unavailable = tab === 'computers' ? this.host.computerConsole?.unavailable : this.host.equipmentStations?.unavailable.has(tab);
         if (source && unavailable && !source.dataset.mobileInline) {

@@ -23,7 +23,7 @@ export const captureConsoleLayout = consoleCode => consoleCode(`
         mobile: {active:!!c.mobileLayout?.active,kind:c.mobileLayout?.kind || null,
             surface:c.mobileLayout?.current ? rect(':popover-open[aria-modal="true"]') : null},
         columns: shell ? getComputedStyle(shell).gridTemplateColumns : null,
-        transitions: ['.console-layout','.instrument-column','.analysis-column','.operator-column:popover-open','[data-mobile-surface="parts"]:popover-open','#mobile-more:popover-open'].flatMap(selector =>
+        transitions: ['.console-layout','.instrument-column','.analysis-column','.operator-column:popover-open','[data-mobile-surface="grid-controller"]:popover-open','[data-mobile-surface="parts"]:popover-open','#mobile-more:popover-open'].flatMap(selector =>
             (s.querySelector(selector)?.getAnimations() || []).filter(a=>a.pending||a.playState==='running')
                 .map(a=>({selector,property:a.transitionProperty,state:a.playState,pending:a.pending}))),
         sceneReady: !c.overviewScene || !scene?.clientWidth || c.overviewScene.width===scene.clientWidth,
