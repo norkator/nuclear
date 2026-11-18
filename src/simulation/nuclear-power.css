@@ -1074,11 +1074,9 @@ select { background: #1b2c38; color: #cadddf; border: 1px solid #47606c; padding
 .header-settings .session { grid-column: 2; grid-row: 2; display: grid; grid-template-columns: auto auto; align-items: center; gap: 2px 7px; }
 .header-settings .session-clock { margin-top: 0; font-size: 10px; letter-spacing: .3px; }
 .header-settings .session small { grid-column: 1 / -1; display: block; font-size: 8px; color: var(--muted); margin-top: 0; }
-.fullscreen-tools { display: none; grid-column: 1 / -1; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
-.fullscreen-tools[data-active="true"] { display: flex; }
+.fullscreen-tools { display: flex; grid-column: 1 / -1; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
 .fullscreen-status { flex: 1; min-width: 120px; color: var(--muted); font-size: 11px; }
-@media (max-width: 1100px) and (any-pointer: coarse) {
-    .fullscreen-tools { display: flex; }
+@media (any-pointer: coarse) {
     .fullscreen-tools button { min-height: 44px; }
 }
 .grid-dispatch-panel > .panel-heading { height: 34px; padding: 0 9px; gap: 5px; }

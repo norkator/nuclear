@@ -16,6 +16,7 @@
     "test:browser:layout": "node --test test/layout-browser.mjs",
     "test:browser:mobile": "node --test test/mobile-browser.mjs",
     "test:browser:mobile-input": "node --test test/mobile-input-browser.mjs",
+    "test:browser:fullscreen": "node --test test/fullscreen-browser.mjs",
     "test:browser:cooling": "node --test test/cooling-tower-browser.mjs",
     "test:browser:equipment": "node --test test/equipment-browser.mjs",
     "test:browser:companion": "node --test test/companion-browser.mjs",

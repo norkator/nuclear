@@ -9,7 +9,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, 
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { syncAndroidAssets } from '../scripts/sync-to-android.mjs';
-import { exportTextFile, getAndroidBootstrap, showNativeToast } from '../src/platform/android-bridge.js';
+import { exportTextFile, getAndroidBootstrap, getAndroidPublicOrigin, companionScreenUrl, showNativeToast } from '../src/platform/android-bridge.js';
+import { SessionConnection } from '../src/simulation/nuclear-power-session-client.js';
 
 function globalValue(t, key, value) {
     const descriptor = Object.getOwnPropertyDescriptor(globalThis, key);
@@ -19,6 +20,29 @@ function globalValue(t, key, value) {
         else delete globalThis[key];
     });
 }
+
+test('bundled Android sessions and companion links use the public HTTPS origin rather than appassets', t => {
+    globalValue(t, 'location', { href: 'https://appassets.androidplatform.net/reactor/' });
+    globalValue(t, 'window', { AndroidBridge: { getBootstrapData: () => JSON.stringify({
+        platform: 'android', publicUrl: 'https://nuclear.porssiohjain.fi',
+    }) } });
+    assert.equal(getAndroidPublicOrigin(), 'https://nuclear.porssiohjain.fi');
+    assert.equal(new SessionConnection().url, 'wss://nuclear.porssiohjain.fi/session');
+    assert.equal(companionScreenUrl('12345678'), 'https://nuclear.porssiohjain.fi/companion/#code=12345678');
+    assert.equal(new SessionConnection({ url: 'ws://127.0.0.1:8081/session' }).url, 'ws://127.0.0.1:8081/session', 'Explicit test/self-host endpoint retains priority');
+});
+
+test('browser sessions stay same-origin and reject malformed or insecure native routing', t => {
+    globalValue(t, 'location', { href: 'https://plant.example.test/reactor/' });
+    globalValue(t, 'window', {});
+    assert.equal(new SessionConnection().url, 'wss://plant.example.test/session');
+    assert.equal(companionScreenUrl('12345678'), '/companion/#code=12345678');
+    for (const publicUrl of ['http://plant.example.test', 'javascript:alert(1)', 'https://user:password@plant.example.test', 'invalid']) {
+        window.AndroidBridge = { getBootstrapData: () => JSON.stringify({ platform: 'android', publicUrl }) };
+        assert.equal(getAndroidPublicOrigin(), null);
+        assert.equal(new SessionConnection().url, 'wss://plant.example.test/session');
+    }
+});
 
 function fixture(t) {
     const root = mkdtempSync(resolve(tmpdir(), 'nuclear-android-'));

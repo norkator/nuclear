@@ -151,6 +151,24 @@ test('an explicit public origin supports a proxy-rewritten Host without allowing
     assert.equal(status, 403);
 });
 
+test('Android asset origin can host a paired browser without allowing lookalike origins', async t => {
+    const service = await relay(t);
+    const host = await service.client('https://appassets.androidplatform.net');
+    host.send({ type: 'host' });
+    const info = await host.next('hosted');
+    const screen = await service.join(info.code);
+    await screen.next('joined');
+    host.send({ type: 'state', state: { elapsed: 7 }, hostActive: true });
+    assert.equal((await screen.next('state')).state.elapsed, 7);
+    for (const origin of ['https://appassets.androidplatform.net.evil.test', 'http://appassets.androidplatform.net', 'https://other.example.test']) {
+        const socket = new WebSocket(service.origin.replace('http', 'ws') + '/session', { origin });
+        socket.on('error', () => {});
+        const [, response] = await once(socket, 'unexpected-response');
+        assert.equal(response.statusCode, 403);
+        response.resume(); socket.terminate();
+    }
+});
+
 test('WebSocket pairing isolates sessions, authorizes roles and acknowledges commands without replay', async t => {
     const service = await relay(t);
     const a = await service.host(), b = await service.host();

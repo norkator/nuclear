@@ -208,13 +208,23 @@ desktop restoration are verified. No publishing or deployment is part of this wo
 
 ## Additional requested tasks
 
-- [ ] **Investigate Full screen visibility and activation in Chrome.** Reported
+- [x] **Fix viewport-dependent Full screen visibility in Chrome.** Reported
   2026-11-18: the web UI's control works in Firefox, but is missing or does not
-  work in Chrome. Reproduce in the affected Chrome browser, checking portrait
-  settings and landscape More, capability detection, user-gesture activation and
-  request failures. Keep an accessible control/fallback and preserve Pause, plant
-  state, cameras and saves. Passing headless Chromium checks does not resolve
-  this reported browser difference; verify the affected Chrome journey directly.
+  work in Chrome. Header access now works independently of viewport width and
+  pointer classification, with actual entry/exit verified in Chrome. Portrait
+  settings and landscape More retain the native user-gesture path, unavailable/
+  rejected-request fallback and preservation of Pause, plant state, cameras and
+  saves. Confirmation on the user's original physical Chrome device remains a
+  manual follow-up.
+
+  The hosted `/reactor/` page was checked in Chrome on 2026-11-18: the fullscreen
+  API was available, but at 1440×900 with a mouse the button had a zero-size box.
+  The deployed CSS hid it unless the viewport was at most 1100px wide and reported
+  a coarse pointer. The web control now appears in header settings at every size,
+  with More retaining ownership in the phone landscape layout. Coarse-pointer
+  touch targets also remain 44px on larger tablets. `test:browser:fullscreen`
+  shares real Chrome click/entry/exit and state-preservation checks with the full
+  browser run. Physical verification in the user's affected Chrome remains open.
 
 Reported 2026-11-17 for **Firefox on Android**. Both features are implemented;
 automated browser checks use native touch input and fullscreen in Chromium.

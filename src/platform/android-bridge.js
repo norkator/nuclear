@@ -13,6 +13,20 @@ export function getAndroidBootstrap() {
     catch { return null; }
 }
 
+export function getAndroidPublicOrigin() {
+    const bootstrap = getAndroidBootstrap();
+    if (bootstrap?.platform !== 'android' || typeof bootstrap.publicUrl !== 'string') return null;
+    try {
+        const url = new URL(bootstrap.publicUrl);
+        return url.protocol === 'https:' && !url.username && !url.password ? url.origin : null;
+    } catch { return null; }
+}
+
+export function companionScreenUrl(code = '') {
+    const path = `/companion/${code ? `#code=${encodeURIComponent(code)}` : ''}`;
+    return `${getAndroidPublicOrigin() || ''}${path}`;
+}
+
 export function showNativeToast(message) {
     getAndroidBridge()?.showToast?.(String(message));
 }

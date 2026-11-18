@@ -111,9 +111,10 @@ a tap selects equipment. Finishing or cancelling a two-finger gesture cannot
 select a part.
 Each view retains its own camera.
 
-On phones and other small touch viewports, **Full screen** is in **More** in
-landscape and in the header settings in portrait. Tap it to request fullscreen
-for the entire control room; use **Exit full screen** or the browser's own exit
+**Full screen** is available in the control-room header settings on desktop,
+tablets and portrait phones, and in **More** in the phone landscape layout.
+Click or tap it to request fullscreen for the entire control room; use
+**Exit full screen** or the browser's own exit
 action to leave. The button follows actual browser fullscreen state. Unsupported
 browsers show **Full screen unavailable**; rejected requests show an explanation.
 Fullscreen and rotation preserve the plant, Pause choice, camera and career.

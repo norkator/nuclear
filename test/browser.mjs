@@ -26,6 +26,7 @@ import { checkComputerSystems } from './computer-systems.browser.mjs';
 import { captureConsoleLayout, checkConsoleLayout, checkBatchedConsoleVisibility, waitForConsoleLayout } from './console-layout.browser.mjs';
 import { checkMobileConsole } from './mobile-console.browser.mjs';
 import { checkSoundChoice } from './sound-choice.browser.mjs';
+import { checkBrowserFullscreen } from './fullscreen.browser.mjs';
 
 const dist = fileURLToPath(new URL('../dist/', import.meta.url));
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -166,7 +167,8 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         const focusedAudio = process.env.NUCLEAR_BROWSER_FOCUS === 'audio';
         const focusedComputers = process.env.NUCLEAR_BROWSER_FOCUS === 'computers';
         const focusedSeo = process.env.NUCLEAR_BROWSER_FOCUS === 'seo';
-        if (!focusedEquipment && !focusedCooling && !focusedGame && !focusedLayout && !focusedMobile && !focusedMobileInput && !focusedComputers && !focusedStations && !focusedAudio && !focusedGrid) {
+        const focusedFullscreen = process.env.NUCLEAR_BROWSER_FOCUS === 'fullscreen';
+        if (!focusedEquipment && !focusedCooling && !focusedGame && !focusedLayout && !focusedMobile && !focusedMobileInput && !focusedComputers && !focusedStations && !focusedAudio && !focusedGrid && !focusedFullscreen) {
             // Check the actual shipped HTML with JavaScript disabled, as a crawler sees it.
             await page('Emulation.setScriptExecutionDisabled', { value: true });
             for (const entry of pages) {
@@ -222,9 +224,17 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         }
         await page('Page.navigate', { url: new URL('/reactor/', baseUrl).href });
         await until(`!!document.querySelector('nuclear-power-console')?.shadowRoot?.querySelector('.console')`, 'Control room did not render');
-        if (focusedMobileInput) await consoleCode('s.querySelector(".sound-choice-dialog[open] [data-sound-choice=no]")?.click();');
+        if (focusedMobileInput || focusedFullscreen) await consoleCode('s.querySelector(".sound-choice-dialog[open] [data-sound-choice=no]")?.click();');
         else await checkSoundChoice({ consoleCode, page, until, screenshot });
         assert.equal(await consoleCode('return c.equipmentStations.scenes.size;'), 0, 'Station renderers remain lazy at initial load');
+        if (focusedFullscreen || !process.env.NUCLEAR_BROWSER_FOCUS) {
+            await checkBrowserFullscreen({ consoleCode, page, until, screenshot });
+            if (focusedFullscreen) {
+                assert.deepEqual(exceptions, []);
+                console.log(`Browser fullscreen checks passed; artifacts: ${artifacts}`);
+                await send('Browser.close'); return;
+            }
+        }
         if (focusedMobile || focusedMobileInput) {
             await checkMobileConsole({ consoleCode, page, until, screenshot, inputOnly: focusedMobileInput });
             assert.deepEqual(exceptions, []);

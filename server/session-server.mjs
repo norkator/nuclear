@@ -10,6 +10,9 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { validSessionCommand } from '../src/simulation/nuclear-power-session-protocol.js';
 
 const token = () => randomBytes(32).toString('base64url');
+// Bundled Android UI has a stable local HTTPS origin. It still authenticates
+// rooms/screens through the same pairing codes and per-session credentials.
+const ANDROID_ORIGIN = 'https://appassets.androidplatform.net';
 const open = socket => socket?.readyState === WebSocket.OPEN;
 const send = (socket, message) => {
     if (!open(socket)) return;
@@ -28,7 +31,8 @@ export function createSessionServer({ pairingLifetime = 10 * 60_000, hostGrace =
     const wss = new WebSocketServer({ noServer: true, maxPayload: 1024 * 1024, perMessageDeflate: false });
     server.on('upgrade', (request, socket, head) => {
         let allowed = false;
-        try { allowed = new URL(request.headers.origin).host === request.headers.host || allowedOrigins.includes(request.headers.origin); } catch { /* Require an explicit browser origin. */ }
+        try { allowed = new URL(request.headers.origin).host === request.headers.host
+            || request.headers.origin === ANDROID_ORIGIN || allowedOrigins.includes(request.headers.origin); } catch { /* Require an explicit browser origin. */ }
         if (!allowed || request.url !== '/session' || wss.clients.size >= maxRooms * (maxDevices + 1)) {
             socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n'); return;
         }

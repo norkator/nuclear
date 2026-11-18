@@ -78,6 +78,12 @@ the test. Tests do not need the Spring application.
 
 ## Landscape phone verification
 
+`npm run test:browser:fullscreen` checks the visible web fullscreen control and
+real Chrome entry/exit in both themes on desktop, smaller mouse viewports and
+large touch viewports. It uses the same checks as the full suite and preserves
+plant state, Pause and the overview camera. The focused mobile-input check below
+covers actual phone touch entry/exit and rotation.
+
 `npm run test:browser:mobile-input` is the shorter iteration check for real
 two-touch camera input across all seven 3D views and native fullscreen entry,
 exit and rotation. Its assertions are shared with the complete mobile journey

@@ -5,6 +5,8 @@
  */
 // A socket belongs to this console instance. No process-wide singleton, queued
 // offline commands, automatic Start, or persistent plant state.
+import { getAndroidPublicOrigin } from '../platform/android-bridge.js';
+
 export function sessionCommandId() {
     // getRandomValues also works over plain HTTP on a LAN. randomUUID is only
     // exposed in secure contexts, so it cannot be required for tablet pairing.
@@ -17,7 +19,7 @@ export class SessionConnection {
         this.onMessage = onMessage;
         this.onStatus = onStatus;
         this.WebSocketClass = WebSocketClass;
-        const endpoint = url || new URL('/session', globalThis.location.href);
+        const endpoint = url || new URL('/session', getAndroidPublicOrigin() || globalThis.location.href);
         this.url = String(endpoint).replace(/^http/, 'ws');
         this.closed = false;
         this.retry = 0;
