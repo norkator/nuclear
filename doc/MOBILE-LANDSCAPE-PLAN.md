@@ -208,6 +208,14 @@ desktop restoration are verified. No publishing or deployment is part of this wo
 
 ## Additional requested tasks
 
+- [ ] **Investigate Full screen visibility and activation in Chrome.** Reported
+  2026-11-18: the web UI's control works in Firefox, but is missing or does not
+  work in Chrome. Reproduce in the affected Chrome browser, checking portrait
+  settings and landscape More, capability detection, user-gesture activation and
+  request failures. Keep an accessible control/fallback and preserve Pause, plant
+  state, cameras and saves. Passing headless Chromium checks does not resolve
+  this reported browser difference; verify the affected Chrome journey directly.
+
 Reported 2026-11-17 for **Firefox on Android**. Both features are implemented;
 automated browser checks use native touch input and fullscreen in Chromium.
 Verification on a physical Android/Firefox device remains a manual check.

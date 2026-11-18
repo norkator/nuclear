@@ -4,6 +4,7 @@
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
 import { CORE_CHANNELS, NuclearPowerSimulation } from './nuclear-power-model.js';
+import { exportTextFile } from '../platform/android-bridge.js';
 import { advancePumpMotion, advanceProcessMotion, advanceInstrumentMotion, flowMarkerDistance, valveHandleAngle, SVG_FLOW_SCALE, createPolylinePath } from './nuclear-power-motion.js';
 import styles from './nuclear-power.css?inline';
 import { PlantAudio } from './nuclear-power-audio.js';
@@ -1837,26 +1838,12 @@ export class NuclearPowerConsole extends HTMLElement {
         const quote = value => `"${String(value).replaceAll('"', '""')}"`;
         const rows = [['elapsed_seconds', 'category', 'severity', 'source', 'message'],
             ...this.simulation.events.toReversed().map(event => [event.time.toFixed(2), event.category, event.severity, 'SIMULATED', event.message])];
-        const url = URL.createObjectURL(new Blob([rows.map(row => row.map(quote).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' }));
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'nuclear-power-simulation-log.csv';
-        this.shadowRoot.append(link);
-        link.click();
-        link.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        exportTextFile('nuclear-power-simulation-log.csv', rows.map(row => row.map(quote).join(',')).join('\r\n'), 'text/csv;charset=utf-8');
     }
 
     exportIncident() {
         if (!this.simulation.condition.incident) return;
-        const url = URL.createObjectURL(new Blob([JSON.stringify(this.simulation.condition.incident, null, 2)], { type: 'application/json' }));
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'nuclear-power-incident.json';
-        this.shadowRoot.append(link);
-        link.click();
-        link.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        exportTextFile('nuclear-power-incident.json', JSON.stringify(this.simulation.condition.incident, null, 2), 'application/json');
     }
 
     updateTrend() {

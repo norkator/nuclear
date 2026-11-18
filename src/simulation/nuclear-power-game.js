@@ -4,6 +4,7 @@
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
 import { CORE_CHANNELS, NuclearPowerSimulation } from './nuclear-power-model.js';
+import { exportTextFile } from '../platform/android-bridge.js';
 import { FuelTransferAnimation } from './nuclear-power-refuelling.js';
 import { assignmentSteps, CompanyCareer, MISSIONS } from './nuclear-power-missions.js';
 import { CareerStore, captureCareer, restoreCareerBundle } from './nuclear-power-game-save.js';
@@ -187,9 +188,7 @@ class GameController {
             }
             if (action === 'export' && this.career) {
                 const bundle = captureCareer(this.host.simulation, this.host.fuelTransfer, this.career);
-                const url = URL.createObjectURL(new Blob([JSON.stringify(bundle)], { type: 'application/json' }));
-                const link = document.createElement('a'); link.href = url; link.download = 'nuclear-power-career.json'; link.click();
-                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                exportTextFile('nuclear-power-career.json', JSON.stringify(bundle), 'application/json');
             }
             if (action === 'import') {
                 this.root.querySelector('.game-import-file').click();

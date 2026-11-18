@@ -7,6 +7,8 @@
     "dev": "vite",
     "start:sessions": "node server/session-server.mjs",
     "build": "tsc -b && vite build",
+    "build:android": "npm run build && npm run sync:android",
+    "sync:android": "node scripts/sync-to-android.mjs",
     "preview": "vite preview",
     "test": "node --test test/*.test.mjs",
     "test:browser": "node --test test/browser.mjs",
