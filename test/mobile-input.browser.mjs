@@ -42,17 +42,39 @@ export async function checkMobileInput({ consoleCode, page, ready, tap, viewport
         assert.equal(await consoleCode('return c.floatingDialogs.some(d=>d.matches(":popover-open"));'), false, 'Pinch release cannot inspect a model part');
         assert.equal(await consoleCode('return c.plantTab;'), tab, 'Pinch release cannot navigate to equipment');
         assert.equal(await consoleCode('return visualViewport.scale;'), 1, 'The camera zooms without scaling the page');
+        await consoleCode(`${expression}.setZoom(${original.zoom});`);
+        const panBefore = await consoleCode(`const v=${expression};return {target:v.target.toArray(),zoom:v.zoom};`);
+        const panIds = [touchId(), touchId()];
+        const panPoints = (dx, dy) => panIds.map((id, i) => ({id,x:center.x+(i ? 40 : -40)+dx,y:center.y+dy}));
+        for (const point of panPoints(0, 0)) await touch('touchStart', point);
+        for (const fraction of [.25, .5, .75, 1]) for (const point of panPoints(32*fraction, 20*fraction)) await touch('touchMove', point);
+        await ready(`(()=>{const v=${expression},expected=${JSON.stringify(panPoints(32,20))};return expected.every(e=>[...v.touchZoom.points.values()].some(p=>Math.abs(p.x-e.x)<.1&&Math.abs(p.y-e.y)<.1));})()`, `${tab} receives both final native pan positions`);
+        const panned = await consoleCode(`const v=${expression},offset=v.target.clone().sub(v.defaultTarget);return {target:v.target.toArray(),zoom:v.zoom,yaw:v.yaw,pitch:v.pitch,distance:offset.length(),points:[...v.touchZoom.points]};`);
+        assert.notDeepEqual(panned.target, panBefore.target, `${tab}: moving both fingers pans the model`);
+        assert.ok(Math.abs(panned.zoom-panBefore.zoom)<.001, `${tab}: parallel fingers preserve camera zoom: ${JSON.stringify({panBefore,panned})}`);
+        assert.deepEqual([panned.yaw,panned.pitch], [original.yaw,original.pitch], `${tab}: panning preserves orbit`);
+        assert.ok(panned.distance<=8.001, `${tab}: panning respects camera bounds`);
+        await touch('touchEnd', panPoints(32, 20)[1]);
+        await touch('touchMove', {id:panIds[0],x:center.x,y:center.y+40});
+        await touch('touchEnd', {id:panIds[0],x:center.x,y:center.y+40});
+        assert.deepEqual(await consoleCode(`return ${expression}.target.toArray();`), panned.target, 'A remaining finger cannot pan or pick');
+        assert.equal(await consoleCode('return c.plantTab;'), tab, 'Pan release cannot navigate to equipment');
+        assert.equal(await consoleCode('return c.floatingDialogs.some(d=>d.matches(":popover-open"));'), false, 'Pan release cannot inspect a model part');
+        await consoleCode(`const v=${expression};v.resetCamera();`);
+        assert.equal(await consoleCode(`const v=${expression};return v.target.equals(v.defaultTarget);`), true, `${tab}: Reset view restores the pan center`);
         for (const point of points(40).map(point => ({ ...point, id: touchId() }))) await touch('touchStart', point);
         await page('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+        await ready(`(()=>{const v=${expression};return v.touchZoom.points.size===0 && !v.touchZoom.active && !v.drag;})()`, `${tab} receives native gesture cancellation`);
         assert.equal(await consoleCode(`const v=${expression};return v.touchZoom.points.size===0 && !v.touchZoom.active && !v.drag;`), true);
         // A fresh one-finger drag continues to orbit after the cancelled pinch.
+        const orbitYaw = await consoleCode(`return ${expression}.yaw;`);
         const orbit = await consoleCode(`const canvas=${expression}.renderer.domElement,r=canvas.getBoundingClientRect();for(const [fx,fy] of [[.22,.35],[.28,.7],[.7,.25],[.5,.8]]){const x=r.left+r.width*fx,y=r.top+r.height*fy;if(s.elementFromPoint(x,y)===canvas && s.elementFromPoint(x+30,y)===canvas)return {x,y};}return null;`);
         assert.ok(orbit, 'One-finger orbit starts on exposed canvas; label taps retain their inspection action');
         const orbitId = touchId();
         await touch('touchStart', {id:orbitId,...orbit});
         const orbitEnd = {id:orbitId,x:orbit.x+30,y:orbit.y};
         await touch('touchMove', orbitEnd); await touch('touchEnd', orbitEnd);
-        assert.notEqual(await consoleCode(`return ${expression}.yaw;`), original.yaw, 'One-finger orbit remains usable');
+        assert.notEqual(await consoleCode(`return ${expression}.yaw;`), orbitYaw, 'One-finger orbit remains usable');
         await consoleCode(`const v=${expression};v.yaw=${original.yaw};v.pitch=${original.pitch};v.target.fromArray(${JSON.stringify(original.target)});v.setZoom(${original.zoom});`);
     };
 
@@ -60,7 +82,11 @@ export async function checkMobileInput({ consoleCode, page, ready, tap, viewport
     await pinch('reactor', 'c.overviewScene');
     for (const tab of ['pumps', 'exchanger', 'turbine', 'condenser', 'electrical']) await pinch(tab, `c.equipmentStations.scenes.get('${tab}')`);
     await pinch('computers', 'c.computerConsole.scene');
-    await select('reactor');
+    await tap('.mobile-home .mobile-logo');
+    assert.equal(await consoleCode('return c.plantTab;'), 'reactor', 'Touching the logo returns to the main plant');
+    await select('electrical');
+    await tap('.mobile-home .mobile-identity');
+    assert.equal(await consoleCode('return c.plantTab;'), 'reactor', 'The title and clock area also returns to the main plant');
     assert.deepEqual(await consoleCode('return [c.overviewScene.yaw,c.overviewScene.pitch,c.overviewScene.zoom,...c.overviewScene.target.toArray()];'), overview, 'Every equipment camera remains independent of the overview');
     assert.deepEqual(await consoleCode('return c.simulation.snapshot();'), before, 'Touch cameras issue no plant commands or time advancement');
 

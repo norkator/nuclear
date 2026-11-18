@@ -32,9 +32,11 @@ function pointer(canvas, type, id, x, y = 0, pointerType = 'touch') {
 }
 function zoomFixture() {
     const document = documentFixture(), canvas = new Element(document), abort = new AbortController();
-    const state = { zoom: 1, cancelled: 0, enabled: true, singles: 0 };
+    const state = { zoom: 1, pan: { x: 0, y: 0 }, cancelled: 0, enabled: true, singles: 0 };
     const gesture = new CameraTouchZoom(canvas, { signal: abort.signal, getZoom: () => state.zoom,
         setZoom: value => { state.zoom = Math.max(.7, Math.min(3, value)); },
+        getPanOrigin: () => ({ ...state.pan }),
+        pan: (dx, dy, origin) => { state.pan = { x: origin.x + dx, y: origin.y + dy }; },
         cancelDrag: () => state.cancelled++, enabled: () => state.enabled });
     canvas.addEventListener('pointerup', () => state.singles++);
     return { document, canvas, gesture, state, abort };
@@ -78,6 +80,28 @@ test('pinch limits reverse smoothly and third fingers/cancellation do not jump t
     pointer(canvas, 'pointermove', 3, 800); assert.equal(state.zoom, 1.5);
     pointer(canvas, 'pointercancel', 2, 250); pointer(canvas, 'pointerup', 3, 800);
     assert.equal(gesture.active, false); assert.equal(state.singles, 0);
+});
+
+test('two fingers pan together, combine with pinch and rebase when the tracked pair changes', () => {
+    const { canvas, state } = zoomFixture();
+    pointer(canvas, 'pointerdown', 1, 100, 100); pointer(canvas, 'pointerdown', 2, 200, 100);
+    pointer(canvas, 'pointermove', 1, 130, 120); pointer(canvas, 'pointermove', 2, 230, 120);
+    assert.deepEqual(state.pan, { x: 30, y: 20 });
+    assert.ok(Math.abs(state.zoom - 1) < 1e-12, 'Parallel movement preserves zoom');
+    pointer(canvas, 'pointermove', 1, 110, 120); pointer(canvas, 'pointermove', 2, 250, 120);
+    assert.deepEqual(state.pan, { x: 30, y: 20 }, 'A symmetric pinch preserves the pan center');
+    assert.ok(Math.abs(state.zoom - 1.4) < 1e-12);
+    pointer(canvas, 'pointerdown', 3, 500, 200);
+    pointer(canvas, 'pointerup', 1, 110, 120);
+    pointer(canvas, 'pointermove', 3, 500, 200);
+    assert.deepEqual(state.pan, { x: 30, y: 20 }, 'Changing the tracked pair does not jump');
+    pointer(canvas, 'pointerup', 3, 500, 200);
+    pointer(canvas, 'pointermove', 2, 400, 300);
+    assert.deepEqual(state.pan, { x: 30, y: 20 }, 'A remaining finger cannot keep panning');
+    pointer(canvas, 'pointerup', 2, 400, 300);
+    pointer(canvas, 'pointerdown', 4, 0, 0); pointer(canvas, 'pointerdown', 5, 100, 0);
+    pointer(canvas, 'pointermove', 4, -20, -10); pointer(canvas, 'pointermove', 5, 80, -10);
+    assert.deepEqual(state.pan, { x: 10, y: 10 }, 'A fresh gesture starts at the retained pan');
 });
 
 test('resize, page hiding, scene suspension and detach clear touch state and pointer capture', () => {

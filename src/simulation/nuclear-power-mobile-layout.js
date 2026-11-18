@@ -14,8 +14,8 @@ export class MobileLayout {
         this.moves = []; this.saved = new Map(); this.inertNodes = new Map();
         const console = this.root.querySelector('.console');
         console.insertAdjacentHTML('afterbegin', `<header class="mobile-header mobile-only" aria-label="Phone control room">
-          <img class="mobile-logo" src="/favicon.svg" alt="" width="28" height="28"/>
-          <div class="mobile-identity"><strong>Nuclear Power</strong><span data-mobile-clock></span></div>
+          <button class="mobile-home" data-mobile-back aria-label="Back to main plant view"><img class="mobile-logo" src="/favicon.svg" alt="" width="28" height="28"/>
+          <span class="mobile-identity"><strong>Nuclear Power</strong><span data-mobile-clock></span></span></button>
           <span class="mobile-state" data-mobile-state></span>
           <button class="small-button" data-mobile-open="company" aria-controls="company-window" aria-expanded="false">Company <span data-mobile-unread></span></button>
           <button class="small-button" data-mobile-open="analysis" aria-controls="plant-analysis" aria-expanded="false">Trends <span data-mobile-alarms></span></button>
@@ -156,6 +156,7 @@ export class MobileLayout {
         this.move(this.root.querySelector('.header-settings'), this.root.querySelector('[data-mobile-settings]'));
         this.move(this.root.querySelector('.overview-toolbar'), this.root.querySelector('[data-mobile-overview]'));
         this.move(this.root.querySelector('.console-footer > div'), this.root.querySelector('[data-mobile-footer]'));
+        this.move(this.root.querySelector('.game-tasks'), this.root.querySelector('.process-panel'));
         this.tabChanged(); this.update(); this.refreshScenes();
     }
 
@@ -349,7 +350,7 @@ export class MobileLayout {
     tabChanged() {
         if (!this.active) return;
         this.close(false);
-        this.root.querySelector('[data-mobile-back]').hidden = this.host.plantTab === 'reactor';
+        this.root.querySelector('.mobile-back').hidden = this.host.plantTab === 'reactor';
         const parts = this.root.querySelector('[data-mobile-open="parts"]');
         const source = this.surfaces.get(`parts-${this.host.plantTab}`);
         if (source && !source.id) source.id = `mobile-${this.host.plantTab}-parts`;
@@ -360,7 +361,7 @@ export class MobileLayout {
     focusStation() {
         if (!this.active) return;
         this.dismissalFocus = null;
-        const target = this.host.plantTab === 'reactor' ? this.root.querySelector('.diagram-viewport') : this.root.querySelector('[data-mobile-back]');
+        const target = this.host.plantTab === 'reactor' ? this.root.querySelector('.diagram-viewport') : this.root.querySelector('.mobile-back');
         target.focus({ preventScroll: true });
     }
 

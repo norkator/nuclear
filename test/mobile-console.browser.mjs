@@ -134,7 +134,7 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot,
     for (const id of ['rackCooling', 'rackSwitch', 'serverA', 'instrumentServer']) await tap(`[data-computer-power="${id}"]`);
     await ready('c.simulation.computers.automationAvailable', 'Actual computer boot completes');
     await close(); await tap('[data-mobile-open="instruments"]'); await screenshot('phone-instruments-online'); await close();
-    await tap('[data-mobile-back]'); await tap('[data-mobile-open="operator"]');
+    await tap('.mobile-back'); await tap('[data-mobile-open="operator"]');
     await tap('[data-action="pumpA"]'); await tap('[data-action="pumpB"]');
     await ready('!s.querySelector("[data-action=start]").disabled', 'Actual circulation permits Start');
     await tap('[data-action="start"]');
@@ -157,7 +157,7 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot,
     assert.equal(await consoleCode('return c.simulation.components.items.pumpA2.settings.dischargeValve;'), requested, 'Closing cancels the preview');
     assert.equal(await consoleCode('return c.pumpUI.pumpA2.preview;'), null);
     assert.equal(await consoleCode('return s.activeElement.dataset.mobileOpen;'), 'parts');
-    await tap('[data-mobile-back]');
+    await tap('.mobile-back');
     assert.deepEqual(await consoleCode('return [c.overviewScene.yaw,c.overviewScene.pitch,c.overviewScene.zoom,...c.overviewScene.target.toArray()];'), camera);
 
     await tap('[data-mobile-open="analysis"]');
@@ -181,10 +181,52 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot,
     await tap('[data-game-action="begin"]');
     await ready('c.game.career && !c.game.busy', 'Career starts on the phone host');
     assert.equal(await consoleCode('return c.game.career.state.difficulty;'), 'easy');
+    assert.equal(await consoleCode('return s.querySelector(".game-tasks").hidden;'), true, 'Unaccepted assignments have no overlay');
     await consoleCode('c.game.tab="assignments";c.game.open();');
     await tap('[data-game-action="accept"]'); await ready('!c.game.busy', 'Phone accepts assignment');
+    await paused(true);
+    await consoleCode('window.mobileTasks=s.querySelector(".game-tasks");');
+    const checkTasks = async label => {
+        await waitForConsoleLayout(consoleCode, label);
+        const tasks = await consoleCode(`const p=s.querySelector('.game-tasks'),r=p.getBoundingClientRect(),scene=s.querySelector('.process-panel').getBoundingClientRect(),caption=s.getElementById(c.plantTab+'-panel').querySelector('.plant-scene-caption')?.getBoundingClientRect(),style=getComputedStyle(p),items=[...p.querySelectorAll('li')].map(n=>{const r=n.getBoundingClientRect();return {top:r.top,bottom:r.bottom,font:parseFloat(getComputedStyle(n).fontSize),done:n.dataset.complete,marker:n.querySelector('.game-task-marker').textContent};});return {viewportWidth:innerWidth,same:p===window.mobileTasks,parent:p.parentElement.className,hidden:p.hidden,x:r.x,right:r.right,top:r.top,bottom:r.bottom,height:r.height,scene:{x:scene.x,top:scene.top,bottom:scene.bottom},caption:caption?{x:caption.x,bottom:caption.bottom}:null,background:style.backgroundColor,border:style.borderTopWidth,items};`);
+        assert.ok(tasks.same && tasks.parent.includes('process-panel') && !tasks.hidden, `The original live checklist is in the mobile scene: ${JSON.stringify(tasks)}`);
+        assert.equal(tasks.background, 'rgba(0, 0, 0, 0)', 'Assignment text has no card background');
+        assert.equal(tasks.border, '0px', 'Assignment text has no card border');
+        assert.ok(tasks.x>=tasks.scene.x && tasks.right<=tasks.viewportWidth && tasks.top>=tasks.scene.top && tasks.bottom<=tasks.scene.bottom && tasks.height>0, `Checklist fits the upper-left scene: ${JSON.stringify(tasks)}`);
+        const inset=await consoleCode('return c.plantTab==="pumps" ? 60 : 16;');
+        assert.ok(Math.abs(tasks.x-tasks.scene.x-inset)<1, `Checklist stays in the left caption area: ${JSON.stringify(tasks)}`);
+        if (tasks.caption) assert.ok(tasks.top>=tasks.caption.bottom+4 && tasks.top<=tasks.caption.bottom+12, `Checklist sits directly below the scene caption: ${JSON.stringify(tasks)}`);
+        const handle=await consoleCode('const r=s.querySelector(".mobile-edge-left").getBoundingClientRect();return {x:r.x,right:r.right,top:r.top,bottom:r.bottom};');
+        assert.ok(tasks.x>=handle.right || tasks.right<=handle.x || tasks.bottom<=handle.top || tasks.top>=handle.bottom, `Assignment text clears Instruments: ${JSON.stringify({tasks,handle})}`);
+        for (let i=0;i<tasks.items.length;i++) {
+            assert.ok(tasks.items[i].font<=8 && tasks.items[i].top>=tasks.top && tasks.items[i].bottom<=tasks.bottom, `Small, visible assignment text: ${JSON.stringify(tasks)}`);
+            if (i) assert.ok(tasks.items[i-1].bottom<=tasks.items[i].top, 'Steps occupy separate lines');
+        }
+        return tasks;
+    };
+    for (const [width,height] of [[667,375],[740,360],[844,390],[932,430]]) {
+        await viewport(width,height);
+        for (const theme of ['dark','light']) {
+            await consoleCode(`c.setTheme('${theme}',false);`);
+            const tasks=await checkTasks(`${width} ${theme} assignment text`);
+            assert.ok(tasks.items.some(n=>n.done==='false'), 'Pending steps remain visible before verification');
+            await screenshot(`phone-assignment-${width}-${theme}`);
+        }
+    }
+    await viewport(844,390); await area('pumps');
+    await checkTasks('Station assignment text');
+    await screenshot('phone-assignment-station');
+    const stationTasks=await consoleCode('const t=s.querySelector(".game-tasks").getBoundingClientRect(),b=s.querySelector(".mobile-back").getBoundingClientRect();return {textBottom:t.bottom,backTop:b.top};');
+    assert.ok(stationTasks.textBottom<=stationTasks.backTop, 'Checklist clears the station return button');
+    await tap('.mobile-home');
+    await viewport(390,844);
+    assert.equal(await consoleCode('return s.querySelector(".analysis-column > .game-tasks")===window.mobileTasks;'), true, 'Rotation restores the same desktop checklist');
+    await viewport(844,390); await paused(false);
     await consoleCode(`(${commissionPlant.toString()})(c.simulation);c.simulation.setGridDispatchEnabled(false);c.simulation.togglePump('A');c.simulation.togglePump('B');for(let i=0;i<32;i++)c.simulation.tick(.25);c.simulation.start();for(let i=0;i<720;i++){c.simulation.tick(.25);c.game.career.advance(c.simulation);}c.update();`);
     await ready('c.game.career.current.status==="ready"', 'Actual plant verifies assignment');
+    const verifiedTasks=await checkTasks('Verified assignment overlay');
+    assert.ok(verifiedTasks.items.every(n=>n.done==='true' && n.marker==='✓'), 'Verified steps show completion marks');
+    await screenshot('phone-assignment-verified');
     await tap('[data-mobile-open="analysis"]');
     assert.equal(await consoleCode('return !s.querySelector(".game-tasks").hidden && [...s.querySelectorAll(".game-task-list li")].every(n=>n.dataset.complete==="true");'), true);
     await close(); await tap('[data-mobile-open="company"]');
@@ -192,6 +234,7 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot,
     await ready('c.game.career.state.achievements.length===1 && !c.game.busy', 'Phone reports verified assignment');
     await tap('[data-game-tab="save"]'); await tap('.game-page [data-game-action="return"]');
     await ready('!c.game.career && !c.game.busy', 'Phone saves and returns to free operation');
+    assert.equal(await consoleCode('return s.querySelector(".game-tasks").hidden;'), true, 'Free operation removes the assignment overlay');
     if (await consoleCode('return !!c.mobileLayout.current;')) await close();
 
     await area('turbine');
@@ -200,7 +243,7 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot,
     await ready('s.querySelector("#turbine-panel .station-part-list").dataset.mobileInline==="true"', 'WebGL loss reveals inline native parts immediately');
     await tap('#turbine-panel [data-station-part="admission"]');
     assert.equal(await consoleCode('return s.querySelector("[data-component-dialog=turbine]").matches(":popover-open");'), true);
-    await close(); await tap('[data-mobile-back]');
+    await close(); await tap('.mobile-back');
 
     // Rotation cancels open panels and restores desktop DOM and preferences.
     await tap('[data-mobile-open="operator"]'); await viewport(390, 844);

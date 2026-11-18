@@ -3,11 +3,12 @@
  * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
-// 3D-viewport two-pointer zoom. One-pointer orbit/picking stays with the scene.
-// After a pinch, suppress the remaining finger until all fingers are lifted.
+// Two-pointer camera zoom and pan. One-pointer orbit/picking stays with the scene.
+// After a gesture, suppress the remaining finger until all fingers are lifted.
 export class CameraTouchZoom {
-    constructor(canvas, { getZoom, setZoom, cancelDrag, enabled, signal, surface = canvas }) {
+    constructor(canvas, { getZoom, setZoom, getPanOrigin, pan, cancelDrag, enabled, signal, surface = canvas }) {
         this.canvas = canvas; this.getZoom = getZoom; this.setZoom = setZoom;
+        this.getPanOrigin = getPanOrigin; this.pan = pan;
         this.cancelDrag = cancelDrag; this.enabled = enabled;
         this.points = new Map(); this.active = false; this.distance = 0; this.suppressClick = false;
         const options = { signal, capture: true, passive: false };
@@ -40,6 +41,14 @@ export class CameraTouchZoom {
         const [a, b] = this.points.values();
         return b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
     }
+    center() {
+        const [a, b] = this.points.values();
+        return b ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } : null;
+    }
+    rebase() {
+        this.distance = this.span(); this.startCenter = this.center();
+        this.panOrigin = this.getPanOrigin?.();
+    }
     down(event) {
         if (event.pointerType !== 'touch') {
             if (!this.active) this.suppressClick = false;
@@ -49,7 +58,7 @@ export class CameraTouchZoom {
         if (!this.points.size) this.suppressClick = false;
         this.points.set(event.pointerId, { x: event.clientX, y: event.clientY });
         if (this.points.size < 2 && !this.active) return;
-        this.active = true; this.suppressClick = true; this.cancelDrag(); this.distance = this.span();
+        this.active = true; this.suppressClick = true; this.cancelDrag(); this.rebase();
         for (const id of this.points.keys()) this.canvas.setPointerCapture(id);
         this.consume(event);
     }
@@ -62,6 +71,8 @@ export class CameraTouchZoom {
         const distance = this.span();
         if (distance >= 8 && this.distance >= 8) this.setZoom(this.getZoom() * distance / this.distance);
         this.distance = distance;
+        const center = this.center();
+        if (center && this.startCenter) this.pan?.(center.x - this.startCenter.x, center.y - this.startCenter.y, this.panOrigin);
     }
     end(event) {
         if (!this.points.has(event.pointerId)) return;
@@ -69,7 +80,7 @@ export class CameraTouchZoom {
         this.points.delete(event.pointerId);
         if (consumed) { this.consume(event); this.cancelDrag(); }
         if (event.type !== 'pointerup') this.cancelDrag();
-        this.distance = this.span();
+        this.rebase();
         if (!this.points.size) this.active = false;
         if (consumed && this.canvas.hasPointerCapture(event.pointerId)) this.canvas.releasePointerCapture(event.pointerId);
     }
@@ -77,6 +88,7 @@ export class CameraTouchZoom {
         const ids = [...this.points.keys()];
         this.suppressClick ||= ids.length > 0;
         this.points.clear(); this.active = false; this.distance = 0; this.cancelDrag();
+        this.startCenter = null; this.panOrigin = null;
         for (const id of ids) if (this.canvas.hasPointerCapture(id)) this.canvas.releasePointerCapture(id);
     }
 }

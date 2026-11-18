@@ -5,9 +5,9 @@ Licensed under the Pörssiohjain Personal Use License v1.0.
 -->
 # Phone landscape layout plan
 
-Status: implementation in progress, 2026-11-17. The layout is implemented;
-browser verification and final handoff are in progress. The design below records
-the intended behavior and implementation boundaries.
+Status: implemented with automated verification, 2026-11-18. Physical Android/
+Firefox and iPhone/Safari verification remains manual. The design below records
+the behavior and implementation boundaries.
 Read [AGENTS.md](../AGENTS.md), [the plant specification](nuclear-power.md),
 [the equipment-station plan](EQUIPMENT-STATIONS-PLAN.md) and
 [the development guide](development.md) before implementation.
@@ -47,7 +47,8 @@ than fitting every desktop label into the header.
 | Left edge | A labeled Instruments handle opens the existing readings, Pump power source and Grid controller in a left drawer. |
 | Right edge | A labeled Controls handle opens the existing operator controls and regulation settings in a right drawer. |
 | Company button | In a career, opens the existing Inbox, Assignments, Achievements, Archive and Save pages. In free operation, offers existing Start/Continue actions. |
-| Trends button | Opens Live trends, the accepted-assignment checklist and access to alarms/events in a large sheet. Full briefings remain in Company. |
+| Assignment steps | Accepted work appears as small top-left text below the scene caption, with completion marks and a timer, without card styling. Touches pass through. The same DOM returns above Live trends outside phone mode. |
+| Trends button | Opens Live trends and access to alarms/events in a large sheet. Full briefings and reporting remain in Company. |
 | More button | Provides Maintenance, all equipment destinations, Core map, spent fuel, theme, sound and Connect screen. Native equipment navigation remains available without WebGL. |
 | Back to plant | A floating, labeled button on every non-overview plant view, including Maintenance and Computer systems, returns to the retained overview. |
 | Parts / Units | Opens the current station's native part list or rack-unit controls without permanently consuming scene height. Show the native list directly if 3D is unavailable. |
@@ -228,9 +229,10 @@ Verification on a physical Android/Firefox device remains a manual check.
   actual plant state, Pause, preferences, career saves and the companion role.
 
 `npm run test:browser:mobile-input` runs the shared focused checks for seven
-actual two-touch cameras, release/cancel, subsequent orbit/control taps, native
-fullscreen entry/exit and portrait rotation. Mobile and full browser journeys
-call the same checks. Seven unit cases cover bounds, third fingers, cancellation,
+actual two-touch cameras, zoom/pan, release/cancel, subsequent orbit/control taps,
+logo/title navigation, native fullscreen entry/exit and portrait rotation. Mobile
+and full browser journeys call the same checks. Eight unit cases cover bounds,
+combined pan/zoom, third fingers, cancellation,
 mouse/keyboard continuity, rejected/unsupported requests and late detach cleanup.
 
 Fullscreen requires a user gesture; the page cannot enter it automatically merely
@@ -240,6 +242,18 @@ and [Fullscreen guide](https://developer.mozilla.org/en-US/docs/Web/API/Fullscre
 - [x] Smaller, darker, more transparent mobile equipment tags. Their native
   buttons retain 44-pixel touch targets; selected/focused cards remain readable.
 - [x] A 28-pixel app icon beside the mobile header's title and clock.
+- [x] The logo, title and clock share a native button returning to the main plant
+  view through existing navigation, retaining plant state and the overview camera.
+- [x] Small, background-free assignment text below the upper-left caption of
+  overview and station views. Steps and completion marks reuse the existing live checklist;
+  the overlay clears station return controls and passes camera touches through.
+  Text aligns with the scene caption at 16px from the left, directly below it.
+  Steps/title use 8px text and the timer 7px, with tight line spacing.
+  The pump station adds clearance beside Instruments because its pump-selection
+  row places the caption lower in the viewport.
+- [x] Two-finger movement pans all seven 3D cameras in the screen plane while
+  pinch zoom remains available in the same gesture. Pan limits, Reset view,
+  independent cameras, one-finger orbit/picking and cleanup remain in effect.
 - [x] Smaller mobile instrument numbers and load-target readouts. Other labels
   and the control hit areas retain their sizes.
 - [x] An initial **Enable plant sounds?** dialog with **Yes** / **No** buttons on
@@ -248,3 +262,14 @@ and [Fullscreen guide](https://developer.mozilla.org/en-US/docs/Web/API/Fullscre
   It asks once per page load, without saving preferences or adding career/save/
   transport fields; Reset, rotation, career changes and reconnect do not repeat
   it. Shared browser checks exercise both choices with actual mouse/touch input.
+
+The 2026-11-18 follow-up passes all 215 unit checks, the production build, focused
+mobile-input/mobile/layout/station/company-game/companion checks and the full
+browser regression (18m04s). Checklist geometry is covered at all four phone
+sizes in both themes, including completion marks, station return-button
+clearance and restoring the same checklist to desktop after rotation.
+
+The subsequent typography/placement refinement puts 8px steps and a 7px timer
+directly below the upper-left scene caption, leaving the bottom Return button
+clear. Production build and focused mobile browser checks pass for this refinement;
+the earlier full-suite result above predates these CSS-only adjustments.

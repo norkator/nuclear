@@ -487,6 +487,11 @@ paths. Desktop panel preferences and companion layout preferences are untouched.
 Covering sheets suspend scene rendering and machinery audio independently of
 plant time; partial drawers can retain visible scene motion. Layout transitions
 never change Pause. Native part/unit controls remain available after WebGL loss.
+Accepted assignment steps reuse the live checklist as small top-left text below
+the scene caption, without card styling, with completion marks and a qualifying timer.
+Camera touches pass through; full briefings and reporting stay in Company.
+The header's logo/title/clock button returns to the main plant view and retains
+the overview camera. Rotation restores the checklist above desktop Live trends.
 See [the phone layout plan and checkpoint](MOBILE-LANDSCAPE-PLAN.md) and run
 `npm run test:browser:mobile`. Portrait/tablet/mouse layouts retain their existing
 behavior; mobile roles never turn a full host into a companion.
@@ -581,7 +586,9 @@ See [the cooling tower checkpoint](COOLING-TOWER-PLAN.md). Focused checks:
 The taller viewport starts at 120% zoom. Drag to orbit within bounded angles, use
 the mouse wheel, a two-finger pinch or +/− buttons to zoom (65–300%), and select **Reset view** to restore
 the initial camera, including its center. Hold the mouse wheel and drag to pan
-in the camera plane; Shift+drag also pans. Panning is bounded to eight scene
+in the camera plane; Shift+drag also pans. On touch screens, move two fingers
+together to pan; pinch zoom and panning work together across the overview,
+equipment/grid stations and computer rack. Panning is bounded to eight scene
 units in the unified 3D view. When the canvas has keyboard focus, arrow
 keys orbit, Shift+arrow keys pan, +/− zoom and Home resets. Equipment can be selected directly through canvas picking or
 through semantic HTML buttons with live readings. Main equipment opens its 3D

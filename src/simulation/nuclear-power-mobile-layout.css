@@ -8,7 +8,8 @@
 :host([data-layout="phone-landscape"][data-theme="light"]) { --mobile-panel: #e3e9ed; --mobile-header: #d1dde4; --mobile-overlay: #233b5373; }
 :host([data-layout="phone-landscape"]) .console { height: 100dvh; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); display: flex; flex-direction: column; overflow: hidden; }
 :host([data-layout="phone-landscape"]) .mobile-header { display: flex; align-items: center; flex-shrink: 0; gap: 6px; min-height: 48px; padding: 2px 8px; background: var(--mobile-header); border-bottom: 1px solid var(--border); }
-:host([data-layout="phone-landscape"]) .mobile-identity { display: grid; margin-right: auto; white-space: nowrap; }
+:host([data-layout="phone-landscape"]) .mobile-home { display: flex; align-items: center; gap: 6px; margin-right: auto; padding: 0 4px; border: 0; border-radius: 4px; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+:host([data-layout="phone-landscape"]) .mobile-identity { display: grid; white-space: nowrap; }
 :host([data-layout="phone-landscape"]) .mobile-logo { width: 28px; height: 28px; flex: 0 0 28px; image-rendering: pixelated; }
 :host([data-layout="phone-landscape"]) .mobile-identity strong { font-size: 12px; font-weight: 500; }
 :host([data-layout="phone-landscape"]) .mobile-identity .session-clock { font: 10px Consolas, monospace; color: var(--muted); margin: 0; }
@@ -34,6 +35,22 @@
 :host([data-layout="phone-landscape"]) .mobile-edge-right { right: max(8px, env(safe-area-inset-right)); }
 :host([data-layout="phone-landscape"]) .mobile-back { left: max(8px, env(safe-area-inset-left)); bottom: max(8px, env(safe-area-inset-bottom)); }
 :host([data-layout="phone-landscape"]) .mobile-parts { right: max(8px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); }
+/* The retained checklist becomes a text overlay; touches pass through to the camera. */
+:host([data-layout="phone-landscape"]) .process-panel > .game-tasks {
+    position: absolute; z-index: 7; left: 16px; top: 30px; width: min(300px, 46%); margin: 0; padding: 0;
+    border: 0; border-radius: 0; background: transparent; box-shadow: none; pointer-events: none;
+    color: #e3eaf0; --muted: #c5cfd8; --task-done: #8bdbad; text-shadow: 0 1px 2px #000, 0 0 4px #000;
+}
+/* Pump choices add 52px above the caption; clear the adjacent Instruments handle. */
+:host([data-layout="phone-landscape"]) .process-panel:has(> #pumps-panel:not([hidden])) > .game-tasks { top: 82px; left: 60px; }
+:host([data-layout="phone-landscape"]) .process-panel:has(> #maintenance-panel:not([hidden]), > [role="tabpanel"]:not([hidden]) [data-mobile-inline]) > .game-tasks { display: none; }
+:host([data-layout="phone-landscape"]) .game-tasks :is(.panel-heading, .game-task-hold, .game-task-reason, [data-game-action]) { display: none; }
+:host([data-layout="phone-landscape"]) .game-tasks-content { padding: 0; }
+:host([data-layout="phone-landscape"]) .game-tasks-assignment { margin: 0 0 2px; font-size: 8px; line-height: 1.2; }
+:host([data-layout="phone-landscape"]) .game-task-list { gap: 1px; font-size: 8px; line-height: 1.2; }
+:host([data-layout="phone-landscape"]) .game-task-list li { gap: 3px; }
+:host([data-layout="phone-landscape"]) .game-task-list .game-task-marker { display: inline; flex-basis: 9px; height: auto; border: 0; border-radius: 0; background: transparent; font-size: inherit; }
+:host([data-layout="phone-landscape"]) .game-task-timer { margin: 2px 0 0; font-size: 7px; line-height: 1.2; }
 :host([data-layout="phone-landscape"]) [data-mobile-surface]:not(:popover-open):not([data-mobile-inline]) { display: none !important; }
 :host([data-layout="phone-landscape"]) :is([data-mobile-surface], .floating-dialog) {
     position: fixed; inset: auto; left: calc(var(--mobile-left, 0px) + var(--mobile-inset-left)); top: calc(var(--mobile-top, 0px) + var(--mobile-inset-top));

@@ -72,8 +72,8 @@ export class PlantOverviewScene {
         canvas.className = 'plant-scene-canvas';
         canvas.tabIndex = 0;
         canvas.setAttribute('role', 'group');
-        canvas.setAttribute('aria-label', 'Interactive 3D plant. Drag or use arrow keys to rotate. Hold the mouse wheel and drag to pan; Shift+drag or Shift+arrow keys also pan. Pinch, scroll or use plus and minus to zoom; Home resets the view. Equipment buttons open component consoles.');
-        canvas.title = 'Drag to orbit · pinch or scroll to zoom · wheel-drag or Shift+drag to pan · Home to reset';
+        canvas.setAttribute('aria-label', 'Interactive 3D plant. Drag or use arrow keys to rotate. Move two fingers or hold the mouse wheel and drag to pan; Shift+drag or Shift+arrow keys also pan. Pinch, scroll or use plus and minus to zoom; Home resets the view. Equipment buttons open component consoles.');
+        canvas.title = 'Drag to orbit · pinch or scroll to zoom · two-finger drag, wheel-drag or Shift+drag to pan · Home to reset';
         host.replaceChildren(canvas);
         try {
             this.build();
@@ -335,7 +335,7 @@ export class PlantOverviewScene {
         caption.textContent = 'UNIT 01 / CUTAWAY';
         const hint = document.createElement('span');
         hint.className = 'plant-scene-hint';
-        hint.textContent = 'Drag: orbit · pinch/scroll: zoom · wheel-drag: pan';
+        hint.textContent = 'Drag: orbit · pinch/scroll: zoom · two-finger/wheel-drag: pan';
         this.host.append(layer, caption, hint);
         const labels = [...this.labels.values(), ...this.featureLabels];
         const byButton = new Map(labels.map(label => [label.button, label]));
@@ -397,6 +397,7 @@ export class PlantOverviewScene {
         const options = { signal: this.abort.signal };
         this.touchZoom = new CameraTouchZoom(canvas, { ...options, surface: this.host,
             getZoom: () => this.zoom, setZoom: zoom => this.setZoom(zoom),
+            getPanOrigin: () => this.target.clone(), pan: (dx, dy, origin) => this.pan(dx, dy, origin),
             cancelDrag: () => { this.drag = null; delete canvas.dataset.dragging; },
             enabled: () => this.visible && !this.disposed,
         });

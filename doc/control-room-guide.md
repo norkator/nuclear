@@ -104,8 +104,11 @@ pump, warning, failure and work evidence.
 
 On a touch screen, spread two fingers to zoom in and bring them together to zoom
 out. This works in the overview, equipment/electrical stations and computer rack,
-including touches over overview labels. One finger still rotates the model;
-a tap selects equipment. Finishing or cancelling a pinch cannot select a part.
+including touches over overview labels. Move two fingers together to pan in the
+screen plane, just like dragging with the mouse wheel held down. Pinching and
+panning can be combined in one gesture. One finger still rotates the model and
+a tap selects equipment. Finishing or cancelling a two-finger gesture cannot
+select a part.
 Each view retains its own camera.
 
 On phones and other small touch viewports, **Full screen** is in **More** in
@@ -235,12 +238,16 @@ from them. Close with ×, a backdrop tap, Escape or an outward header swipe.
 Opening a drawer never pauses the plant.
 
 **Company** opens career entry or the existing inbox, assignments, achievements
-and save pages. **Trends** opens the accepted-assignment checklist, live chart and
+and save pages. Accepted assignment steps appear as small text at the top left
+below the model caption, with green checkmarks for completed steps and a qualifying timer.
+The text has no card background and lets camera touches pass through. Full
+briefings and reporting remain in Company. **Trends** opens the live chart and
 events. **More** provides all plant areas, core map, spent fuel, sound/theme,
 pairing and overview display controls. Pause remains in the header.
 
 Equipment views have a floating **Back to plant** button, preserving the overview
-camera, and **Parts** or **Units** for native controls. Inspection windows fill the
+camera. Tapping the header's logo, title or clock also returns to the main plant
+view. **Parts** or **Units** opens native controls. Inspection windows fill the
 available phone viewport and scroll inside their sheets. If 3D fails, the native
 part/unit list appears directly. Only one drawer or sheet accepts input at a time.
 

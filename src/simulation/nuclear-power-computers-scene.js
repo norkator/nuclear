@@ -25,6 +25,7 @@ export class ComputerRackScene {
         this.scene = new THREE.Scene();
         this.camera = new THREE.OrthographicCamera(-5, 5, 5, -5, .1, 60);
         this.target = new THREE.Vector3(0, 3.6, 0);
+        this.defaultTarget = this.target.clone();
         this.raycaster = new THREE.Raycaster();
         this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
         try {
@@ -33,7 +34,7 @@ export class ComputerRackScene {
             const canvas = this.renderer.domElement;
             canvas.className = 'computer-rack-canvas'; canvas.tabIndex = 0;
             canvas.setAttribute('role', 'group');
-            canvas.setAttribute('aria-label', '3D server rack. Drag or use arrow keys to orbit. Pinch, wheel or plus/minus to zoom; Home resets. Select a rack unit to inspect, or use the unit buttons alongside.');
+            canvas.setAttribute('aria-label', '3D server rack. Drag or use arrow keys to orbit. Move two fingers to pan; pinch, wheel or plus/minus to zoom; Home resets. Select a rack unit to inspect, or use the unit buttons alongside.');
             host.replaceChildren(canvas);
             this.build(); this.bind(canvas);
             canvas.addEventListener('webglcontextlost', event => { event.preventDefault(); unavailable(); }, { signal: this.abort.signal });
@@ -133,6 +134,7 @@ export class ComputerRackScene {
         const options = { signal: this.abort.signal };
         this.touchZoom = new CameraTouchZoom(canvas, { ...options, surface: this.host,
             getZoom: () => this.zoom, setZoom: zoom => this.setZoom(zoom),
+            getPanOrigin: () => this.target.clone(), pan: (dx, dy, origin) => this.pan(dx, dy, origin),
             cancelDrag: () => { this.drag = null; }, enabled: () => this.visible && !this.disposed,
         });
         canvas.addEventListener('pointerdown', event => {
@@ -170,7 +172,16 @@ export class ComputerRackScene {
     }
 
     setZoom(value) { this.zoom = clamp(value, .7, 1.35); this.resize(); }
-    resetCamera() { this.yaw = .42; this.pitch = .18; this.zoom = 1; this.resize(); }
+    pan(dx, dy, origin = this.target) {
+        if (!this.height) return;
+        const unitsPerPixel = (this.camera.top - this.camera.bottom) / this.height;
+        const offset = new THREE.Vector3().copy(origin).sub(this.defaultTarget)
+            .addScaledVector(new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 0), -dx * unitsPerPixel)
+            .addScaledVector(new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 1), dy * unitsPerPixel)
+            .clampLength(0, 8);
+        this.target.copy(this.defaultTarget).add(offset); this.render();
+    }
+    resetCamera() { this.yaw = .42; this.pitch = .18; this.zoom = 1; this.target.copy(this.defaultTarget); this.resize(); }
     setVisible(value) { this.visible = value; if (!value) { this.drag = null; this.touchZoom?.reset(); } }
     resize() {
         if (this.disposed || !this.host.clientWidth || !this.host.clientHeight) return;
@@ -204,6 +215,7 @@ export class ComputerRackScene {
     render() {
         if (this.disposed || !this.visible || !this.width || this.host.hidden) return;
         this.camera.position.set(Math.sin(this.yaw) * 15, 3.6 + Math.sin(this.pitch) * 15, Math.cos(this.yaw) * 15);
+        this.camera.position.add(this.target).sub(this.defaultTarget);
         this.camera.lookAt(this.target); this.camera.updateMatrixWorld();
         this.renderer.render(this.scene, this.camera);
     }

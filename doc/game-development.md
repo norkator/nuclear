@@ -5,7 +5,7 @@ Licensed under the Pörssiohjain Personal Use License v1.0.
 -->
 # Continuing company-game development
 
-Updated 2026-11-17. This is the implementation handoff for the standalone
+Updated 2026-11-18. This is the implementation handoff for the standalone
 [norkator/nuclear](https://github.com/norkator/nuclear) repository. All commands
 below run from this repository root. Read [AGENTS.md](../AGENTS.md), this file,
 [the product plan](GAMEPLAY-PLAN.md) and [the plant specification](nuclear-power.md)
@@ -39,6 +39,11 @@ On wide screens the checklist and trends share the independently hideable right
 side panel. Its contents scroll without overlapping or moving the process/header;
 the career status and Company inbox entry remain available when that panel is
 closed. Companion station presets do not add company pages or career commands.
+In landscape-phone mode the same checklist moves into the process view as small
+top-left text below the scene caption with completion marks and a timer, without
+a card or interactive controls. Touches pass through to the camera. Company retains briefings and
+reporting; rotation restores the original checklist above Live trends. No extra
+saved state or mission evaluation is introduced.
 
 With plant sounds enabled, a newly satisfied checklist step plays a short Kenney
 Interface Sounds confirmation. Full verification plays a different, longer cue

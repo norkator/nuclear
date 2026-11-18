@@ -17,7 +17,7 @@ import { leakSources, waterJetPoint } from './nuclear-power-leaks.js';
 export class EquipmentStationScene extends PlantOverviewScene {
     constructor(host, options) {
         super(host, options);
-        this.renderer.domElement.setAttribute('aria-label', '3D equipment cutaway. Select a part to open its controls. Drag or use arrow keys to orbit; pinch, wheel or plus/minus zoom; Home resets. Part buttons offer the same controls.');
+        this.renderer.domElement.setAttribute('aria-label', '3D equipment cutaway. Select a part to open its controls. Drag or use arrow keys to orbit; move two fingers to pan; pinch, wheel or plus/minus zoom; Home resets. Part buttons offer the same controls.');
     }
 
     build() {
@@ -96,7 +96,7 @@ export class EquipmentStationScene extends PlantOverviewScene {
     buildLabels() {
         const caption = document.createElement('span'); caption.className = 'plant-scene-caption';
         caption.textContent = 'LIVE EQUIPMENT / CUTAWAY';
-        const hint = document.createElement('span'); hint.className = 'plant-scene-hint'; hint.textContent = 'Select a part · drag to orbit · pinch to zoom';
+        const hint = document.createElement('span'); hint.className = 'plant-scene-hint'; hint.textContent = 'Select a part · drag to orbit · pinch to zoom · two-finger drag to pan';
         this.host.append(caption, hint);
     }
 
