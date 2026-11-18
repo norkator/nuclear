@@ -7,7 +7,12 @@ import assert from 'node:assert/strict';
 import { commissionPlant } from './plant-fixtures.mjs';
 import { waitForConsoleLayout } from './console-layout.browser.mjs';
 import { UI_SOUND_FILES } from '../src/simulation/nuclear-power-ui-sounds.js';
-const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+const waitForControlAudio = until => until(`(()=>{
+    const c=document.querySelector('nuclear-power-console');
+    return c.alarmAudio?.state==='running' && c.plantAudio?.uiState==='ready'
+        && c.alarmAudio.currentTime-c.plantAudio.lastUiAt>=.08;
+})()`, 'Control audio is running, loaded and ready for another click');
 
 export async function checkPlantAudio(options) {
     const { consoleCode, action, page, advance, until, resetWithoutDispatch } = options;
@@ -29,12 +34,10 @@ export async function checkPlantAudio(options) {
     assert.equal(await consoleCode('return c.plantAudio.uiBuffers.size;'), Object.keys(UI_SOUND_FILES).length);
     assert.equal(await consoleCode('return c.plantAudio.uiState;'), 'ready');
     assert.equal(await consoleCode('return c.plantAudio.uiGain;'), .26);
-    await wait(400);
-    assert.equal(await consoleCode('return c.alarmAudio.state;'), 'running');
+    await waitForControlAudio(until);
     await checkControlSoundProfiles({ consoleCode, until });
-    await tab('reactor');
-    assert.ok(await consoleCode('return [...c.plantAudio.nodes].some(voice=>voice.ui);'));
-    await wait(400);
+    await waitForControlAudio(until);
+    assert.ok(await consoleCode('s.querySelector("[data-plant-tab=reactor]").click();return [...c.plantAudio.nodes].some(voice=>voice.ui);'), 'A tab click creates a UI voice');
     await action('start');
     await advance(10);
     await until(`document.querySelector('nuclear-power-console').plantAudio.nodes.size >= 2`, 'Operating loops did not start');
@@ -95,9 +98,17 @@ export async function checkPlantAudio(options) {
     await until(`[...document.querySelector('nuclear-power-console').plantAudio.nodes].filter(v=>v.plant).length===2`, 'Reattached plant did not resume audio');
     await action('pause');
     assert.equal(await consoleCode('return c.plantAudio.nodes.size;'), 0);
-    await action('pause');
-    await action('stop');
-    assert.ok(await consoleCode("s.querySelector('[data-action=pumpA]').click();return [...c.plantAudio.nodes].some(voice=>voice.ui && voice.oscillator.loop===false && voice.oscillator.buffer===c.plantAudio.uiBuffers.get('off'));"));
+    // Send Resume and Stop together so slow CDP round trips cannot hide the
+    // asynchronous context resume that raced the pump click on fast CI runners.
+    await consoleCode('s.querySelector("[data-action=pause]").click();s.querySelector("[data-action=stop]").click();');
+    await waitForControlAudio(until);
+    const pumpSound = await consoleCode(`
+        s.querySelector('[data-action=pumpA]').click();
+        const voice=[...c.plantAudio.nodes].find(v=>v.ui);
+        return {profile:voice?.profile,sample:voice?.sample,loop:voice?.oscillator.loop,
+            correctBuffer:voice?.oscillator.buffer===c.plantAudio.uiBuffers.get('off')};
+    `);
+    assert.deepEqual(pumpSound, {profile:'pumps',sample:'off',loop:false,correctBuffer:true}, 'Pump OFF plays its one-shot after audio resumes');
     assert.equal(await consoleCode('return s.querySelector("[data-action=pumpA]").getAttribute("aria-checked");'), 'false');
     assert.equal(await value('pumpA'), 'COASTING');
     assert.equal(await consoleCode('return s.querySelector("[data-pump-card=A]").dataset.lamp;'), 'running', 'Rocker OFF must not pretend the motor has already stopped');
@@ -107,9 +118,8 @@ export async function checkPlantAudio(options) {
 }
 
 async function checkControlSoundProfiles({ consoleCode, until }) {
-    const throttleReady = () => until(`(()=>{const c=document.querySelector('nuclear-power-console');return c.alarmAudio.currentTime-c.plantAudio.lastUiAt>=.08;})()`, 'Previous control click throttle expired');
     const check = async (code, profile, sample) => {
-        await throttleReady();
+        await waitForControlAudio(until);
         const voice = await consoleCode(`${code}const voice=[...c.plantAudio.nodes].find(v=>v.ui);return {profile:voice?.profile,sample:voice?.sample,loop:voice?.oscillator.loop};`);
         assert.deepEqual(voice, { profile, sample, loop: false }, `${profile} control uses its own one-shot`);
     };
@@ -135,7 +145,6 @@ async function checkControlSoundProfiles({ consoleCode, until }) {
     await consoleCode('c.closeFloatingDialog(s.querySelector("[data-diesel-dialog=A]"));c.computerConsole.open("serverA");');
     await check('s.querySelector("[data-computer-diagnose]").click();', 'computers', 'click_002');
     await consoleCode('c.closeFloatingDialog(s.querySelector(".computer-dialog"));');
-    await throttleReady();
 }
 
 async function checkStationAudio({ consoleCode, action, page, advance, until, resetWithoutDispatch, warmOperatingPoint, send }) {
