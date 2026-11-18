@@ -8,9 +8,8 @@ import { waitForConsoleLayout } from './console-layout.browser.mjs';
 
 // Shared by focused phone checks and the full browser regression. Native touch
 // events drive camera input; native fullscreen state proves entry and exit.
-export async function checkMobileInput({ consoleCode, page, ready, tap, viewport, screenshot }) {
+export async function checkMobileInput({ consoleCode, page, ready, tap, viewport, screenshot, touchId }) {
     const before = await consoleCode('return c.simulation.snapshot();');
-    let nextTouchId = 1;
     const select = async tab => {
         await consoleCode(`c.setPlantTab('${tab}');`);
         await waitForConsoleLayout(consoleCode, `${tab} touch viewport`);
@@ -20,7 +19,7 @@ export async function checkMobileInput({ consoleCode, page, ready, tap, viewport
         await ready(`${expression}?.visible`, `${tab} scene is actually visible`);
         const original = await consoleCode(`const v=${expression};return {zoom:v.zoom,yaw:v.yaw,pitch:v.pitch,target:v.target.toArray()};`);
         const center = await consoleCode(`const r=${expression}.renderer.domElement.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height*.55};`);
-        const first = nextTouchId++, second = nextTouchId++;
+        const first = touchId(), second = touchId();
         const points = distance => [{id:first,x:center.x-distance,y:center.y},{id:second,x:center.x+distance,y:center.y}];
         const touch = (type, point) => page('Input.dispatchTouchEvent', { type, touchPoints: [point] });
         // CDP's default multi-touch path uses changed points, as Puppeteer's
@@ -43,13 +42,13 @@ export async function checkMobileInput({ consoleCode, page, ready, tap, viewport
         assert.equal(await consoleCode('return c.floatingDialogs.some(d=>d.matches(":popover-open"));'), false, 'Pinch release cannot inspect a model part');
         assert.equal(await consoleCode('return c.plantTab;'), tab, 'Pinch release cannot navigate to equipment');
         assert.equal(await consoleCode('return visualViewport.scale;'), 1, 'The camera zooms without scaling the page');
-        for (const point of points(40)) await touch('touchStart', point);
+        for (const point of points(40).map(point => ({ ...point, id: touchId() }))) await touch('touchStart', point);
         await page('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
         assert.equal(await consoleCode(`const v=${expression};return v.touchZoom.points.size===0 && !v.touchZoom.active && !v.drag;`), true);
         // A fresh one-finger drag continues to orbit after the cancelled pinch.
         const orbit = await consoleCode(`const canvas=${expression}.renderer.domElement,r=canvas.getBoundingClientRect();for(const [fx,fy] of [[.22,.35],[.28,.7],[.7,.25],[.5,.8]]){const x=r.left+r.width*fx,y=r.top+r.height*fy;if(s.elementFromPoint(x,y)===canvas && s.elementFromPoint(x+30,y)===canvas)return {x,y};}return null;`);
         assert.ok(orbit, 'One-finger orbit starts on exposed canvas; label taps retain their inspection action');
-        const orbitId = nextTouchId++;
+        const orbitId = touchId();
         await touch('touchStart', {id:orbitId,...orbit});
         const orbitEnd = {id:orbitId,x:orbit.x+30,y:orbit.y};
         await touch('touchMove', orbitEnd); await touch('touchEnd', orbitEnd);

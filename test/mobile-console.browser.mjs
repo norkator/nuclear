@@ -9,6 +9,8 @@ import { commissionPlant } from './plant-fixtures.mjs';
 import { checkMobileInput } from './mobile-input.browser.mjs';
 
 export async function checkMobileConsole({ consoleCode, page, until, screenshot, inputOnly = false }) {
+    let nextTouchId = 0;
+    const touchId = () => ++nextTouchId;
     const ready = (condition, label) => until(`(()=>{const c=document.querySelector('nuclear-power-console');const s=c?.shadowRoot;return ${condition};})()`, label);
     const viewport = async (width, height, touch = true) => {
         await page('Emulation.setTouchEmulationEnabled', { enabled: touch, maxTouchPoints: touch ? 5 : 1 });
@@ -24,9 +26,12 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot,
         // Layout can settle before native touch click synthesis finishes.
         // Dedicated swipe handles deliberately use touchend instead of click.
         await consoleCode(`const n=s.querySelector(${JSON.stringify(selector)});window.mobileTapAbort?.abort();window.mobileTapAbort=new AbortController();window.mobileTapActivated=false;document.addEventListener(n.matches('.mobile-edge')?'touchend':'click',event=>{if(event.isTrusted&&event.composedPath().includes(n)){window.mobileTapActivated=true;window.mobileTapAbort.abort();}},{capture:true,signal:window.mobileTapAbort.signal});`);
-        await page('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: point.x, y: point.y }] });
+        // Keep native contacts explicit across taps, swipes and pinches. CDP's
+        // implicit ID 0 can retain cancelled-gesture click suppression.
+        const finger = { id: touchId(), x: point.x, y: point.y };
+        await page('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [finger] });
         await consoleCode('return new Promise(requestAnimationFrame);');
-        await page('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await page('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [finger] });
         await ready('window.mobileTapActivated', `Native touch activates ${selector}`);
         await waitForConsoleLayout(consoleCode, `After touch ${selector}`);
     };
@@ -42,20 +47,20 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot,
     };
     const swipe = async (selector, dx) => {
         await waitForConsoleLayout(consoleCode, `Swipe ${selector}`);
-        const point = await consoleCode(`const r=s.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};`);
+        const point = { id: touchId(), ...await consoleCode(`const r=s.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};`) };
         await page('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
         for (const fraction of [.3, .65, 1]) {
             await consoleCode('return new Promise(requestAnimationFrame);');
-            await page('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{x:point.x+dx*fraction,y:point.y}] });
+            await page('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{...point,x:point.x+dx*fraction}] });
         }
-        await page('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await page('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [{...point,x:point.x+dx}] });
     };
 
     if (inputOnly) {
         await viewport(844, 390);
         await consoleCode('c.setPlantTab("reactor");c.setOverview("3d");if(!c.simulation.paused)c.act("pause");');
         await ready('c.mobileLayout.active && c.overviewScene?.visible', 'Phone input setup is visible');
-        await checkMobileInput({ consoleCode, page, ready, tap, viewport, screenshot });
+        await checkMobileInput({ consoleCode, page, ready, tap, viewport, screenshot, touchId });
         return;
     }
 
@@ -94,8 +99,9 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot,
     await screenshot('phone-instruments');
     assert.equal(await consoleCode('return c.simulation.paused;'), true);
     // A real backdrop tap closes the drawer and cannot pick the scene behind it.
-    await page('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{x:750,y:160}] });
-    await page('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    const backdropTouch = {id:touchId(),x:750,y:160};
+    await page('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [backdropTouch] });
+    await page('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [backdropTouch] });
     await ready('!c.mobileLayout.current', 'Backdrop closes instruments');
     await ready('s.activeElement?.dataset.mobileOpen==="instruments"', 'Backdrop restores focus to its visible handle');
     assert.equal(await consoleCode('return c.plantTab;'), 'reactor');
@@ -167,7 +173,7 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot,
     assert.equal(await consoleCode('return c.overviewScene.renderer.info.render.frame;'), coveredFrames);
     await close(); await paused(true);
 
-    await checkMobileInput({ consoleCode, page, ready, tap, viewport, screenshot });
+    await checkMobileInput({ consoleCode, page, ready, tap, viewport, screenshot, touchId });
 
     // Career screens retain host ownership, pinned goals and the existing save path.
     await tap('[data-mobile-open="company"]');
