@@ -119,9 +119,9 @@ their default media policy and explicit Yes/No checks.
 
 `npm run sync:android` copies `dist/` into the sibling wrapper's generated assets.
 On the Android development machine, follow `../NuclearMobile/doc/android.md` for
-APK builds and the real WebView smoke test. The browser model does not establish
-device playback; the 2026-11-20 native change awaits Android compilation and
-emulator/device verification there.
+APK builds and the real WebView smoke test. On 2026-11-20, the Android 15 emulator
+smoke test verified that the bundled console starts its audio context and skips
+the sound prompt before any user interaction.
 
 Web verification on 2026-11-20 passes all 234 unit checks, the production build,
 the modeled Android audio browser check and the existing plant/station audio
