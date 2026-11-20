@@ -25,7 +25,7 @@ also describe future work and must not be treated as entirely implemented.
 | Plant behavior and interlocks | [Plant specification](doc/nuclear-power.md) |
 | Company game, missions and saves | [Current implementation handoff](doc/game-development.md), [product plan](doc/GAMEPLAY-PLAN.md) and [assignment expansion](doc/ASSIGNMENT-EXPANSION-PLAN.md) |
 | Development, tests and branch policy | [Development guide](doc/development.md) |
-| Phone landscape layout work | [Mobile layout plan and checkpoint](doc/MOBILE-LANDSCAPE-PLAN.md) |
+| Compact landscape layout work | [Mobile layout plan and checkpoint](doc/MOBILE-LANDSCAPE-PLAN.md) |
 | Docker, relay and reverse proxies | [Deployment guide](doc/deployment.md) |
 | Equipment stations and electrical grid | [Station plan](doc/EQUIPMENT-STATIONS-PLAN.md) and [grid plan](doc/ELECTRICAL-GRID-PLAN.md) |
 | Fuel handling and cooling tower | [Fuel-handling plan](doc/FUEL-HANDLING-PLAN.md) and [tower checkpoint](doc/COOLING-TOWER-PLAN.md) |
@@ -155,7 +155,8 @@ process equipment remains silent. No sound-only timers or saved fields. Use
 
 ## UI changes and browser verification
 
-Short landscape touch viewports use the full host's dedicated mobile layout;
+Landscape viewports up to 1200 CSS pixels wide use the full host's compact layout,
+including small tablets and mouse-operated windows, without a height restriction;
 `nuclear-power-mobile-layout.js` and its CSS own the header, popover drawers,
 bounded inspection sheets, focus/inert coordination, handle swipes and desktop
 restoration. Reuse the native controls, plant tab routes and cameras. Mobile UI
@@ -164,14 +165,21 @@ changes Pause. Covering sheets suspend scene/audio work without stopping visible
 plant time. UI drawer motion must still finish when plant animation is paused.
 Native part/unit access survives WebGL loss. Preserve desktop layout outside this
 mode and the separate companion role. Run `npm run test:browser:mobile` for the
-shared phone checks; this is still a shared-shell change requiring the gates below.
+shared phone/tablet/small-window checks; this is still a shared-shell change requiring the gates below.
 
-The full host also has a one-per-page-load native Yes/No sound dialog owned by
-`nuclear-power-sound-choice.js`; companions retain their existing pairing/audio
-path. Yes must unlock the existing audio through the user gesture; No/Escape keeps
+In ordinary browsers, the full host has a one-per-page-load native Yes/No sound
+dialog owned by `nuclear-power-sound-choice.js`; companions retain their existing
+pairing/audio path. The bundled Android WebView may skip the dialog and enable
+the existing audio path when native bootstrap explicitly advertises
+`platform: android` and `audioEnabledByDefault: true`; its media policy must permit
+gesture-free playback. Keep Mute usable and preserve the choice on reset/rotation/
+reconnect. Older wrappers still ask. Yes in browsers must unlock audio through
+the user gesture; No/Escape keeps
 it muted. Do not repeat the question on Reset, rotation, career changes or element
 reconnection, or add a saved sound choice. Browser setup chooses No explicitly
 when testing other journeys; shared sound-choice checks test both answers.
+Use `npm run test:browser:android` for the modeled Android media policy and
+`npm run test:browser:audio` for existing browser opt-in and audio cleanup.
 
 `nuclear-power-touch-zoom.js` owns two-touch camera zoom in the overview,
 equipment/grid stations and rack, including overview labels. Preserve single
@@ -179,7 +187,7 @@ touch orbit/inspection, keyboard/mouse input, zoom bounds and independent camera
 Pinches suppress picking until all fingers lift; hide/resize/cancel/detach clears
 input and capture. Keep native UI taps working after a pinch. The full host's
 `nuclear-power-fullscreen.js` provides Full screen / Exit full screen in the full
-host's header settings at all viewport sizes (More in phone landscape). Keep it
+host's header settings at all viewport sizes (More in compact landscape). Keep it
 available independently of width/pointer media queries. Use native state/events
 and a user gesture, handle
 unsupported/rejected/late requests, and retain controls, camera, Pause and saves.
@@ -371,8 +379,9 @@ edge tabs, without a top button row; panels slide/fade as their grid tracks resi
 Preserve close/Escape focus return to the edge tab, immediate control locks during
 exit, rapid reversal, reduced-motion switching, full remaining-height 3D,
 side-panel scrolling and the always-present header
-and operator column (its controls scroll when needed). Smaller desktop windows and
-all companions retain ordinary page scrolling. Wide windows use stacked instruments
+and operator column (its controls scroll when needed). Smaller desktop windows
+outside compact landscape mode and all companions retain ordinary page scrolling.
+Wide windows use stacked instruments
 on the left, tabbed reactor/maintenance views and operator controls in the middle,
 and trends/logs on the right. Regulation, plant
 sound enable/mute, theme, simulation status and clock share the header card beside

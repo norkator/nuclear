@@ -299,8 +299,14 @@ starts at 600 °C peak fuel or 70% damage; earlier levels use the existing 410/4
 warning/damage boundaries. These are illustrative demo levels. Acknowledgement
 silences ordinary attention tones; ongoing overheating/damage and meltdown remain
 audible until conditions resolve or the user mutes. Mute, pause, hidden views and detach stop audio;
-Reset demo clears the incident sound. Browsers require a user gesture to enable
-audio. Sound settings belong to this view instance; bundled audio files load only after opt-in.
+Reset demo clears the incident sound. Ordinary browsers require a user gesture to
+enable audio. The bundled Android WebView permits gesture-free media playback
+and advertises `audioEnabledByDefault: true` in its Android bootstrap; the full
+host then enables the existing audio path once without showing the sound-choice
+dialog. Older wrappers retain the question. Mute remains available and survives
+reset/rotation/reconnect for the current page; a new Android page starts enabled
+again. Sound settings belong to this view instance, with no saved preference;
+bundled audio files load only when sound is enabled.
 The same switch enables distinct quiet ascending Start and descending Stop cues,
 only when that command changes the reactor's running state. Blocked/repeated commands
 produce no cue. Kenney UI Audio samples provide quiet on/off switch clicks and a short click when
@@ -466,8 +472,9 @@ reduced motion switches immediately. Smaller desktop windows keep edge toggles
 available for opening/closing their stacked panels. The header and operator column stay visible. Long side
 panels and operator controls scroll within their columns; Maintenance also scrolls
 within the process panel. The 3D canvas stretches to all remaining process height
-instead of using a fixed maximum. Below 1400 px the desktop retains ordinary page
-scrolling and its responsive column/stacked layout. Regulation, plant
+instead of using a fixed maximum. Below 1400 px, outside the compact landscape
+layout, the desktop retains ordinary page scrolling and its responsive
+column/stacked layout. Regulation, plant
 sound enable/mute, theme, simulation information and session clock share a header
 card beside the brand/title, leaving more room for the main overview:
 
@@ -476,9 +483,10 @@ card beside the brand/title, leaving more room for the main overview:
 - middle: tabbed reactor/maintenance overview beside the operator console;
 - right: live trends above the filterable event journal.
 
-The full host has a separate landscape-phone presentation on touch viewports up
-to 1100 × 600 CSS pixels. `nuclear-power-mobile-layout.js` and its CSS own a
-compact icon/clock/status header, left instruments drawer, right operator drawer,
+The full host has a compact presentation on landscape viewports up to 1200 CSS
+pixels wide, including phones, smaller tablets and mouse-operated windows, with
+no height or pointer-type restriction. `nuclear-power-mobile-layout.js` and its
+CSS own a compact icon/clock/status header, left instruments drawer, right operator drawer,
 Company/Trends/GC/More access, floating overview return and native Parts/Units access.
 They reuse existing nodes, model commands, equipment routing and cameras. Existing
 inspection popovers become bounded sheets; the coordinator contains focus and
@@ -492,9 +500,10 @@ the scene caption, without card styling, with completion marks and a qualifying 
 Camera touches pass through; full briefings and reporting stay in Company.
 The header's logo/title/clock button returns to the main plant view and retains
 the overview camera. Rotation restores the checklist above desktop Live trends.
-See [the phone layout plan and checkpoint](MOBILE-LANDSCAPE-PLAN.md) and run
-`npm run test:browser:mobile`. Portrait/tablet/mouse layouts retain their existing
-behavior; mobile roles never turn a full host into a companion.
+See [the compact layout plan and checkpoint](MOBILE-LANDSCAPE-PLAN.md) and run
+`npm run test:browser:mobile`. Portrait and wider windows retain their existing
+layouts; viewport changes never turn a full host into a companion. Growing beyond
+1200px restores the original desktop controls, panels and preferences.
 
 GC opens the retained Grid controller as a separate sheet, keeping Follow requests
 and Request now directly accessible during careers. Rotation restores the same

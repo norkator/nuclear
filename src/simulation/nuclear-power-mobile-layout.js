@@ -4,7 +4,9 @@
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
 // Presentation only: all controls keep their original DOM, handlers and host model.
-const mobileQuery = '(max-width: 1100px) and (max-height: 600px) and (orientation: landscape) and (any-pointer: coarse)';
+// Share the compact console across landscape phones, small tablets and windows.
+// Retain the portrait layout; pointer type and viewport height do not limit access.
+const mobileQuery = '(max-width: 1200px) and (orientation: landscape)';
 const focusable = 'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], summary, [tabindex="0"]';
 const attributes = ['popover', 'role', 'aria-modal', 'aria-labelledby', 'aria-hidden', 'hidden', 'inert'];
 
@@ -13,7 +15,7 @@ export class MobileLayout {
         this.host = host; this.root = host.shadowRoot; this.active = false;
         this.moves = []; this.saved = new Map(); this.inertNodes = new Map();
         const console = this.root.querySelector('.console');
-        console.insertAdjacentHTML('afterbegin', `<header class="mobile-header mobile-only" aria-label="Phone control room">
+        console.insertAdjacentHTML('afterbegin', `<header class="mobile-header mobile-only" aria-label="Compact control room">
           <button class="mobile-home" data-mobile-back aria-label="Back to main plant view"><img class="mobile-logo" src="/favicon.svg" alt="" width="28" height="28"/>
           <span class="mobile-identity"><strong>Nuclear Power</strong><span data-mobile-clock></span></span></button>
           <span class="mobile-state" data-mobile-state></span>
@@ -22,7 +24,7 @@ export class MobileLayout {
           <button class="small-button" data-mobile-open="grid-controller" aria-label="Grid controller" title="Grid controller" aria-controls="mobile-grid-controller" aria-expanded="false">GC</button>
           <span data-mobile-pause></span><button class="small-button" data-mobile-open="more" aria-controls="mobile-more" aria-expanded="false">More</button>
         </header>
-        <nav class="mobile-navigation mobile-only" aria-label="Phone plant navigation">
+        <nav class="mobile-navigation mobile-only" aria-label="Compact plant navigation">
           <button class="small-button mobile-edge mobile-edge-left" data-mobile-open="instruments" aria-controls="plant-instruments" aria-expanded="false">Instruments ›</button>
           <button class="small-button mobile-edge mobile-edge-right" data-mobile-open="operator" aria-controls="mobile-operator" aria-expanded="false">‹ Controls</button>
           <button class="small-button mobile-back" data-mobile-back hidden>← Back to plant</button>

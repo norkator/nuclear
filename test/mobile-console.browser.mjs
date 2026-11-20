@@ -40,6 +40,14 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot,
         await page('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
         await ready('!c.mobileLayout.current', 'Mobile surface closes');
     };
+    const click = async selector => {
+        await waitForConsoleLayout(consoleCode, `Before mouse click ${selector}`);
+        const point = await consoleCode(`const n=s.querySelector(${JSON.stringify(selector)}),r=n.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;return {x,y,width:r.width,height:r.height,disabled:n.disabled,inert:!!n.closest('[inert]'),covered:!n.contains(s.elementFromPoint(x,y))};`);
+        assert.ok(point.width >= 44 && point.height >= 44 && !point.disabled && !point.inert && !point.covered, `Mouse control reachable: ${selector}: ${JSON.stringify(point)}`);
+        await page('Input.dispatchMouseEvent', { type: 'mousePressed', x: point.x, y: point.y, button: 'left', buttons: 1, clickCount: 1 });
+        await page('Input.dispatchMouseEvent', { type: 'mouseReleased', x: point.x, y: point.y, button: 'left', buttons: 0, clickCount: 1 });
+        await waitForConsoleLayout(consoleCode, `After mouse click ${selector}`);
+    };
     const area = async name => {
         if (name === 'maintenance') { await tap('[data-mobile-open="more"]'); await tap('[data-mobile-tab="maintenance"]'); return; }
         await tap('.mobile-home');
@@ -79,8 +87,9 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot,
     assert.equal(await consoleCode('return c.simulation===window.mobilePlant && !c.companion && c.dataset.screen==="desktop";'), true, 'Phone remains the same authoritative host');
     assert.deepEqual(await consoleCode('return c.simulation.snapshot();'), before, 'Layout entry issues no commands');
 
-    for (const [width, height] of [[667, 375], [740, 360], [844, 390], [932, 430]]) {
+    for (const [width, height] of [[667, 375], [740, 360], [844, 390], [932, 430], [1024, 768], [1133, 744], [1180, 820], [1200, 900]]) {
         await viewport(width, height);
+        assert.equal(await consoleCode('return c.mobileLayout.active;'), true, `${width}×${height} uses the compact layout`);
         for (const theme of ['dark', 'light']) {
             await consoleCode(`c.setTheme('${theme}',false);`);
             await waitForConsoleLayout(consoleCode, `${width} ${theme} mobile geometry`);
@@ -92,7 +101,7 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot,
                 assert.ok(r.width >= 44 && r.height >= 44 && r.right <= width && r.y >= 0, `Header touch fit: ${JSON.stringify(layout)}`);
                 if (i) assert.ok(layout.header[i - 1].right <= r.x + 1, 'Header controls do not overlap');
             }
-            await screenshot(`phone-${width}-${theme}`);
+            await screenshot(`compact-${width}-${theme}`);
             await tap('[data-mobile-open="grid-controller"]');
             assert.equal(await consoleCode('return c.mobileLayout.current===window.mobileGridController && s.querySelectorAll("#follow-grid").length===1;'), true, 'GC opens the original controller with a single Follow requests control');
             const grid = await consoleCode('const n=c.mobileLayout.current,r=n.getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,scroll:n.scrollWidth,width:n.clientWidth};');
@@ -325,8 +334,34 @@ export async function checkMobileConsole({ consoleCode, page, until, screenshot,
     assert.equal(await consoleCode('return !!s.querySelector(".masthead .automation-strip") && !!s.querySelector(".console-footer [data-action=pause]");'), true);
     assert.equal(await consoleCode('return s.querySelector("#plant-instruments > .grid-dispatch-panel")===window.mobileGridController && !window.mobileGridController.hasAttribute("popover") && s.querySelector(".overview-toolbar [data-action=spent-fuel]")===window.mobileSpentFuel;'), true, 'Rotation restores the original grid controller and spent-fuel button to desktop');
     assert.equal(await consoleCode('return localStorage.getItem("porssiohjain.nuclear-power.panels")===window.mobilePreferences;'), true);
-    await viewport(1024, 768); assert.equal(await consoleCode('return c.mobileLayout.active;'), false, 'Tablet keeps its existing layout');
-    await viewport(844, 390, false); assert.equal(await consoleCode('return c.mobileLayout.active;'), false, 'A small mouse desktop retains its layout');
+    // Mouse windows share the same drawers, including at tablet heights. Resizing
+    // across the boundary must close surfaces and hand back the original controls.
+    await consoleCode('if(!c.simulation.paused)c.act("pause");');
+    const resizeState = await consoleCode('return {plant:c.simulation.snapshot(),camera:[c.overviewScene.yaw,c.overviewScene.pitch,c.overviewScene.zoom,...c.overviewScene.target.toArray()]};');
+    for (const [width, height] of [[844, 390], [1000, 800], [1100, 900], [1200, 900]]) {
+        await viewport(width, height, false);
+        assert.equal(await consoleCode('return c.mobileLayout.active && !matchMedia("(any-pointer:coarse)").matches;'), true, 'Small mouse windows use the compact layout');
+        for (const theme of ['dark', 'light']) {
+            await consoleCode(`c.setTheme('${theme}',false);`);
+            const geometry = await consoleCode('const r=s.querySelector(".diagram-viewport").getBoundingClientRect();return {width:document.documentElement.scrollWidth,bottom:r.bottom,height:r.height};');
+            assert.ok(geometry.width <= width && geometry.bottom <= height && geometry.height >= height-65, `Mouse viewport fit: ${JSON.stringify(geometry)}`);
+            await click('[data-mobile-open="instruments"]');
+            assert.equal(await consoleCode('return c.mobileLayout.kind;'), 'instruments');
+            await close();
+            assert.equal(await consoleCode('return s.activeElement.dataset.mobileOpen;'), 'instruments', 'Mouse drawer closing restores the handle focus');
+            await click('[data-mobile-open="operator"]');
+            assert.equal(await consoleCode('return c.mobileLayout.current.contains(s.activeElement);'), true, 'Mouse controls retain keyboard focus containment');
+            await screenshot(`compact-mouse-${width}-${theme}`);
+            await viewport(1201, height, false);
+            assert.equal(await consoleCode('return c.mobileLayout.active || !!c.mobileLayout.current;'), false, 'Growing past 1200px closes the compact drawer');
+            assert.equal(await consoleCode('return s.querySelector(".operator-column").hasAttribute("popover") || s.querySelector(".control-column").inert;'), false, 'Desktop controls are restored and interactive');
+            assert.equal(await consoleCode('return s.querySelector("#plant-instruments > .grid-dispatch-panel")===window.mobileGridController;'), true, 'Desktop restores the original grid controller');
+            await viewport(width, height, false);
+            assert.equal(await consoleCode('return !!c.mobileLayout.current;'), false, 'Shrinking starts with drawers closed');
+        }
+    }
+    assert.deepEqual(await consoleCode('return {plant:c.simulation.snapshot(),camera:[c.overviewScene.yaw,c.overviewScene.pitch,c.overviewScene.zoom,...c.overviewScene.target.toArray()]};'), resizeState, 'Resizing and pointer changes preserve the plant, Pause and overview camera');
+    assert.equal(await consoleCode('return c.simulation===window.mobilePlant && localStorage.getItem("porssiohjain.nuclear-power.panels")===window.mobilePreferences;'), true, 'Compact tablet and mouse layouts preserve the host instance and desktop preferences');
     await viewport(844, 390);
     await consoleCode('window.mobileRetained=c;const p=c.parentElement;c.remove();p.append(c);');
     await ready('c.mobileLayout.active && !!c.overviewScene', 'Mobile detach/reconnect recreates the renderer');

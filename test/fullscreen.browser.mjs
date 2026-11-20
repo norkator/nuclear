@@ -14,15 +14,19 @@ export async function checkBrowserFullscreen({ consoleCode, page, until, screens
     await consoleCode('if(!c.simulation.paused)c.act("pause");');
     const before = await consoleCode('return c.simulation.snapshot();');
     const camera = await consoleCode('return [c.overviewScene.yaw,c.overviewScene.pitch,c.overviewScene.zoom,...c.overviewScene.target.toArray()];');
-    const click = async () => {
+    const clickControl = async selector => {
         await waitForConsoleLayout(consoleCode, 'Fullscreen button');
-        const point = await consoleCode(`const n=s.querySelector('[data-fullscreen-toggle]'),r=n.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;return {x,y,width:r.width,height:r.height,disabled:n.disabled,covered:!n.contains(s.elementFromPoint(x,y)),viewport:[innerWidth,innerHeight],coarse:matchMedia('(any-pointer:coarse)').matches,supported:c.fullscreen.supported};`);
+        const point = await consoleCode(`const n=s.querySelector(${JSON.stringify(selector)}),r=n.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;return {x,y,width:r.width,height:r.height,disabled:n.disabled,covered:!n.contains(s.elementFromPoint(x,y)),viewport:[innerWidth,innerHeight],coarse:matchMedia('(any-pointer:coarse)').matches,supported:c.fullscreen.supported};`);
         assert.ok(point.width > 0 && point.height > 0 && !point.disabled && !point.covered,
-            `Fullscreen control is visible and reachable: ${JSON.stringify(point)}`);
+            `Control is visible and reachable: ${selector}: ${JSON.stringify(point)}`);
         assert.ok(point.x >= 0 && point.y >= 0 && point.x < point.viewport[0] && point.y < point.viewport[1], 'Fullscreen button fits the visible viewport');
         if (point.coarse) assert.ok(point.height >= 44, 'Tablet fullscreen control retains a full touch target');
         await page('Input.dispatchMouseEvent', { type: 'mousePressed', x: point.x, y: point.y, button: 'left', buttons: 1, clickCount: 1 });
         await page('Input.dispatchMouseEvent', { type: 'mouseReleased', x: point.x, y: point.y, button: 'left', buttons: 0, clickCount: 1 });
+    };
+    const click = async () => {
+        if (await consoleCode('return c.mobileLayout.active;')) await clickControl('[data-mobile-open="more"]');
+        await clickControl('[data-fullscreen-toggle]');
     };
     assert.equal(await consoleCode('return document.fullscreenElement;'), null, 'The page does not enter fullscreen automatically');
     for (const [width, height, touch] of [[1440, 900, false], [1000, 800, false], [1280, 800, true]]) {

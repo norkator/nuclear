@@ -49,9 +49,9 @@ Manual accumulates qualifying time and pauses progress outside the requirements,
 with no failure deadline. Verified success stays ready until reported. Pause
 freezes all plant time. Previously issued version-1 briefs retain their pinned terms.
 
-On a landscape phone, tap **GC** beside **Trends** to open Grid controller and
-turn **Follow requests** off or on. **More** opens Plant menu with **Maintenance**
-and **Spent fuel** first; objectives, settings and view controls follow in a
+In the compact landscape layout, select **GC** beside **Trends** to open Grid
+controller and turn **Follow requests** off or on. **More** opens Plant menu with
+**Maintenance** and **Spent fuel** first; objectives, settings and view controls follow in a
 separate section. Select equipment or the reactor directly in the overview to
 open stations or Core map. Native equipment shortcuts appear in Plant menu when
 the overview uses its schematic fallback. The Instruments and Controls edge
@@ -119,8 +119,8 @@ a tap selects equipment. Finishing or cancelling a two-finger gesture cannot
 select a part.
 Each view retains its own camera.
 
-**Full screen** is available in the control-room header settings on desktop,
-tablets and portrait phones, and in **More** in the phone landscape layout.
+**Full screen** is available in the control-room header settings in the desktop
+and portrait layouts, and in **More** in the compact landscape layout.
 Click or tap it to request fullscreen for the entire control room; use
 **Exit full screen** or the browser's own exit
 action to leave. The button follows actual browser fullscreen state. Unsupported
@@ -230,18 +230,21 @@ as the process view expands, with immediate changes under reduced motion. These
 controls use no extra row above the workspace. The header and
 operator console stay in place; long side panels and operator controls scroll
 within their columns. Panel choices are remembered in this browser. Smaller
-desktop windows retain the stacked, page-scrolling layout.
+desktop windows above the compact breakpoint retain the stacked, page-scrolling
+layout.
 
-## Landscape phones
+## Compact landscape layout
 
-The full reactor console uses a dedicated layout on short landscape touch screens
-(up to 1100 × 600 CSS pixels). Its 3D overview or selected equipment station fills
-the space below a compact header, with the app icon, clock and actual run state.
-Phone labels use small, dark, translucent tags while retaining larger touch targets.
+The full reactor console uses a compact layout in landscape windows up to
+1200 CSS pixels wide, including phones, smaller tablets and mouse-operated
+browser windows. There is no height restriction. Its 3D overview or selected
+equipment station fills the space below a compact header, with the app icon,
+clock and actual run state. Equipment labels use small, dark, translucent tags
+while retaining larger touch targets.
 Selecting equipment opens the same dedicated stations as on desktop.
 
-**Instruments** opens the left drawer with readings, Pump power source and Grid
-controller. **Controls** opens the right drawer with Start/Stop, covered emergency
+**Instruments** opens the left drawer with readings and Pump power source.
+**Controls** opens the right drawer with Start/Stop, covered emergency
 shutdown, pumps, rods and regulation settings. Tap the handles or swipe inward
 from them. Close with ×, a backdrop tap, Escape or an outward header swipe.
 Opening a drawer never pauses the plant.
@@ -257,12 +260,12 @@ pairing and overview display controls. Pause remains in the header.
 Equipment views have a floating **Back to plant** button, preserving the overview
 camera. Tapping the header's logo, title or clock also returns to the main plant
 view. **Parts** or **Units** opens native controls. Inspection windows fill the
-available phone viewport and scroll inside their sheets. If 3D fails, the native
+available viewport and scroll inside their sheets. If 3D fails, the native
 part/unit list appears directly. Only one drawer or sheet accepts input at a time.
 
 This is the full `/reactor/` host, with local careers and saves. The paired
-`/companion/` screen keeps its existing behavior. Portrait phones, tablets and
-mouse-operated desktop windows retain the existing layouts. Rotation restores
+`/companion/` screen keeps its existing behavior. Portrait and wider windows
+retain the existing layouts. Growing beyond 1200px or rotating to portrait restores
 desktop panels and control placement without changing their saved preferences,
 plant targets or Pause choice. See [the implementation plan](MOBILE-LANDSCAPE-PLAN.md)
 for the layout boundaries and verification checkpoint.
@@ -591,6 +594,13 @@ that user gesture; No or Escape keeps it muted. The question appears once per
 page load, without changing Pause or saving a sound choice into a career. Reset,
 rotation, career changes and element reconnection do not ask again. The existing
 Enable/Mute control remains available in the desktop header or the phone's More menu.
+
+The bundled Android WebView starts with sounds enabled and skips this question.
+Its existing **Mute plant sounds** control remains available. Reset, rotation and
+reconnection preserve the current page's mute choice; a newly loaded app page
+starts enabled again. There is no saved sound preference. Ordinary Android
+browsers and older app wrappers retain the Yes/No question. Cold stopped machinery
+stays quiet even when sounds are enabled.
 
 Control sounds use the bundled Kenney UI Audio and Interface Sounds packs. Pumps
 retain the original clicks; computers, electrical switching, heat-exchanger

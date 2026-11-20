@@ -76,7 +76,7 @@ Set `NUCLEAR_POWER_APP_URL=http://127.0.0.1:8080` to test a running app/containe
 Screenshot and export artifacts are written to the temporary directory printed by
 the test. Tests do not need the Spring application.
 
-## Landscape phone verification
+## Compact landscape verification
 
 `npm run test:browser:fullscreen` checks the visible web fullscreen control and
 real Chrome entry/exit in both themes on desktop, smaller mouse viewports and
@@ -91,12 +91,42 @@ and full suite. `node --test test/nuclear-power-mobile-input.test.mjs` covers
 cancelled gestures, mouse/keyboard continuity, rejected/unsupported fullscreen
 and asynchronous detach cleanup without a browser.
 
-For the landscape-phone host layout, run `npm run test:browser:mobile`. The checks
+For the compact landscape host layout, run `npm run test:browser:mobile`. The checks
 are shared with the full browser suite and use actual touch input, viewport and
 drawer geometry, focus, cold startup, career controls and rotation/reconnection.
+They cover landscape tablets through 1200px wide and real mouse clicks in small
+browser windows, with desktop restoration at 1201px and state/camera preservation.
 This layout changes the shared console shell: before handoff also run the existing
 desktop layout/station checks, the final full browser suite and focused companion
 and company-game checks. See [the mobile implementation plan](MOBILE-LANDSCAPE-PLAN.md).
+
+## Android audio defaults
+
+The sibling `../NuclearMobile` WebView can advertise `audioEnabledByDefault: true`
+with `platform: android` in its native bootstrap, paired with
+`setMediaPlaybackRequiresUserGesture(false)`. The full host then enables the
+existing audio path without a question. Ordinary browsers and older wrappers
+retain the existing Yes/No dialog. Mute remains local to the current page and
+survives reset, resizing, reconnection and background/resume.
+
+Run `node --test test/android-integration.test.mjs test/nuclear-power-sound-choice.test.mjs`,
+`npm run build`, `npm run test:browser:android` and `npm run test:browser:audio`.
+The Android browser check injects the native bootstrap into a fresh Chromium
+page and permits gesture-free playback only for that focused run. It verifies
+running audio before any user activation, no prompt, a quiet cold plant, Mute,
+reset/reconnect and pause/visibility cleanup. The ordinary browser checks retain
+their default media policy and explicit Yes/No checks.
+
+`npm run sync:android` copies `dist/` into the sibling wrapper's generated assets.
+On the Android development machine, follow `../NuclearMobile/doc/android.md` for
+APK builds and the real WebView smoke test. The browser model does not establish
+device playback; the 2026-11-20 native change awaits Android compilation and
+emulator/device verification there.
+
+Web verification on 2026-11-20 passes all 234 unit checks, the production build,
+the modeled Android audio browser check and the existing plant/station audio
+browser check, including ordinary browser Yes/No behavior. The tested bundle was
+synced into `../NuclearMobile/app/src/main/assets/nuclear`.
 
 ## Local companion relay
 

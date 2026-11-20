@@ -3,6 +3,8 @@
  * Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
  * Licensed under the Pörssiohjain Personal Use License v1.0.
  */
+import { getAndroidBootstrap } from '../platform/android-bridge.js';
+
 export class SoundChoice {
     constructor(host) {
         this.host = host;
@@ -24,6 +26,13 @@ export class SoundChoice {
     connect() {
         if (this.asked) return;
         this.asked = true;
+        const native = getAndroidBootstrap();
+        // The bundled WebView explicitly permits playback without a gesture.
+        // Older wrappers and ordinary browsers retain the explicit sound choice.
+        if (native?.platform === 'android' && native.audioEnabledByDefault === true) {
+            if (!this.host.soundEnabled) this.host.act('sound');
+            return;
+        }
         this.dialog.showModal();
     }
 

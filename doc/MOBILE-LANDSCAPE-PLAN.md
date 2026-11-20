@@ -3,11 +3,19 @@ Pörssiohjain - Energy usage optimization platform
 Copyright (C) 2026 Martin Kankaanranta / Nitramite Tmi
 Licensed under the Pörssiohjain Personal Use License v1.0.
 -->
-# Phone landscape layout plan
+# Compact landscape layout plan
 
 Status: implemented with automated verification, 2026-11-18. Physical Android/
 Firefox and iPhone/Safari verification remains manual. The design below records
 the behavior and implementation boundaries.
+
+The 2026-11-20 responsive extension uses this same presentation on all landscape
+viewports up to **1200 CSS pixels wide**, including smaller tablets and resized
+mouse-operated browser windows. There is no height or pointer-type restriction.
+Portrait and wider windows retain their existing layouts. Resizing across the
+boundary restores the original controls and desktop panel preferences without
+changing the simulation, Pause or cameras. This supersedes the original
+phone-only detection rule.
 Read [AGENTS.md](../AGENTS.md), [the plant specification](nuclear-power.md),
 [the equipment-station plan](EQUIPMENT-STATIONS-PLAN.md) and
 [the development guide](development.md) before implementation.
@@ -23,8 +31,8 @@ page can operate its own free plant or career, including company assignments and
 saves. `/companion/` remains a separately paired follower with its current
 ownership and scrolling rules. Screen size must never determine simulation role.
 
-Keep the current wide desktop layout, smaller desktop scrolling layout and
-desktop panel preferences. Initially retain the current portrait layout too.
+Keep the current wide desktop layout, desktop scrolling layout above the compact
+breakpoint and desktop panel preferences. Retain the current portrait layout too.
 There are no model, mission, save-schema, transport or relay changes.
 
 ## Proposed screen
@@ -125,11 +133,10 @@ to require explicit opening and activation; navigation never changes its state.
 2. Add a dedicated `nuclear-power-mobile-layout.js` controller and matching CSS.
    Scope all new rules to the full host with the mobile attribute. Reuse shared
    behavior through small hooks rather than rewriting desktop layout rules.
-3. Begin automatic detection with a short landscape viewport on a touch device;
-   a candidate is width up to 1100 CSS pixels and height up to 600 CSS pixels.
-   Validate these thresholds against real devices. A small mouse-operated desktop
-   must retain its existing layout, and a landscape tablet must not be caught
-   just because its orientation matches. Do not use user-agent sniffing.
+3. Select the compact presentation at landscape widths up to 1200 CSS pixels,
+   independently of viewport height and pointer type. This includes phones,
+   smaller tablets and mouse-operated browser windows. Portrait and wider
+   windows retain their existing layouts. Do not use user-agent sniffing.
 4. Arbitrate panel ownership between the existing desktop controller and the
    mobile controller. Mobile drawers start closed and use transient UI state.
    Opening them must not write `porssiohjain.nuclear-power.panels` or the companion
@@ -191,8 +198,9 @@ All paths below are relative to the repository root.
    notches, the software keyboard and the browser's own edge navigation.
 4. Add a focused mobile browser entry, for example `test:browser:mobile`, backed
    by checks also called by the full browser suite. Exercise 667×375, 740×360,
-   844×390 and 932×430 touch viewports, portrait rotation, a touch tablet and a
-   smaller mouse-operated desktop. Include both themes, reduced motion, keyboard
+   844×390 and 932×430 touch viewports, portrait rotation, 1024×768, 1133×744,
+   1180×820 and 1200×900 tablets, and mouse-operated windows through 1200px.
+   Check desktop restoration at 1201px. Include both themes, reduced motion, keyboard
    access, fallback, hidden rendering/audio, pause and detach/reconnect.
 5. Assert real geometry, touch picking, focus return and control ownership. Verify
    that layout changes preserve the exact simulation instance, saved desktop
@@ -294,3 +302,17 @@ The subsequent typography/placement refinement puts 8px steps and a 7px timer
 directly below the upper-left scene caption, leaving the bottom Return button
 clear. Production build and focused mobile browser checks pass for this refinement;
 the earlier full-suite result above predates these CSS-only adjustments.
+
+## Responsive extension verification, 2026-11-20
+
+The 1200px landscape breakpoint passes all 223 unit checks, the production build,
+focused mobile and desktop-layout browser checks, the full browser regression
+(18m56s), and the companion browser check. The full run includes the shared
+fullscreen, equipment-station and company-game assertions.
+
+Tablet coverage includes 1024×768, 1133×744, 1180×820 and 1200×900 in both themes.
+Real mouse clicks exercise drawers at 844×390, 1000×800, 1100×900 and 1200×900.
+Crossing to 1201px closes overlays and restores the original desktop controls;
+returning starts with drawers closed. Exact plant snapshots, Pause, camera poses,
+the retained host instance and desktop panel preferences survive these changes.
+Portrait restoration and companion behavior retain their existing coverage.

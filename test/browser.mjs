@@ -27,6 +27,7 @@ import { captureConsoleLayout, checkConsoleLayout, checkBatchedConsoleVisibility
 import { checkMobileConsole } from './mobile-console.browser.mjs';
 import { checkSoundChoice } from './sound-choice.browser.mjs';
 import { checkBrowserFullscreen } from './fullscreen.browser.mjs';
+import { checkAndroidAudio } from './android-audio.browser.mjs';
 
 const dist = fileURLToPath(new URL('../dist/', import.meta.url));
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -69,7 +70,8 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
     if (!appUrl) await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     console.log(`Browser artifacts: ${artifacts}`);
     const profileDir = join(artifacts, 'profile');
-    const browser = spawn(process.env.CHROME_BIN || '/opt/google/chrome/chrome', ['--headless', '--no-sandbox', '--disable-dev-shm-usage', '--no-first-run', '--no-default-browser-check', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--remote-debugging-port=0', `--user-data-dir=${profileDir}`, 'about:blank']);
+    const browser = spawn(process.env.CHROME_BIN || '/opt/google/chrome/chrome', ['--headless', '--no-sandbox', '--disable-dev-shm-usage', '--no-first-run', '--no-default-browser-check', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--remote-debugging-port=0', `--user-data-dir=${profileDir}`,
+        ...(process.env.NUCLEAR_BROWSER_FOCUS === 'android-audio' ? ['--autoplay-policy=no-user-gesture-required'] : []), 'about:blank']);
     let socket;
     let captureFailure;
     try {
@@ -168,7 +170,8 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
         const focusedComputers = process.env.NUCLEAR_BROWSER_FOCUS === 'computers';
         const focusedSeo = process.env.NUCLEAR_BROWSER_FOCUS === 'seo';
         const focusedFullscreen = process.env.NUCLEAR_BROWSER_FOCUS === 'fullscreen';
-        if (!focusedEquipment && !focusedCooling && !focusedGame && !focusedLayout && !focusedMobile && !focusedMobileInput && !focusedComputers && !focusedStations && !focusedAudio && !focusedGrid && !focusedFullscreen) {
+        const focusedAndroidAudio = process.env.NUCLEAR_BROWSER_FOCUS === 'android-audio';
+        if (!focusedEquipment && !focusedCooling && !focusedGame && !focusedLayout && !focusedMobile && !focusedMobileInput && !focusedComputers && !focusedStations && !focusedAudio && !focusedGrid && !focusedFullscreen && !focusedAndroidAudio) {
             // Check the actual shipped HTML with JavaScript disabled, as a crawler sees it.
             await page('Emulation.setScriptExecutionDisabled', { value: true });
             for (const entry of pages) {
@@ -222,8 +225,17 @@ test('3D overview, core map, centered pumps, automatic control, trip recovery an
             await send('Browser.close');
             return;
         }
+        if (focusedAndroidAudio) await page('Page.addScriptToEvaluateOnNewDocument', {
+            source: 'window.AndroidBridge={getBootstrapData:()=>JSON.stringify({platform:"android",audioEnabledByDefault:true})};',
+        });
         await page('Page.navigate', { url: new URL('/reactor/', baseUrl).href });
         await until(`!!document.querySelector('nuclear-power-console')?.shadowRoot?.querySelector('.console')`, 'Control room did not render');
+        if (focusedAndroidAudio) {
+            await checkAndroidAudio({ consoleCode, page, until, screenshot });
+            assert.deepEqual(exceptions, []);
+            console.log(`Android audio browser checks passed; artifacts: ${artifacts}`);
+            await send('Browser.close'); return;
+        }
         if (focusedMobileInput || focusedFullscreen) await consoleCode('s.querySelector(".sound-choice-dialog[open] [data-sound-choice=no]")?.click();');
         else await checkSoundChoice({ consoleCode, page, until, screenshot });
         assert.equal(await consoleCode('return c.equipmentStations.scenes.size;'), 0, 'Station renderers remain lazy at initial load');
